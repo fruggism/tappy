@@ -12,10 +12,12 @@ function daysInMonth(year: number, month: number) {
 
 function CategoryRow({
   category: c,
+  maxAllowed,
   onRemove,
   onSaveBudget,
 }: {
   category: Category;
+  maxAllowed: number;
   onRemove: () => void;
   onSaveBudget: (budget: number | null) => void;
 }) {
@@ -28,8 +30,14 @@ function CategoryRow({
       return;
     }
     const v = parseFloat(trimmed.replace(",", "."));
-    if (!isNaN(v) && v >= 0) onSaveBudget(v);
-    else setBudgetInput(c.budget != null ? String(c.budget) : "");
+    if (isNaN(v) || v < 0) {
+      setBudgetInput(c.budget != null ? String(c.budget) : "");
+      return;
+    }
+    // La somma dei budget di categoria non può superare il budget mensile complessivo.
+    const capped = Math.min(v, maxAllowed);
+    if (capped !== v) setBudgetInput(String(capped));
+    onSaveBudget(capped);
   }
 
   return (
@@ -86,6 +94,11 @@ export default function Impostazioni() {
   const now = new Date();
   const dim = daysInMonth(now.getFullYear(), now.getMonth());
   const weekly = (user!.monthly_budget / dim) * 7;
+
+  const allocated = categories.reduce((s, c) => s + (c.budget ?? 0), 0);
+  const unallocated = Math.max(0, user.monthly_budget - allocated);
+  const overAllocated = allocated > user.monthly_budget;
+  const allocationPct = user.monthly_budget > 0 ? (allocated / user.monthly_budget) * 100 : 0;
 
   async function saveBudget() {
     const v = parseFloat(budgetInput.replace(",", "."));
@@ -199,6 +212,7 @@ export default function Impostazioni() {
             <CategoryRow
               key={c.id}
               category={c}
+              maxAllowed={Math.max(0, (c.budget ?? 0) + unallocated)}
               onRemove={() => removeCategory(c.id)}
               onSaveBudget={(budget) => saveCategoryBudget(c.id, budget)}
             />
