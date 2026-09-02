@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Tappy</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 480px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  h1 { font-size: 1.4rem; }
+  input, button { font-size: 1rem; padding: 0.5rem; }
+  #token { width: 100%; box-sizing: border-box; margin-bottom: 0.5rem; }
+  form { display: flex; gap: 0.5rem; margin: 1rem 0; flex-wrap: wrap; }
+  form input { flex: 1; min-width: 80px; }
+  ul { list-style: none; padding: 0; }
+  li { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 0.5rem 0; }
+  .amount { font-weight: 600; }
+  #summary { color: #555; margin-bottom: 1rem; }
+  #error { color: #b00020; }
+</style>
+</head>
+<body>
+<h1>Tappy — le tue spese</h1>
+<input id="token" type="password" placeholder="Il tuo token API">
+<div id="summary"></div>
+<form id="add-form">
+  <input id="amount" type="number" step="0.01" placeholder="Importo" required>
+  <input id="description" type="text" placeholder="Descrizione">
+  <input id="category" type="text" placeholder="Categoria">
+  <button type="submit">Aggiungi</button>
+</form>
+<div id="error"></div>
+<ul id="list"></ul>
+
+<script>
+const tokenInput = document.getElementById('token');
+const errorEl = document.getElementById('error');
+
+tokenInput.value = localStorage.getItem('tappy_token') || '';
+tokenInput.addEventListener('change', () => {
+  localStorage.setItem('tappy_token', tokenInput.value);
+  load();
+});
+
+async function api(path, options = {}) {
+  const token = tokenInput.value.trim();
+  const res = await fetch(path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Errore ${res.status}`);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+async function load() {
+  errorEl.textContent = '';
+  if (!tokenInput.value.trim()) return;
+  try {
+    const [expenses, summary] = await Promise.all([api('/api/expenses'), api('/api/expenses/summary')]);
+    document.getElementById('summary').textContent =
+      `Questo mese: ${summary.month_total.toFixed(2)} EUR su ${summary.month_count} spese`;
+    const list = document.getElementById('list');
+    list.innerHTML = '';
+    for (const e of expenses) {
+      const li = document.createElement('li');
+      const date = new Date(e.created_at).toLocaleDateString('it-IT');
+      li.innerHTML = `<span>${date} — ${e.description || e.category}</span><span class="amount">${Number(e.amount).toFixed(2)} EUR</span>`;
+      list.appendChild(li);
+    }
+  } catch (err) {
+    errorEl.textContent = err.message;
+  }
+}
+
+document.getElementById('add-form').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  errorEl.textContent = '';
+  try {
+    await api('/api/expenses', {
+      method: 'POST',
+      body: JSON.stringify({
+        amount: document.getElementById('amount').value,
+        description: document.getElementById('description').value,
+        category: document.getElementById('category').value,
+      }),
+    });
+    ev.target.reset();
+    load();
+  } catch (err) {
+    errorEl.textContent = err.message;
+  }
+});
+
+load();
+</script>
+</body>
+</html>
