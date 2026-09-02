@@ -413,48 +413,6 @@ function TrendContent({
   );
 }
 
-function ProjectionContent({
-  perDay,
-  daysTotal,
-  budget,
-  visible,
-}: {
-  perDay: number;
-  daysTotal: number;
-  budget: number;
-  visible: boolean;
-}) {
-  const projected = perDay * daysTotal;
-  const animated = useCountUp(projected);
-  const over = budget > 0 && projected > budget;
-  const pct = budget > 0 ? (projected / budget) * 100 : 0;
-  const color = over ? accent("pink", "#ff2ecb") : accent("green", "#39ff88");
-  return (
-    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-      <MiniRing pct={pct} color={color} visible={visible} size={52} strokeWidth={5}>
-        <span className="text-caption font-semibold tabular-nums" style={{ color }}>
-          {Math.round(pct)}%
-        </span>
-      </MiniRing>
-      <div className="flex flex-col gap-0.5 min-w-0">
-        <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">
-          Proiezione
-        </span>
-        <span className="text-headline font-semibold tabular-nums" style={{ color }}>
-          €{animated.toFixed(0)}
-        </span>
-        <span className="text-footnote text-muted dark:text-muted-dark leading-snug">
-          {budget > 0
-            ? over
-              ? `€${(projected - budget).toFixed(0)} oltre budget`
-              : "in linea col budget"
-            : "in base al ritmo attuale"}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function TopContent({
   topCategory,
   topMerchant,
@@ -716,9 +674,6 @@ function TimeCard({
   period,
   range,
   prevRange,
-  showProjection,
-  perDay,
-  budget,
 }: {
   last14: { date: string; total: number }[];
   totalPeriod: number;
@@ -726,9 +681,6 @@ function TimeCard({
   period: Period;
   range: ReturnType<typeof getRange>;
   prevRange: { from: string; to: string };
-  showProjection: boolean;
-  perDay: number;
-  budget: number;
 }) {
   const [ref, visible] = useInView<HTMLDivElement>();
   return (
@@ -738,19 +690,14 @@ function TimeCard({
       </span>
       <SparklineContent data={last14} visible={visible} />
       <div className="h-px bg-black/[0.06] dark:bg-white/10" />
-      <div className="flex gap-3">
-        <TrendContent
-          current={totalPeriod}
-          previous={previousTotal}
-          period={period}
-          range={range}
-          prevRange={prevRange}
-          visible={visible}
-        />
-        {showProjection && (
-          <ProjectionContent perDay={perDay} daysTotal={range.daysTotal} budget={budget} visible={visible} />
-        )}
-      </div>
+      <TrendContent
+        current={totalPeriod}
+        previous={previousTotal}
+        period={period}
+        range={range}
+        prevRange={prevRange}
+        visible={visible}
+      />
     </div>
   );
 }
@@ -857,8 +804,6 @@ export default function Andamento() {
   const budgetLabel =
     period === "day" ? "Budget giornaliero" : period === "week" ? "Budget settimanale" : "Budget mensile";
 
-  const showProjection = period !== "day" && range.current && range.daysElapsed < range.daysTotal;
-
   return (
     <div className="flex flex-col items-center gap-6 animate-rise">
       <HeroCard
@@ -883,9 +828,6 @@ export default function Andamento() {
         period={period}
         range={range}
         prevRange={prevRange}
-        showProjection={showProjection}
-        perDay={perDay}
-        budget={budget}
       />
 
       <WhereCard byCategory={byCategory} topCategory={byCategory[0] ?? null} topMerchant={topMerchant} />
