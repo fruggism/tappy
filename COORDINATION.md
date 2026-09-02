@@ -268,3 +268,70 @@ l'autenticazione e il modello dati — e hanno prodotto tre schemi di auth
 diversi e due backend. Da adesso: **nessun agent apre una branch che tocca
 `types.ts`, `db`/storage o l'autenticazione senza che il contratto sia
 scritto qui prima.** È esattamente il ruolo delle "zone condivise" di §1.
+
+
+---
+
+## 8. Fase 5 — dove ho speso (posizione e mappa)
+
+Idea: l'automazione registra **anche la posizione** al momento del pagamento
+Apple Pay; in Movimenti un'icona a mappa apre una **heatmap su OpenStreetMap**
+dei luoghi in cui si è speso, filtrabile per giorno / mese / anno.
+
+### 8.1 Le decisioni da prendere prima di scrivere codice
+
+**a) Il modello dati cambia — è zona condivisa.**
+`Transaction` prende `lat: number | null` e `lon: number | null` (e nient'altro:
+niente indirizzo, niente nome del posto — si ricavano dalla mappa e ci
+risparmiano una dipendenza da un servizio di geocoding). Ricade su
+`types.ts`, sulla tabella `Transactions` di Airtable (due campi `Number` con
+almeno 5 decimali), sul webhook, su `mockApi`, e sugli script
+`check-airtable`/`doctor` che validano lo schema. **Il contratto si fissa
+qui prima che qualcuno cominci**, come da §1.
+
+**b) Serve una libreria, e il progetto ne vieta di nuove.**
+Una mappa non è un grafico: tessere, pan, zoom e proiezione scritti a mano
+sono riscrivere Leaflet peggio di Leaflet. Le opzioni:
+
+1. **Leaflet + un piccolo strato heat** (~45 KB gzip), installati da npm e
+   serviti dal nostro deploy. Standard, accessibile, e ci mette un pomeriggio.
+   **È la mia raccomandazione**, come eccezione dichiarata alla regola:
+   la regola nasce per non appesantire i *grafici*, che restano SVG a mano.
+2. **Canvas a mano sopra le tessere OSM** prese per URL. Nessuna dipendenza,
+   ma ~300 righe fra proiezione Web Mercator, cache delle tessere e gesto di
+   pan/zoom, e una resa peggiore. Costa più di quanto risparmia.
+
+La scelta è del proprietario: cambia la regola §4 «niente dipendenze nuove».
+
+**c) Le tessere OSM hanno una policy d'uso.** I server pubblici di
+OpenStreetMap sono gratuiti ma per usi leggeri, e chiedono
+l'attribuzione visibile. Per un'app personale va bene; l'attribuzione non è
+opzionale e va messa nella mappa.
+
+**d) La posizione di ogni pagamento è un dato sensibile.** Sta nella nostra
+base Airtable, sotto il codice Fru Pass dell'utente. Due conseguenze di
+progetto, non facoltative: la registrazione della posizione dev'essere
+**disattivabile** (l'automazione funziona anche senza: `lat`/`lon` restano
+vuoti e la mappa mostra solo il resto), e dal dettaglio di un movimento si
+deve poter **cancellare la sola posizione**.
+
+**e) Il rischio vero è l'automazione, non la mappa.** Un'automazione che
+scatta in background potrebbe non riuscire a leggere la posizione, o
+richiedere un permesso che in background non viene concesso. **Va verificato
+sull'iPhone prima di costruire il resto**: se lì non funziona, la mappa
+resta senza dati e avremmo costruito una vista vuota.
+
+### 8.2 Assegnazione
+
+| # | Task | Agent | Dipende da |
+|---|---|---|---|
+| G0 | Scelta sulla libreria (§8.1b) | **tu** | — |
+| G1 | **Verifica sull'iPhone**: l'automazione riesce a leggere la posizione quando scatta da sé? Solo questo, prima di tutto il resto | Automazioni | — |
+| G2 | `lat`/`lon` in `types.ts`, nella tabella `Transactions`, nel webhook, in `mockApi` e negli script di verifica dello schema | Backend & Deploy | G1 |
+| G3 | L'automazione manda `lat`/`lon` al webhook, con l'opzione di non mandarli | Automazioni | G1, G2 |
+| G4 | Spec della vista mappa: come si entra da Movimenti, il selettore di periodo (giorno/mese/anno), la resa della heatmap nei due temi, lo stato vuoto («nessun movimento con posizione in questo periodo»), l'attribuzione OSM, e come si cancella una posizione | UI Expert | G0 |
+| G5 | Implementazione della vista mappa | UI Developer | G4, G2 |
+
+**G1 prima di tutto**: è l'unico punto che può far cadere l'intera idea, e
+costa mezz'ora. Costruire mappa e schema prima di sapere se l'iPhone
+collabora sarebbe il modo più caro di scoprirlo.
