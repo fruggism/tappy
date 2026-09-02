@@ -157,8 +157,8 @@ fallback quando una spesa non ha (o perde) una categoria valida.
 
 ## Sviluppo locale
 
-Serve la [Netlify CLI](https://docs.netlify.com/cli/get-started/)
-(`npm install -g netlify-cli`) per far girare client + funzione insieme
+`npm run dev` usa la [Netlify CLI](https://docs.netlify.com/cli/get-started/)
+via `npx` (non serve installarla) per far girare client + funzione insieme
 sulla stessa porta, esattamente come in produzione:
 
 ```bash
