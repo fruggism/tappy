@@ -2,18 +2,36 @@ import { useMemo, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import RadialGauge from "../components/RadialGauge";
 
+type Period = "day" | "week" | "month";
+
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
 
+// Lunedì come primo giorno della settimana
+function startOfWeek(d: Date) {
+  const day = (d.getDay() + 6) % 7;
+  const s = new Date(d);
+  s.setDate(d.getDate() - day);
+  s.setHours(0, 0, 0, 0);
+  return s;
+}
+
+const LABELS: Record<Period, string> = {
+  day: "Giornaliero",
+  week: "Settimanale",
+  month: "Mensile",
+};
+
 export default function Andamento() {
   const { user, categories, transactions } = useApp();
-  const [period, setPeriod] = useState<"day" | "month">("month");
+  const [period, setPeriod] = useState<Period>("month");
 
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
   const monthPrefix = today.slice(0, 7);
   const dim = daysInMonth(now.getFullYear(), now.getMonth());
+  const weekStart = startOfWeek(now).toISOString().slice(0, 10);
 
   const expenses = useMemo(
     () => transactions.filter((t) => !t.is_income),
@@ -22,15 +40,22 @@ export default function Andamento() {
 
   const periodTx = useMemo(() => {
     if (period === "day") return expenses.filter((t) => t.date === today);
+    if (period === "week") return expenses.filter((t) => t.date >= weekStart && t.date <= today);
     return expenses.filter((t) => t.date.startsWith(monthPrefix));
-  }, [expenses, period, today, monthPrefix]);
+  }, [expenses, period, today, weekStart, monthPrefix]);
 
   const monthTx = useMemo(
     () => expenses.filter((t) => t.date.startsWith(monthPrefix)),
     [expenses, monthPrefix]
   );
 
-  const budget = user ? (period === "day" ? user.monthly_budget / dim : user.monthly_budget) : 0;
+  const budget = user
+    ? period === "day"
+      ? user.monthly_budget / dim
+      : period === "week"
+      ? (user.monthly_budget / dim) * 7
+      : user.monthly_budget
+    : 0;
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
@@ -50,21 +75,24 @@ export default function Andamento() {
 
   const pctText = budget > 0 ? `${Math.round((totalPeriod / budget) * 100)}%` : "—";
 
+  const budgetLabel =
+    period === "day" ? "Budget giornaliero" : period === "week" ? "Budget settimanale" : "Budget mensile";
+
   return (
     <div className="flex flex-col items-center gap-6 animate-rise">
       <div className="w-full flex justify-center">
         <div className="inline-flex bg-surface2 dark:bg-surface2-dark rounded-full p-1 text-sm">
-          {(["day", "month"] as const).map((p) => (
+          {(["day", "week", "month"] as const).map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-4 py-1.5 rounded-full transition-colors ${
+              className={`px-3.5 py-1.5 rounded-full transition-colors ${
                 period === p
                   ? "bg-white dark:bg-black text-ink dark:text-ink-dark shadow"
                   : "text-muted dark:text-muted-dark"
               }`}
             >
-              {p === "day" ? "Giornaliero" : "Mensile"}
+              {LABELS[p]}
             </button>
           ))}
         </div>
@@ -78,9 +106,7 @@ export default function Andamento() {
       />
 
       <div className="w-full flex justify-between text-sm px-1">
-        <span className="text-muted dark:text-muted-dark">
-          Budget {period === "day" ? "giornaliero" : "mensile"}
-        </span>
+        <span className="text-muted dark:text-muted-dark">{budgetLabel}</span>
         <span className="font-medium tabular-nums">€{budget.toFixed(0)}</span>
       </div>
 

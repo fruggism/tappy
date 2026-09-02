@@ -1,10 +1,74 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { api } from "../lib/api";
 import TransactionModal from "../components/TransactionModal";
 import type { Transaction } from "../lib/types";
 
 type Sort = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
+
+function RowMenu({
+  onEdit,
+  onDelete,
+}: {
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  return (
+    <div className="relative shrink-0" ref={ref}>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
+        aria-label="Altre azioni"
+        className="h-7 w-7 -mr-1 flex items-center justify-center rounded-full text-muted dark:text-muted-dark hover:bg-black/5 dark:hover:bg-white/10"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+          <circle cx="5" cy="12" r="1.6" />
+          <circle cx="12" cy="12" r="1.6" />
+          <circle cx="19" cy="12" r="1.6" />
+        </svg>
+      </button>
+      {open && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="absolute right-0 top-8 z-10 w-40 rounded-2xl bg-surface dark:bg-surface-dark shadow-xl border border-black/5 dark:border-white/10 overflow-hidden animate-rise"
+        >
+          <button
+            onClick={() => {
+              setOpen(false);
+              onEdit();
+            }}
+            className="w-full text-left px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10"
+          >
+            Modifica
+          </button>
+          <button
+            onClick={() => {
+              setOpen(false);
+              onDelete();
+            }}
+            className="w-full text-left px-4 py-2.5 text-sm text-neon-pink hover:bg-black/5 dark:hover:bg-white/10"
+          >
+            Elimina
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Movimenti() {
   const { transactions, categories, cards, refreshTransactions } = useApp();
@@ -90,13 +154,9 @@ export default function Movimenti() {
           const card = t.card_id ? cardById.get(t.card_id) : null;
           const isSplit = !t.is_income && t.my_share !== t.amount;
           return (
-            <button
+            <div
               key={t.id}
-              onClick={() => {
-                setEditing(t);
-                setShowModal(true);
-              }}
-              className="flex items-center gap-3 rounded-2xl bg-surface dark:bg-surface-dark px-4 py-3 text-left"
+              className="flex items-center gap-3 rounded-2xl bg-surface dark:bg-surface-dark px-4 py-3"
             >
               <span
                 className="h-9 w-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
@@ -117,25 +177,21 @@ export default function Movimenti() {
                   {isSplit ? ` · quota di €${t.amount.toFixed(0)}` : ""}
                 </span>
               </span>
-              <span className="flex flex-col items-end gap-1">
-                <span
-                  className={`text-sm font-semibold tabular-nums ${
-                    t.is_income ? "text-neon-green" : ""
-                  }`}
-                >
-                  {t.is_income ? "+" : "-"}€{t.my_share.toFixed(2)}
-                </span>
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(t.id);
-                  }}
-                  className="text-[10px] text-muted dark:text-muted-dark hover:text-neon-pink"
-                >
-                  elimina
-                </span>
+              <span
+                className={`text-sm font-semibold tabular-nums shrink-0 ${
+                  t.is_income ? "text-neon-green" : ""
+                }`}
+              >
+                {t.is_income ? "+" : "-"}€{t.my_share.toFixed(2)}
               </span>
-            </button>
+              <RowMenu
+                onEdit={() => {
+                  setEditing(t);
+                  setShowModal(true);
+                }}
+                onDelete={() => handleDelete(t.id)}
+              />
+            </div>
           );
         })}
       </div>

@@ -20,6 +20,8 @@ export default function TransactionModal({ onClose, existing }: Props) {
   const [splitting, setSplitting] = useState(
     !!existing && existing.my_share !== existing.amount
   );
+  const [splitMode, setSplitMode] = useState<"equal" | "custom">("equal");
+  const [splitCount, setSplitCount] = useState("2");
   const [categoryId, setCategoryId] = useState(existing?.category_id ?? altro?.id ?? "");
   const [cardId, setCardId] = useState(existing?.card_id ?? cards[0]?.id ?? "");
   const [date, setDate] = useState(existing?.date ?? new Date().toISOString().slice(0, 10));
@@ -38,7 +40,19 @@ export default function TransactionModal({ onClose, existing }: Props) {
       setError("Inserisci nome e importo validi.");
       return;
     }
-    const share = splitting ? parseFloat(myShare.replace(",", ".")) : amt;
+    let share = amt;
+    if (splitting) {
+      if (splitMode === "equal") {
+        const n = parseInt(splitCount, 10);
+        if (isNaN(n) || n < 2) {
+          setError("Indica in quante persone dividere la spesa (almeno 2).");
+          return;
+        }
+        share = Math.round((amt / n) * 100) / 100;
+      } else {
+        share = parseFloat(myShare.replace(",", "."));
+      }
+    }
     if (isNaN(share) || share < 0) {
       setError("Quota non valida.");
       return;
@@ -195,16 +209,64 @@ export default function TransactionModal({ onClose, existing }: Props) {
             </label>
 
             {splitting && (
-              <label className="flex flex-col gap-1 text-sm">
-                Di mia competenza (€)
-                <input
-                  value={myShare}
-                  onChange={(e) => setMyShare(e.target.value)}
-                  inputMode="decimal"
-                  className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60"
-                  placeholder="0.00"
-                />
-              </label>
+              <div className="flex flex-col gap-3 rounded-xl bg-surface2 dark:bg-surface2-dark p-3">
+                <div className="inline-flex bg-surface dark:bg-surface-dark rounded-full p-1 text-xs self-start">
+                  <button
+                    type="button"
+                    onClick={() => setSplitMode("equal")}
+                    className={`px-3 py-1.5 rounded-full ${
+                      splitMode === "equal"
+                        ? "bg-white dark:bg-black shadow"
+                        : "text-muted dark:text-muted-dark"
+                    }`}
+                  >
+                    Parti uguali
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSplitMode("custom")}
+                    className={`px-3 py-1.5 rounded-full ${
+                      splitMode === "custom"
+                        ? "bg-white dark:bg-black shadow"
+                        : "text-muted dark:text-muted-dark"
+                    }`}
+                  >
+                    Il mio importo
+                  </button>
+                </div>
+
+                {splitMode === "equal" ? (
+                  <label className="flex flex-col gap-1 text-sm">
+                    In quante persone?
+                    <input
+                      value={splitCount}
+                      onChange={(e) => setSplitCount(e.target.value)}
+                      inputMode="numeric"
+                      className="rounded-xl bg-surface dark:bg-surface-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60"
+                      placeholder="2"
+                    />
+                    {amount && !isNaN(parseFloat(amount)) && !isNaN(parseInt(splitCount, 10)) && parseInt(splitCount, 10) > 0 && (
+                      <span className="text-xs text-muted dark:text-muted-dark">
+                        La tua quota: €
+                        {(
+                          Math.round((parseFloat(amount.replace(",", ".")) / parseInt(splitCount, 10)) * 100) / 100
+                        ).toFixed(2)}
+                      </span>
+                    )}
+                  </label>
+                ) : (
+                  <label className="flex flex-col gap-1 text-sm">
+                    Di mia competenza (€)
+                    <input
+                      value={myShare}
+                      onChange={(e) => setMyShare(e.target.value)}
+                      inputMode="decimal"
+                      className="rounded-xl bg-surface dark:bg-surface-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60"
+                      placeholder="0.00"
+                    />
+                  </label>
+                )}
+              </div>
             )}
           </>
         )}
