@@ -274,6 +274,21 @@ function MiniRing({
   );
 }
 
+function PerDayCard({ perDay }: { perDay: number }) {
+  const animated = useCountUp(perDay);
+  return (
+    <div className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex items-center justify-between">
+      <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
+        Spesa media al giorno
+      </span>
+      <span className="text-xl font-semibold tabular-nums text-neon-green">
+        €{animated.toFixed(0)}
+        <span className="text-xs font-normal text-muted dark:text-muted-dark">/giorno</span>
+      </span>
+    </div>
+  );
+}
+
 function TrendArrow({ up, className }: { up: boolean; className?: string }) {
   return (
     <svg
@@ -719,13 +734,15 @@ export default function Andamento() {
         segments={byCategory}
         budget={budget}
         centerLabel={`€${totalPeriod.toFixed(0)}`}
-        centerSub={`${pctText} · €${perDay.toFixed(0)}/giorno`}
+        centerSub={budget > 0 ? `${pctText} del budget` : pctText}
       />
 
       <div className="w-full flex justify-between text-sm px-1">
         <span className="text-muted dark:text-muted-dark">{budgetLabel}</span>
         <span className="font-medium tabular-nums">€{budget.toFixed(0)}</span>
       </div>
+
+      <PerDayCard perDay={perDay} />
 
       <CategoryBreakdown categories={byCategory} />
 

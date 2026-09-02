@@ -134,7 +134,7 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
         <span className="text-xs text-muted dark:text-muted-dark mt-1">{centerSub}</span>
         {overBudget && (
           <span className="text-[10px] font-medium text-neon-pink mt-1 gauge-overflow-pulse">
-            +{Math.round(overflowFraction * 100)}% oltre budget
+            oltre €{Math.round(total - budget)}
           </span>
         )}
       </div>
