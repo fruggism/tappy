@@ -157,15 +157,16 @@ npm install                       # dipendenze della funzione
 cd client && npm install && cd ..  # dipendenze del client
 ```
 
-Crea il file `.env` nella radice (è già in `.gitignore`, non finisce su
-GitHub):
+Crea il file `.env`:
 
 ```bash
-cat > .env <<'FINE'
-AIRTABLE_API_KEY=pat...la_tua_chiave...
-AIRTABLE_BASE_ID=app...il_tuo_base_id...
-FINE
+npm run setup-env
 ```
+
+Chiede solo il token — il base id è già noto e non è un segreto — e scrive
+un `.env` leggibile solo dal tuo utente. È in `.gitignore`, non finisce su
+GitHub. In alternativa puoi copiare `.env.example` in `.env` e riempirlo a
+mano.
 
 Avvia:
 
@@ -213,6 +214,7 @@ Tutti dalla radice del repo.
 
 | Comando | Cosa fa |
 |---|---|
+| `npm run setup-env` | crea il `.env` con le credenziali per lo sviluppo in locale |
 | `npm run check-airtable` | verifica che tabelle e campi della base siano quelli giusti (sola lettura) |
 | `netlify dev` | client + API insieme, come in produzione (`:8888`) |
 | `npm test` | i test dell'autenticazione Fru Pass (non toccano la rete, non servono credenziali) |
