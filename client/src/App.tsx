@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useApp } from "./lib/AppContext";
 import Andamento from "./views/Andamento";
 import Movimenti from "./views/Movimenti";
@@ -51,11 +51,28 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
 export default function App() {
   const { loading, user } = useApp();
   const [tab, setTab] = useState<Tab>("andamento");
+  const mainRef = useRef<HTMLElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Il titolo si contrae quando il contenuto scorre sotto l'header: una sentinella
+  // di 1px in cima al <main> segna il confine, niente da fare a ogni evento di scroll.
+  useEffect(() => {
+    const root = mainRef.current;
+    const sentinel = sentinelRef.current;
+    if (!root || !sentinel) return;
+    const obs = new IntersectionObserver(([entry]) => setScrolled(!entry.isIntersecting), {
+      root,
+      threshold: 1,
+    });
+    obs.observe(sentinel);
+    return () => obs.disconnect();
+  }, []);
 
   if (loading || !user) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="h-8 w-8 rounded-full border-2 border-neon-green/30 border-t-neon-green animate-spin" />
+        <div className="h-8 w-8 rounded-full border-2 border-acc-green/30 border-t-acc-green animate-spin" />
       </div>
     );
   }
@@ -63,19 +80,33 @@ export default function App() {
   return (
     <div className="h-full flex flex-col max-w-md mx-auto relative bg-base dark:bg-base-dark">
       <header
-        className="px-5 pb-2 flex items-center justify-between"
-        style={{ paddingTop: "max(1.5rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
+        className={`px-5 pb-2 flex items-center justify-between transition-all duration-300 border-b ${
+          scrolled
+            ? "border-black/5 dark:border-white/10 bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl"
+            : "border-transparent"
+        }`}
+        style={{
+          paddingTop: scrolled
+            ? "max(0.75rem, env(safe-area-inset-top))"
+            : "max(1.5rem, calc(env(safe-area-inset-top) + 0.5rem))",
+        }}
       >
-        <h1 className="text-2xl font-bold tracking-tight">
-          tap<span className="text-neon-green">py</span>
+        <h1
+          className={`font-bold tracking-tight transition-all duration-300 ${
+            scrolled ? "text-callout" : "text-title2"
+          }`}
+        >
+          tap<span className="text-acc-green">py</span>
         </h1>
-        <span className="text-xs text-muted dark:text-muted-dark">{user.name}</span>
+        <span className="text-footnote text-muted dark:text-muted-dark">{user.name}</span>
       </header>
 
       <main
+        ref={mainRef}
         className="flex-1 overflow-y-auto px-5 pt-2"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 6rem)" }}
       >
+        <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
         {tab === "andamento" && <Andamento />}
         {tab === "movimenti" && <Movimenti />}
         {tab === "impostazioni" && <Impostazioni />}
@@ -92,13 +123,13 @@ export default function App() {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${
-                active ? "text-neon-green" : "text-muted dark:text-muted-dark"
+                active ? "text-acc-green" : "text-muted dark:text-muted-dark"
               }`}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
                 {t.icon}
               </svg>
-              <span className="text-[10px] font-medium">{t.label}</span>
+              <span className="text-caption font-medium">{t.label}</span>
             </button>
           );
         })}

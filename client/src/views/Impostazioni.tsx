@@ -45,25 +45,25 @@ function CategoryRow({
         className="h-3 w-3 rounded-full shrink-0"
         style={{ background: c.color, boxShadow: `0 0 6px ${c.color}` }}
       />
-      <span className="flex-1 text-sm min-w-0 truncate">{c.name}</span>
+      <span className="flex-1 text-callout min-w-0 truncate">{c.name}</span>
       <div className="flex items-center gap-1 shrink-0">
-        <span className="text-xs text-muted dark:text-muted-dark">€</span>
+        <span className="text-footnote text-muted dark:text-muted-dark">€</span>
         <input
           value={budgetInput}
           onChange={(e) => setBudgetInput(e.target.value)}
           onBlur={handleBlur}
           inputMode="decimal"
           placeholder="opzionale"
-          className="w-20 rounded-lg bg-surface2 dark:bg-surface2-dark px-2 py-1 text-xs text-right outline-none focus:ring-2 focus:ring-neon-green/60 placeholder:text-[10px]"
+          className="w-20 rounded-lg bg-surface2 dark:bg-surface2-dark px-2 py-1 text-footnote text-right outline-none focus:ring-2 focus:ring-acc-green/60 placeholder:text-caption"
         />
-        <span className="text-[10px] text-muted dark:text-muted-dark">/mese</span>
+        <span className="text-caption text-muted dark:text-muted-dark">/mese</span>
       </div>
       {c.is_default ? (
-        <span className="text-[10px] text-muted dark:text-muted-dark shrink-0">predefinita</span>
+        <span className="text-caption text-muted dark:text-muted-dark shrink-0">predefinita</span>
       ) : (
         <button
           onClick={onRemove}
-          className="text-[10px] text-muted dark:text-muted-dark hover:text-neon-pink shrink-0"
+          className="text-caption text-muted dark:text-muted-dark hover:text-acc-pink shrink-0"
         >
           elimina
         </button>
@@ -114,10 +114,10 @@ export default function Impostazioni() {
   return (
     <div className="flex flex-col gap-8 animate-rise pb-4">
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
+        <h2 className="text-callout font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
           Aspetto
         </h2>
-        <div className="inline-flex bg-surface2 dark:bg-surface2-dark rounded-full p-1 text-sm self-start">
+        <div className="inline-flex bg-surface2 dark:bg-surface2-dark rounded-full p-1 text-callout self-start">
           {(["light", "dark", "system"] as const).map((t) => (
             <button
               key={t}
@@ -135,21 +135,21 @@ export default function Impostazioni() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
+        <h2 className="text-callout font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
           Budget
         </h2>
         <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1 text-callout">
             Budget mensile (€)
             <input
               value={budgetInput}
               onChange={(e) => setBudgetInput(e.target.value)}
               onBlur={saveBudget}
               inputMode="decimal"
-              className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60"
+              className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-acc-green/60"
             />
           </label>
-          <p className="text-xs text-muted dark:text-muted-dark">
+          <p className="text-footnote text-muted dark:text-muted-dark">
             Equivalente a circa €{weekly.toFixed(0)}/settimana e €
             {(user.monthly_budget / dim).toFixed(0)}/giorno questo mese.
           </p>
@@ -157,16 +157,16 @@ export default function Impostazioni() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
+        <h2 className="text-callout font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
           Categorie
         </h2>
-        <p className="text-xs text-muted dark:text-muted-dark -mt-1">
+        <p className="text-footnote text-muted dark:text-muted-dark -mt-1">
           Il budget mensile può essere suddiviso tra le categorie, facoltativamente: la
           somma dei budget di categoria non supera mai il budget mensile complessivo.
         </p>
 
         <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-2">
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between text-callout">
             <span>Assegnato alle categorie</span>
             <span className="tabular-nums font-medium">
               €{allocated.toFixed(0)} / €{user.monthly_budget.toFixed(0)}
@@ -182,8 +182,8 @@ export default function Impostazioni() {
             />
           </div>
           <span
-            className={`text-xs ${
-              overAllocated ? "text-neon-pink" : "text-muted dark:text-muted-dark"
+            className={`text-footnote ${
+              overAllocated ? "text-acc-pink" : "text-muted dark:text-muted-dark"
             }`}
           >
             {overAllocated
@@ -208,7 +208,7 @@ export default function Impostazioni() {
             value={newCatName}
             onChange={(e) => setNewCatName(e.target.value)}
             placeholder="Nuova categoria"
-            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60 text-sm"
+            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-acc-green/60 text-callout"
           />
           <div className="flex gap-2">
             {PALETTE.map((color) => (
@@ -226,7 +226,7 @@ export default function Impostazioni() {
           </div>
           <button
             onClick={addCategory}
-            className="rounded-xl bg-ink dark:bg-white text-white dark:text-black text-sm font-medium py-2"
+            className="rounded-xl bg-ink dark:bg-white text-white dark:text-black text-callout font-medium py-2"
           >
             Aggiungi categoria
           </button>
@@ -235,24 +235,24 @@ export default function Impostazioni() {
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
+          <h2 className="text-callout font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
             Apple Pay Shortcut
           </h2>
-          <span className="text-[10px] font-medium text-neon-amber bg-neon-amber/10 px-2 py-0.5 rounded-full">
+          <span className="text-caption font-medium text-acc-amber bg-acc-amber/10 px-2 py-0.5 rounded-full">
             Fase 3
           </span>
         </div>
-        <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-2 text-sm">
+        <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-2 text-callout">
           <p className="text-muted dark:text-muted-dark">
             Qui compariranno l&apos;URL del webhook, l&apos;API key personale e le istruzioni
             per collegare il Comando Rapido &quot;Alla ricezione di una notifica&quot; di Apple
             Pay, una volta collegato il backend reale.
           </p>
           <div className="flex items-center gap-2 opacity-40 pointer-events-none select-none">
-            <code className="flex-1 rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-xs break-all">
+            <code className="flex-1 rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-footnote break-all">
               {user.api_key}
             </code>
-            <button className="text-xs rounded-lg bg-ink dark:bg-white text-white dark:text-black px-3 py-2 shrink-0">
+            <button className="text-footnote rounded-lg bg-ink dark:bg-white text-white dark:text-black px-3 py-2 shrink-0">
               Copia
             </button>
           </div>

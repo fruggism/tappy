@@ -21,6 +21,24 @@ html.dark {
   background-color: #000000;
 }
 
+/* Due varianti di accento per i due temi: in chiaro versioni scurite ad almeno
+   4.5:1 su #f5f5f7 (i fluo puri non passano il contrasto su fondo chiaro), in
+   scuro i fluo originali. Vedi tailwind.config.js -> colors.acc. */
+:root {
+  --acc-green: #00b25a;
+  --acc-pink: #d1008f;
+  --acc-cyan: #0087a8;
+  --acc-violet: #6b6bd8;
+  --acc-amber: #a86e00;
+}
+html.dark {
+  --acc-green: #39ff88;
+  --acc-pink: #ff2ecb;
+  --acc-cyan: #00e5ff;
+  --acc-violet: #a3a3ff;
+  --acc-amber: #ffcf4d;
+}
+
 body {
   @apply bg-base dark:bg-base-dark text-ink dark:text-ink-dark antialiased;
   font-feature-settings: "ss01";
