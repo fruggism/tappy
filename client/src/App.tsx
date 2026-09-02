@@ -48,9 +48,57 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   },
 ];
 
+function ApiKeyGate() {
+  const { login } = useApp();
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    if (!value.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    const ok = await login(value.trim());
+    setBusy(false);
+    if (!ok) setError("Chiave non valida");
+  }
+
+  return (
+    <div className="h-full flex items-center justify-center px-6">
+      <div className="w-full max-w-sm flex flex-col gap-4">
+        <h1 className="text-2xl font-bold tracking-tight text-center">
+          tap<span className="text-neon-green">py</span>
+        </h1>
+        <p className="text-sm text-muted dark:text-muted-dark text-center">
+          Inserisci la tua chiave personale per accedere ai tuoi dati (la stessa su tutti i tuoi
+          dispositivi).
+        </p>
+        <input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          placeholder="Chiave personale"
+          autoFocus
+          className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60 text-center"
+        />
+        {error && <p className="text-xs text-neon-pink text-center">{error}</p>}
+        <button
+          onClick={submit}
+          disabled={busy}
+          className="rounded-xl bg-ink dark:bg-white text-white dark:text-black text-sm font-medium py-2 disabled:opacity-50"
+        >
+          Accedi
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
-  const { loading, user } = useApp();
+  const { loading, user, authError } = useApp();
   const [tab, setTab] = useState<Tab>("andamento");
+
+  if (authError) return <ApiKeyGate />;
 
   if (loading || !user) {
     return (

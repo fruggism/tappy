@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "./api";
+import { clearApiKey, setApiKey as persistApiKey } from "./realApi";
 import type { Card, Category, Transaction, User } from "./types";
 
 interface AppState {
@@ -8,11 +9,14 @@ interface AppState {
   cards: Card[];
   transactions: Transaction[];
   loading: boolean;
+  authError: boolean;
   effectiveTheme: "light" | "dark";
-  refresh: () => Promise<void>;
+  refresh: () => Promise<boolean>;
   refreshTransactions: () => Promise<void>;
   setTheme: (t: User["theme"]) => Promise<void>;
   setBudget: (amount: number) => Promise<void>;
+  login: (apiKey: string) => Promise<boolean>;
+  logout: () => void;
 }
 
 const AppCtx = createContext<AppState | null>(null);
@@ -23,6 +27,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [cards, setCards] = useState<Card[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(false);
   const [systemDark, setSystemDark] = useState(
     () => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false
   );
@@ -40,22 +45,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const [u, c, cd, tx] = await Promise.all([
-      api.me(),
-      api.categories(),
-      api.cards(),
-      api.transactions(),
-    ]);
-    setUser(u);
-    setCategories(c);
-    setCards(cd);
-    setTransactions(tx);
-    setLoading(false);
+    try {
+      const [u, c, cd, tx] = await Promise.all([
+        api.me(),
+        api.categories(),
+        api.cards(),
+        api.transactions(),
+      ]);
+      setUser(u);
+      setCategories(c);
+      setCards(cd);
+      setTransactions(tx);
+      setAuthError(false);
+      return true;
+    } catch {
+      setUser(null);
+      setAuthError(true);
+      return false;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  const login = useCallback(
+    async (apiKey: string) => {
+      persistApiKey(apiKey);
+      const ok = await refresh();
+      if (!ok) clearApiKey();
+      return ok;
+    },
+    [refresh]
+  );
+
+  const logout = useCallback(() => {
+    clearApiKey();
+    setUser(null);
+    setCategories([]);
+    setCards([]);
+    setTransactions([]);
+    setAuthError(true);
+  }, []);
 
   const effectiveTheme: "light" | "dark" = useMemo(() => {
     if (!user || user.theme === "system") return systemDark ? "dark" : "light";
@@ -82,11 +115,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     cards,
     transactions,
     loading,
+    authError,
     effectiveTheme,
     refresh,
     refreshTransactions,
     setTheme,
     setBudget,
+    login,
+    logout,
   };
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;

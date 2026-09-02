@@ -1,12 +1,31 @@
 import type { Card, Category, Transaction, User } from "./types";
 
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
+// In produzione client e API stanno sullo stesso dominio Netlify (redirect
+// /api/* -> funzione), quindi non serve un URL assoluto. VITE_API_URL resta
+// utile solo per puntare a un deploy diverso in fase di sviluppo/debug.
+const BASE = import.meta.env.VITE_API_URL || "";
+
+const API_KEY_STORAGE_KEY = "tappy_api_key";
+
+export function getApiKey(): string | null {
+  return localStorage.getItem(API_KEY_STORAGE_KEY);
+}
+
+export function setApiKey(key: string) {
+  localStorage.setItem(API_KEY_STORAGE_KEY, key.trim());
+}
+
+export function clearApiKey() {
+  localStorage.removeItem(API_KEY_STORAGE_KEY);
+}
 
 async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const apiKey = getApiKey();
   const res = await fetch(`${BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...(apiKey ? { "x-api-key": apiKey } : {}),
       ...(options.headers || {}),
     },
   });

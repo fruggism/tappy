@@ -1,0 +1,15 @@
+{
+  "name": "tappy-functions",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Dipendenze delle Netlify Functions di tappy (backend su Airtable)",
+  "scripts": {
+    "seed-user": "node scripts/seed-user.js"
+  },
+  "dependencies": {
+    "airtable": "^0.12.2",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "serverless-http": "^3.2.0"
+  }
+}

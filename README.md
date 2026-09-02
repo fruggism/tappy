@@ -3,50 +3,47 @@
 App per registrare live le spese fatte con le carte, con l'obiettivo finale di
 ricevere automaticamente i pagamenti Apple Pay via un'automazione di Comandi
 Rapidi su iPhone. Stile grafico minimale in linea ad Apple, con dettagli
-fluorescenti.
+fluorescenti. I dati sono sincronizzati automaticamente su tutti i
+dispositivi da cui accedi con la stessa chiave personale.
 
-> Il lavoro è diviso in tre fasi: **Fase 1** (UI indipendente dai dati reali)
-> è completa; **Fase 2** (collegamento alle tabelle utente) ha il backend
-> pronto ma non ancora collegato al client; **Fase 3** (Comando Rapido +
-> vista di dettaglio) è da fare. Vedi "Stato del progetto" più sotto, e
-> [`GUIDE.md`](./GUIDE.md) per una guida più estesa pensata per chi
-> riprende il progetto da zero.
-
-## Struttura
+## Architettura
 
 ```
-client/   — React + Vite + Tailwind (l'app vera e propria)
-server/   — Express + SQLite (API REST, pronte ma non ancora collegate)
+client/               — React + Vite + Tailwind (l'app vera e propria)
+netlify/functions/    — API REST come Netlify Function (Express + Airtable)
+scripts/seed-user.js  — crea un utente su Airtable e stampa la sua chiave
 ```
 
-## Avvio in locale
+Tutto vive su **Netlify**: il client (sito statico) e il backend (una
+funzione serverless) sono nello stesso deploy. I dati sono su **Airtable**
+(vedi [`GUIDE.md`](./GUIDE.md) per lo schema completo delle tabelle).
 
-```bash
-cd server && npm install && npm run dev   # http://localhost:4000
-cd client && npm install && npm run dev   # http://localhost:5173
-```
+## Setup rapido
 
-Al primo avvio il server crea automaticamente un utente di default con le
-categorie "Spesa", "Macchina", "Leisure", "Altro" e stampa in console la sua
-API key. **Nota**: al momento il client non usa questo server (vedi sotto),
-quindi per lavorare solo sulla UI basta avviare `client/`.
-
-## Dati: mock vs backend reale
-
-Il client non parla ancora con il server. Usa `src/lib/mockApi.ts`, dati
-finti generati e salvati nel `localStorage` del browser, per poter
-sviluppare e rifinire la grafica senza dipendere da nulla.
-
-Lo switch è in `client/src/lib/api.ts`:
-
-```ts
-const USE_MOCK = true;
-export const api = USE_MOCK ? mockApi : realApi;
-```
-
-`mockApi` e `realApi` (che chiama il server Express) hanno **la stessa
-identica interfaccia**: per passare ai dati veri basta mettere `USE_MOCK` a
-`false` (col server in esecuzione), senza toccare nessun componente.
+1. **Crea una base Airtable** con le 4 tabelle descritte in `GUIDE.md`
+   (`Users`, `Categories`, `Cards`, `Transactions`).
+2. **Crea un Personal Access Token** su Airtable (scope `data.records:read`
+   e `data.records:write` sulla base creata) — sarà `AIRTABLE_API_KEY`.
+   L'ID della base (`appXXXXXXXXXXXXXX`, si trova nell'URL della base o in
+   [airtable.com/api](https://airtable.com/api)) sarà `AIRTABLE_BASE_ID`.
+3. **Crea il tuo utente**:
+   ```bash
+   npm install
+   AIRTABLE_API_KEY=... AIRTABLE_BASE_ID=... node scripts/seed-user.js "Il tuo nome"
+   ```
+   Salva la chiave personale stampata: è quella che userai per accedere
+   all'app da ogni dispositivo.
+4. **In locale** (richiede la [Netlify CLI](https://docs.netlify.com/cli/get-started/), `npm install -g netlify-cli`):
+   ```bash
+   cd client && npm install && cd ..
+   AIRTABLE_API_KEY=... AIRTABLE_BASE_ID=... netlify dev
+   ```
+   Apri l'URL stampato (di solito `http://localhost:8888`) e inserisci la
+   chiave personale.
+5. **In produzione**: collega il repo GitHub a un nuovo sito Netlify (build
+   già configurata in `netlify.toml`), imposta `AIRTABLE_API_KEY` e
+   `AIRTABLE_BASE_ID` nelle variabili d'ambiente del sito, fai il deploy.
+   Apri il dominio Netlify da ogni dispositivo e inserisci la stessa chiave.
 
 ## Modello dati
 
@@ -112,17 +109,16 @@ inserire manualmente uscite o entrate.
 ### Impostazioni
 Tema chiaro/scuro/sistema (persistito), budget mensile generale (con
 equivalente settimanale/giornaliero calcolato in automatico), gestione
-categorie (nome, colore, budget facoltativo), e una sezione "Apple Pay
-Shortcut" — oggi un segnaposto etichettato "Fase 3" — che mostrerà URL del
-webhook e API key una volta collegato il backend reale.
+categorie (nome, colore, budget facoltativo), URL del webhook Apple Pay e
+chiave personale copiabili, e un pulsante per disconnettersi (utile per
+passare a un altro dispositivo/chiave).
 
-## Il webhook Apple Pay (già pronto lato server)
+## Il webhook Apple Pay
 
 `POST /api/webhook/applepay` — pensato per un'automazione Comandi Rapidi
 "Alla ricezione di una notifica" filtrata su Apple Pay.
 
-- **Header** `x-api-key`: l'API key dell'utente (stampata in console al
-  primo avvio del server).
+- **Header** `x-api-key`: la chiave personale (visibile in Impostazioni).
 - **Body JSON**:
   ```json
   { "amount": 12.5, "name": "Bar Roma", "card": "Visa", "category": "Leisure" }
@@ -131,20 +127,6 @@ webhook e API key una volta collegato il backend reale.
   opzionali. Categorie e carte non esistenti vengono create automaticamente
   (case-insensitive); se la categoria non corrisponde a nulla la spesa
   finisce in "Altro".
-
-## Stato del progetto
-
-- ✅ **Fase 1 — UI indipendente dai dati reali**: fatta. Tutte e tre le
-  schermate sono rifinite graficamente e testate con dati mock.
-- ⏳ **Fase 2 — collegamento alle tabelle utente**: il server è pronto
-  (schema, tutte le rotte, webhook incluso) ma il client punta ancora al
-  mock. Basta girare `USE_MOCK` a `false` in `client/src/lib/api.ts`.
-- ❌ **Fase 3 — Comando Rapido iPhone + vista di dettaglio**: da fare.
-  Serve costruire il Comando Rapido vero e proprio (estrarre importo ed
-  esercente dalla notifica Apple Pay e fare la POST), attivare la sezione
-  "Apple Pay Shortcut" in Impostazioni (oggi disabilitata), e aggiungere
-  una vista di dettaglio per il singolo movimento (oggi c'è solo il
-  modale di modifica).
 
 ## Stile
 
