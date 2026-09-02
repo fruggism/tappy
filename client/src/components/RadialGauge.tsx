@@ -139,6 +139,11 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
             oltre €{Math.round(total - budget)}
           </span>
         )}
+        {!overBudget && budget > 0 && (
+          <span className="text-caption font-medium text-muted dark:text-muted-dark mt-1">
+            ancora €{Math.round(budget - total)}
+          </span>
+        )}
       </div>
     </div>
   );
