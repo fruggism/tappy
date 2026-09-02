@@ -3,58 +3,72 @@
 App per registrare live le spese fatte con le carte, con l'obiettivo finale di
 ricevere automaticamente i pagamenti Apple Pay via un'automazione di Comandi
 Rapidi su iPhone. Stile grafico minimale in linea ad Apple, con dettagli
-fluorescenti.
+fluorescenti. I dati sono sincronizzati automaticamente su tutti i
+dispositivi da cui accedi con lo stesso codice Fru Pass.
 
-> Il lavoro è diviso in tre fasi: **Fase 1** (UI indipendente dai dati reali)
-> è completa; **Fase 2** (collegamento alle tabelle utente) ha il backend
-> pronto ma non ancora collegato al client; **Fase 3** (Comando Rapido +
-> vista di dettaglio) è da fare. Vedi "Stato del progetto" più sotto, e
-> [`GUIDE.md`](./GUIDE.md) per una guida più estesa pensata per chi
-> riprende il progetto da zero.
+tappy fa parte dell'ecosistema **Fru Pass**: ogni utente è identificato dal
+suo codice `FRU-XXXX-XXXX` (non da un account con password), lo stesso che
+usa in tutte le altre app dell'hub. Il codice viene verificato dall'endpoint
+condiviso dell'ecosistema — noi non lo validiamo e non abbiamo le credenziali
+per farlo — e una volta verificato è ciò che lega l'utente alle sue
+categorie, carte e transazioni nella **nostra** base Airtable.
 
-## Struttura
+## Architettura
 
 ```
-client/   — React + Vite + Tailwind (l'app vera e propria)
-server/   — Express + SQLite (API REST, pronte ma non ancora collegate)
+client/               — React + Vite + Tailwind (l'app vera e propria)
+netlify/functions/    — API REST come Netlify Function (Express + Airtable)
 ```
 
-## Avvio in locale
+Tutto vive su **Netlify**: il client (sito statico) e il backend (una
+funzione serverless) sono nello stesso deploy. I dati sono su **Airtable**
+(vedi [`GUIDE.md`](./GUIDE.md) per lo schema completo delle tabelle).
 
-```bash
-cd server && npm install && npm run dev   # http://localhost:4000
-cd client && npm install && npm run dev   # http://localhost:5173
-```
+## Come funziona l'accesso
 
-Al primo avvio il server crea automaticamente un utente di default con le
-categorie "Spesa", "Macchina", "Leisure", "Altro" e stampa in console la sua
-API key. **Nota**: al momento il client non usa questo server (vedi sotto),
-quindi per lavorare solo sulla UI basta avviare `client/`.
+1. L'utente inserisce il codice `FRU-XXXX-XXXX` (oppure arriva dall'hub, che
+   apre l'app come `https://…/#code=FRU-XXXX-XXXX`: in quel caso entra
+   diretto, senza vedere la schermata di login).
+2. Il client chiama `POST /api/auth/login`; la nostra funzione gira il codice
+   all'endpoint condiviso Fru Pass e, solo se torna un profilo valido, crea o
+   recupera l'utente su Airtable.
+3. Il profilo viene salvato in `localStorage` con chiave `tappy_frupass`, e
+   riusato ai successivi avvii. Al riavvio parte in background un
+   `POST /api/auth/refresh` che se ne accorge se il codice è stato revocato;
+   se invece è l'ecosistema a non rispondere, la sessione resta valida.
+4. Le rotte dati viaggiano con l'header `x-frupas-code`. Mai in query string:
+   metterebbe la credenziale dell'ecosistema negli URL e nei log.
 
-## Dati: mock vs backend reale
+## Setup rapido
 
-Il client non parla ancora con il server. Usa `src/lib/mockApi.ts`, dati
-finti generati e salvati nel `localStorage` del browser, per poter
-sviluppare e rifinire la grafica senza dipendere da nulla.
-
-Lo switch è in `client/src/lib/api.ts`:
-
-```ts
-const USE_MOCK = true;
-export const api = USE_MOCK ? mockApi : realApi;
-```
-
-`mockApi` e `realApi` (che chiama il server Express) hanno **la stessa
-identica interfaccia**: per passare ai dati veri basta mettere `USE_MOCK` a
-`false` (col server in esecuzione), senza toccare nessun componente.
+1. **Crea una base Airtable** con le 4 tabelle descritte in `GUIDE.md`
+   (`Users`, `Categories`, `Cards`, `Transactions`).
+2. **Crea un Personal Access Token** su Airtable (scope `data.records:read`
+   e `data.records:write` sulla base creata) — sarà `AIRTABLE_API_KEY`.
+   L'ID della base (`appXXXXXXXXXXXXXX`, si trova nell'URL della base o in
+   [airtable.com/api](https://airtable.com/api)) sarà `AIRTABLE_BASE_ID`.
+3. **Non serve creare utenti a mano.** Al primo accesso con un codice Fru
+   Pass valido, tappy crea da sé l'utente su Airtable con le 4 categorie di
+   default. Il codice te lo dà l'amministratore dell'ecosistema.
+4. **In locale** (`npm run dev` usa la [Netlify CLI](https://docs.netlify.com/cli/get-started/) via `npx`, senza installarla):
+   ```bash
+   cd client && npm install && cd ..
+   npm run dev
+   ```
+   Apri l'URL stampato (di solito `http://localhost:8888`) e inserisci il
+   tuo codice Fru Pass.
+5. **In produzione**: collega il repo GitHub a un nuovo sito Netlify (build
+   già configurata in `netlify.toml`), imposta `AIRTABLE_API_KEY` e
+   `AIRTABLE_BASE_ID` nelle variabili d'ambiente del sito, fai il deploy.
+   Apri il dominio Netlify da ogni dispositivo e inserisci lo stesso codice.
 
 ## Modello dati
 
 ```ts
-User { id, name, api_key, theme: "light"|"dark"|"system", monthly_budget, created_at }
+User { id, code /* codice frupas */, name, theme: "light"|"dark"|"system", monthly_budget, created_at }
 
 Category {
-  id, user_id, name, color, icon,
+  id, user_id /* = codice frupas del proprietario */, name, color, icon,
   is_default,             // le 4 categorie di base non si rinominano/eliminano
   sort_order,
   budget: number | null   // budget mensile dedicato, facoltativo
@@ -112,17 +126,20 @@ inserire manualmente uscite o entrate.
 ### Impostazioni
 Tema chiaro/scuro/sistema (persistito), budget mensile generale (con
 equivalente settimanale/giornaliero calcolato in automatico), gestione
-categorie (nome, colore, budget facoltativo), e una sezione "Apple Pay
-Shortcut" — oggi un segnaposto etichettato "Fase 3" — che mostrerà URL del
-webhook e API key una volta collegato il backend reale.
+categorie (nome, colore, budget facoltativo), URL del webhook Apple Pay e
+chiave del webhook copiabili, e un pulsante per disconnettersi.
 
-## Il webhook Apple Pay (già pronto lato server)
+## Il webhook Apple Pay
 
-`POST /api/webhook/applepay` — pensato per un'automazione Comandi Rapidi
-"Alla ricezione di una notifica" filtrata su Apple Pay.
+`POST /api/webhook/applepay` — pensato per un'**automazione** di iPhone
+(app Comandi Rapidi → scheda *Automazione*), che scatta da sé alla notifica
+di pagamento Apple Pay. Non è un comando rapido da lanciare a mano: l'utente
+non fa nulla, la spesa arriva mentre paga.
 
-- **Header** `x-api-key`: l'API key dell'utente (stampata in console al
-  primo avvio del server).
+- **Header** `x-api-key`: la **chiave del webhook**, visibile in
+  Impostazioni. È un segreto interno di tappy, generato al primo accesso.
+  Non si usa qui il codice Fru Pass: quello è la credenziale dell'intero
+  ecosistema e non va copiata dentro un'automazione.
 - **Body JSON**:
   ```json
   { "amount": 12.5, "name": "Bar Roma", "card": "Visa", "category": "Leisure" }
@@ -131,20 +148,6 @@ webhook e API key una volta collegato il backend reale.
   opzionali. Categorie e carte non esistenti vengono create automaticamente
   (case-insensitive); se la categoria non corrisponde a nulla la spesa
   finisce in "Altro".
-
-## Stato del progetto
-
-- ✅ **Fase 1 — UI indipendente dai dati reali**: fatta. Tutte e tre le
-  schermate sono rifinite graficamente e testate con dati mock.
-- ⏳ **Fase 2 — collegamento alle tabelle utente**: il server è pronto
-  (schema, tutte le rotte, webhook incluso) ma il client punta ancora al
-  mock. Basta girare `USE_MOCK` a `false` in `client/src/lib/api.ts`.
-- ❌ **Fase 3 — Comando Rapido iPhone + vista di dettaglio**: da fare.
-  Serve costruire il Comando Rapido vero e proprio (estrarre importo ed
-  esercente dalla notifica Apple Pay e fare la POST), attivare la sezione
-  "Apple Pay Shortcut" in Impostazioni (oggi disabilitata), e aggiungere
-  una vista di dettaglio per il singolo movimento (oggi c'è solo il
-  modale di modifica).
 
 ## Stile
 

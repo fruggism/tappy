@@ -1,126 +1,175 @@
 # tappy — guida per chi continua lo sviluppo
 
-Questo documento è pensato per gli agent/sviluppatori che riprenderanno il
-progetto (in particolare per collegare il **Comando Rapido iPhone** e
-pubblicare l'app). Spiega cosa esiste già, come è organizzato, e cosa manca.
+Questo documento spiega com'è organizzato il progetto, come è ospitato, e
+lo schema esatto delle tabelle Airtable che fanno da database.
 
-## Dove si trova il codice
-
-Il codice (`client/` e `server/`) è su `main`, pronto all'uso — non serve
-cambiare branch. Se vuoi lo storico dettagliato di ogni fase (commit
-descrittivi passo passo), guarda il branch `claude/sviluppa-questa-idea-9ye66e`,
-da cui `main` è stato aggiornato.
-
-## Cos'è tappy
-
-App per registrare **live le spese fatte con le carte**, con l'obiettivo
-finale di ricevere automaticamente i pagamenti Apple Pay via un'automazione
-di Comandi Rapidi su iPhone. Stile grafico minimale in linea ad Apple, con
-dettagli fluorescenti (verde neon come colore primario, più ciano/rosa/
-viola/ambra per categorie e stati).
-
-## Le tre fasi del progetto
-
-Il lavoro è stato deliberatamente diviso in tre fasi, da fare in questo
-ordine:
-
-1. **Fase 1 — UI indipendente dai dati reali** ✅ *completata*.
-   Tutta la grafica (le tre schermate, i grafici, le animazioni) è stata
-   sviluppata e rifinita usando dati finti generati in `localStorage`, così
-   da poter iterare velocemente sul design senza dipendere dal backend.
-2. **Fase 2 — collegamento alle tabelle dati utente** ⏳ *backend pronto,
-   non ancora collegato al client*. Il server Express + SQLite esiste già
-   con tutte le rotte necessarie (vedi sotto), ma il client punta ancora ai
-   dati mock.
-3. **Fase 3 — Comando Rapido iPhone + vista di dettaglio** ❌ *da fare*.
-   È il lavoro che toccherà a chi riprende il progetto: collegare
-   l'automazione Apple Pay al webhook, e costruire una vista di dettaglio
-   per il singolo movimento (attualmente si apre solo un modale di
-   modifica/eliminazione dalla lista Movimenti).
-
-## Struttura del repository
+## Architettura
 
 ```
-client/   — React + Vite + Tailwind (l'app vera e propria)
-server/   — Express + SQLite (API REST, già pronte ma non ancora collegate)
+client/               — React + Vite + Tailwind, l'app vera e propria
+netlify/functions/    — API REST come un'unica Netlify Function (Express)
+netlify/functions/lib/airtable.js — layer di accesso dati (legge/scrive su Airtable)
+netlify.toml          — config build/deploy e redirect /api/* -> funzione
 ```
 
-### Client (`client/`)
+Non c'è più un server Express separato da tenere acceso: il backend è una
+**Netlify Function** (serverless, parte "on demand" a ogni richiesta) che
+usa **Airtable** come database al posto di un file SQLite locale — così i
+dati sono raggiungibili da qualunque dispositivo, non solo dal computer su
+cui gira il server.
 
-- `src/lib/types.ts` — tipi condivisi: `User`, `Category`, `Card`, `Transaction`.
-- `src/lib/mockApi.ts` — implementazione "finta" dell'API, backed da
-  `localStorage`. Usata in Fase 1.
-- `src/lib/realApi.ts` — implementazione vera, fa `fetch` verso il server
-  Express (`VITE_API_URL`, default `http://localhost:4000`).
-- `src/lib/api.ts` — **punto di switch fra le due**. Contiene:
-  ```ts
-  const USE_MOCK = true;
-  export const api = USE_MOCK ? mockApi : realApi;
-  ```
-  Per la Fase 2 basta cambiare `USE_MOCK` a `false` (il server deve essere
-  in esecuzione). Le due implementazioni hanno **la stessa identica
-  interfaccia**, quindi nessun componente va toccato.
-- `src/lib/AppContext.tsx` — stato globale React (utente, categorie, carte,
-  transazioni, tema) caricato tramite `api`.
-- `src/views/Andamento.tsx` — sintesi/andamento spese (vedi sotto).
-- `src/views/Movimenti.tsx` — lista movimenti.
-- `src/views/Impostazioni.tsx` — impostazioni utente.
-- `src/components/RadialGauge.tsx` — il gauge animato principale.
-- `src/components/TransactionModal.tsx` — form di aggiunta/modifica movimento.
+## Autenticazione: il codice Fru Pass
 
-### Server (`server/`)
+tappy fa parte dell'ecosistema **Fru Pass**: ogni utente è identificato dal
+suo codice `FRU-XXXX-XXXX`, lo stesso che usa nelle altre app dell'hub.
+La forma canonica è maiuscola e senza spazi; i trattini fanno parte del
+formato e si mantengono (`canonicalCode` in
+`netlify/functions/lib/frupass.js`).
 
-- `src/db.ts` — schema SQLite (`users`, `categories`, `cards`,
-  `transactions`) e seed di un utente di default con le 4 categorie
-  predefinite.
-- `src/index.ts` — tutte le rotte REST, **incluso il webhook Apple Pay**
-  già pronto (vedi sezione dedicata sotto). `npm run dev` in `server/`
-  lo avvia su `:4000` e stampa in console l'API key dell'utente di default.
+**Il codice non lo validiamo noi.** L'unico modo legittimo di verificarlo è
+l'endpoint pubblico condiviso dell'ecosistema:
 
-## Modello dati
-
-```ts
-User {
-  id, name, api_key, theme: "light"|"dark"|"system",
-  monthly_budget: number, created_at
-}
-
-Category {
-  id, user_id, name, color, icon,
-  is_default: 0|1,       // le 4 categorie di base non si eliminano/rinominano
-  sort_order: number,
-  budget: number | null  // budget mensile dedicato, facoltativo
-}
-
-Card { id, user_id, name }
-
-Transaction {
-  id, user_id, date, time,
-  amount: number,        // importo totale della spesa
-  my_share: number,      // quanto è effettivamente a proprio carico (vedi split)
-  name: string,          // nome esercente/descrizione
-  card_id, category_id,
-  source: "manual" | "applepay",
-  is_income: 0 | 1,
-  note, created_at
-}
+```
+POST https://frupass-user.netlify.app/.netlify/functions/api
+{ "action": "login", "payload": { "code": "FRU-XXXX-XXXX" } }
 ```
 
-**Categorie predefinite**: "Spesa", "Macchina", "Leisure", "Altro" — quest'ultima
-è il fallback quando una spesa non ha (o perde) una categoria valida, e non
-si può rinominare/eliminare. Ogni utente può aggiungerne altre, con colore
-a scelta e budget mensile facoltativo.
+Della risposta ci serve solo `profile` (`code`, `name`, `username`):
+`apps`/`categories`/`messages`/`medals` sono roba dell'hub. `action:
+"refresh"` è la stessa chiamata, usata per accorgersi che un codice salvato
+è stato revocato. Non abbiamo — e non ci servono — le credenziali Airtable
+dell'ecosistema: la nostra base Airtable è un'altra cosa e contiene solo i
+dati di tappy.
 
-**Spese divise**: `amount` è l'importo pagato realmente (es. alla cassa),
-`my_share` è la quota di propria competenza. Nel form di inserimento questo
-si gestisce in due modalità: "Parti uguali" (si indica in quante persone e
-si calcola da sé) oppure "Il mio importo" (si scrive direttamente la quota).
+Il flusso completo:
 
-**Budget**: `monthly_budget` dell'utente è il budget generale; ogni
-categoria può averne uno proprio e facoltativo (`Category.budget`). In
-tutte le viste, un budget mensile viene scalato al periodo selezionato con
-la stessa formula: giornaliero = `budget / giorni_nel_mese`, settimanale =
-`(budget / giorni_nel_mese) * 7`.
+1. `POST /api/auth/login` con `{ code }`. La funzione chiama l'endpoint
+   condiviso; se il profilo torna valido, `provisionUser` crea l'utente su
+   Airtable al primo accesso (con le 4 categorie di default e la carta
+   "Carta principale"), altrimenti lo recupera.
+2. Il client salva il profilo in `localStorage` alla chiave `tappy_frupass`
+   (convenzione dell'ecosistema, `<nome-app>_frupass`).
+3. **Arrivo dall'hub**: l'hub apre l'app come `https://…/#code=FRU-XXXX-XXXX`.
+   Il client legge l'hash all'avvio, entra diretto senza mostrare il login, e
+   ripulisce subito l'URL con `history.replaceState`.
+4. Agli avvii successivi si riusa il profilo salvato — la home compare
+   subito — e parte in background un `POST /api/auth/refresh`. Solo un
+   "Codice non riconosciuto" invalida la sessione: se è l'ecosistema a non
+   rispondere (503), l'utente resta dentro.
+5. Le rotte dati viaggiano con l'header `x-frupas-code`, risolto cercando il
+   codice nella tabella `Users`. Non esiste un fallback in query string: ci
+   finirebbe la credenziale dell'intero ecosistema, negli URL e nei log.
+
+Nota di progetto: la verifica presso l'ecosistema avviene al login e ai
+refresh, non a ogni richiesta — un utente esiste nella nostra base solo
+perché il codice è stato confermato almeno una volta. È il compromesso che
+la guida dell'ecosistema stessa suggerisce (ri-validare periodicamente), e
+tiene le rotte dati a una sola chiamata di rete.
+
+### La chiave del webhook è un'altra cosa
+
+`users.ApiKey` è un segreto **interno di tappy**, generato al primo accesso
+e mostrato in Impostazioni. Serve solo al webhook Apple Pay
+(`x-api-key`). Non è una credenziale d'accesso e non sostituisce il codice
+Fru Pass — che, essendo la credenziale di tutto l'ecosistema, non va mai
+copiato dentro un'automazione dell'iPhone.
+
+Non è solo una chiave d'accesso: il codice Fru Pass è anche la **chiave
+esterna** usata nelle tabelle. Il campo `UserId` di `Categories`, `Cards` e
+`Transactions` contiene il codice stesso (non un id interno di Airtable),
+così i dati restano identificabili e portabili anche fuori da Airtable.
+
+## Schema Airtable
+
+Crea una base Airtable con queste 4 tabelle e questi campi esatti (i nomi
+contano: il backend li usa così come sono).
+
+### `Users`
+| Campo | Tipo | Note |
+|---|---|---|
+| `Name` | Single line text | |
+| `FrupasCode` | Single line text | codice Fru Pass in forma canonica, unico (es. `FRU-AB12-CD34`) |
+| `ApiKey` | Single line text | segreto del webhook Apple Pay, generato al primo accesso |
+| `Theme` | Single line text | `light` / `dark` / `system` |
+| `MonthlyBudget` | Number | |
+| `CreatedAt` | Single line text | ISO 8601, scritta dal backend |
+
+### `Categories`
+| Campo | Tipo | Note |
+|---|---|---|
+| `UserId` | Single line text | codice frupas del proprietario |
+| `Name` | Single line text | |
+| `Color` | Single line text | es. `#39ff88` |
+| `Icon` | Single line text | |
+| `IsDefault` | Checkbox | le 4 categorie di base (non rinominabili/eliminabili) |
+| `SortOrder` | Number | |
+| `Budget` | Number | facoltativo, lascia vuoto se non usato |
+
+### `Cards`
+| Campo | Tipo | Note |
+|---|---|---|
+| `UserId` | Single line text | codice frupas del proprietario |
+| `Name` | Single line text | |
+
+### `Transactions`
+| Campo | Tipo | Note |
+|---|---|---|
+| `UserId` | Single line text | codice frupas del proprietario |
+| `Date` | Single line text | `YYYY-MM-DD` |
+| `Time` | Single line text | `HH:MM`, facoltativo |
+| `Amount` | Number | importo totale della spesa |
+| `MyShare` | Number | quota a proprio carico (spese divise) |
+| `Name` | Single line text | esercente/descrizione |
+| `CardId` | Single line text | record id Airtable di `Cards`, facoltativo |
+| `CategoryId` | Single line text | record id Airtable di `Categories` |
+| `Source` | Single line text | `manual` / `applepay` |
+| `IsIncome` | Checkbox | |
+| `Note` | Single line text | facoltativo |
+| `CreatedAt` | Single line text | ISO 8601, scritta dal backend |
+
+`UserId` è il **codice frupas** (testo semplice, non "linked record"): è
+l'identità condivisa nell'ecosistema, la stessa su tutte le app. `CardId` e
+`CategoryId` restano invece record id interni di Airtable — identificano
+solo righe di *questa* base, non serve che siano leggibili fuori da tappy.
+
+**Categorie predefinite**: "Spesa", "Macchina", "Leisure", "Altro" — create
+da `provisionUser` al primo accesso di ogni nuovo utente. "Altro" è il
+fallback quando una spesa non ha (o perde) una categoria valida.
+
+## Deploy
+
+1. **Airtable**: crea la base con lo schema sopra. Genera un Personal
+   Access Token (airtable.com/create/tokens) con scope `data.records:read`
+   e `data.records:write` sulla base — è `AIRTABLE_API_KEY`. L'ID base
+   (`appXXXXXXXXXXXXXX`) è `AIRTABLE_BASE_ID`.
+2. **Nessun utente da creare a mano**: al primo accesso con un codice Fru
+   Pass valido l'utente viene creato da sé su Airtable, con le categorie di
+   default. I codici li assegna l'amministratore dell'ecosistema.
+3. **Netlify**: "Add new site" → "Import an existing project" → collega il
+   repo GitHub. Netlify legge `netlify.toml` da solo (build command,
+   publish dir, redirect `/api/*`). Aggiungi in Site configuration →
+   Environment variables: `AIRTABLE_API_KEY`, `AIRTABLE_BASE_ID`. Deploy.
+4. Apri il dominio Netlify da ogni dispositivo (telefono, computer) e
+   inserisci il codice frupas al primo accesso.
+5. **Automazione Apple Pay**: usa come URL `https://<tuo-dominio-netlify>/api/webhook/applepay`
+   e come header `x-frupas-code: <codice frupas>` (vedi sezione dedicata in
+   Impostazioni nell'app, che mostra URL e codice pronti da copiare).
+
+## Sviluppo locale
+
+`npm run dev` usa la [Netlify CLI](https://docs.netlify.com/cli/get-started/)
+via `npx` (non serve installarla) per far girare client + funzione insieme
+sulla stessa porta, esattamente come in produzione:
+
+```bash
+npm install                    # dipendenze della funzione (root)
+cd client && npm install && cd ..
+npm run dev
+```
+
+Per lavorare solo sulla UI senza toccare Airtable, in `client/src/lib/api.ts`
+metti `USE_MOCK = true`: l'app userà dati finti salvati in `localStorage`
+(stessa interfaccia di `realApi`, nessun componente da toccare).
 
 ## Le tre schermate
 
@@ -146,33 +195,16 @@ modale per inserire manualmente uscite o entrate.
 ### Impostazioni
 Tema (chiaro/scuro/sistema, persistito), budget mensile generale (con
 equivalente settimanale/giornaliero mostrato in automatico), gestione
-categorie (nome, colore, budget facoltativo), e una sezione "Apple Pay
-Shortcut" attualmente segnaposto (etichettata "Fase 3") che mostrerà l'URL
-del webhook e l'API key una volta collegato il backend reale.
+categorie (nome, colore, budget facoltativo), sezione "Apple Pay Shortcut"
+con URL webhook e codice frupas copiabili, e pulsante per disconnettersi
+(cambia codice frupas/dispositivo).
 
-## Il webhook Apple Pay (già pronto lato server)
+## Cosa manca
 
-`POST /api/webhook/applepay` — pensato per essere chiamato da
-un'automazione Comandi Rapidi "Alla ricezione di una notifica" filtrata su
-Apple Pay.
-
-- **Header** `x-api-key`: l'API key dell'utente (stampata in console al
-  primo avvio del server, o leggibile dalla tabella `users`).
-- **Body JSON**:
-  ```json
-  { "amount": 12.5, "name": "Bar Roma", "card": "Visa", "category": "Leisure", "date": "2026-09-02", "time": "18:30", "note": "opzionale" }
-  ```
-  Solo `amount` e `name` sono obbligatori. `card` e `category` vengono
-  create automaticamente se non esistono già (case-insensitive); se
-  `category` non corrisponde a nulla, la spesa finisce in "Altro". Se
-  `date`/`time` non sono forniti si usa l'istante corrente.
-- Risposta: la `Transaction` creata, con `source: "applepay"`.
-
-**Cosa manca per la Fase 3**: il Comando Rapido vero e proprio (estrarre
-importo/esercente dal testo della notifica Apple Pay e fare la POST), il
-collegamento reale mostrato in Impostazioni (URL + API key copiabili, oggi
-sono un placeholder disabilitato), e la vista di dettaglio del singolo
-movimento (oggi c'è solo il modale di modifica).
+L'**automazione iPhone vera e propria** (estrarre importo ed esercente
+dal testo della notifica Apple Pay e fare la POST al webhook) e una
+**vista di dettaglio** per il singolo movimento (oggi c'è solo il modale di
+modifica/eliminazione dalla lista Movimenti) restano da costruire.
 
 ## Convenzioni di stile utili da rispettare
 

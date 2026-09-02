@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useApp } from "./lib/AppContext";
+import { Dock, Header } from "./components/AppChrome";
+import Login from "./views/Login";
 import Andamento from "./views/Andamento";
 import Movimenti from "./views/Movimenti";
 import Impostazioni from "./views/Impostazioni";
@@ -49,9 +51,14 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
 ];
 
 export default function App() {
-  const { loading, user } = useApp();
+  const { loading, user, needsLogin } = useApp();
   const [tab, setTab] = useState<Tab>("andamento");
 
+  if (needsLogin) return <Login />;
+
+  // Finché non si sa chi è l'utente si mostra lo spinner, mai il login: chi
+  // arriva dall'hub con il codice nell'URL non deve vedere la schermata di
+  // accesso comparire e sparire.
   if (loading || !user) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -62,47 +69,40 @@ export default function App() {
 
   return (
     <div className="h-full flex flex-col max-w-md mx-auto relative bg-base dark:bg-base-dark">
-      <header
-        className="px-5 pb-2 flex items-center justify-between"
-        style={{ paddingTop: "max(1.5rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
-      >
-        <h1 className="text-2xl font-bold tracking-tight">
-          tap<span className="text-neon-green">py</span>
-        </h1>
-        <span className="text-xs text-muted dark:text-muted-dark">{user.name}</span>
-      </header>
+      <Header />
 
+      {/* pb generoso: sotto ci sono nav e riga della versione, e l'ultima card
+          di ogni schermata non deve finirci sotto. */}
       <main
         className="flex-1 overflow-y-auto px-5 pt-2"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 6rem)" }}
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 8rem)" }}
       >
         {tab === "andamento" && <Andamento />}
         {tab === "movimenti" && <Movimenti />}
         {tab === "impostazioni" && <Impostazioni />}
       </main>
 
-      <nav
-        className="absolute left-0 right-0 mx-4 rounded-2xl bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-xl flex"
-        style={{ bottom: "max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))" }}
-      >
-        {TABS.map((t) => {
-          const active = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${
-                active ? "text-neon-green" : "text-muted dark:text-muted-dark"
-              }`}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
-                {t.icon}
-              </svg>
-              <span className="text-[10px] font-medium">{t.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      <Dock>
+        <nav className="rounded-2xl bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-xl flex">
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${
+                  active ? "text-neon-green" : "text-muted dark:text-muted-dark"
+                }`}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
+                  {t.icon}
+                </svg>
+                <span className="text-[10px] font-medium">{t.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </Dock>
     </div>
   );
 }

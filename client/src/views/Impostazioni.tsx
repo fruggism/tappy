@@ -73,10 +73,20 @@ function CategoryRow({
 }
 
 export default function Impostazioni() {
-  const { user, categories, setTheme, setBudget, refresh } = useApp();
+  const { user, categories, setTheme, setBudget, refresh, logout } = useApp();
   const [budgetInput, setBudgetInput] = useState(user ? String(user.monthly_budget) : "");
   const [newCatName, setNewCatName] = useState("");
   const [newCatColor, setNewCatColor] = useState(PALETTE[0]);
+  const [copied, setCopied] = useState(false);
+
+  const webhookUrl = `${window.location.origin}/api/webhook/applepay`;
+
+  async function copyApiKey() {
+    if (!user?.api_key) return;
+    await navigator.clipboard.writeText(user.api_key);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
 
   if (!user) return null;
 
@@ -132,6 +142,10 @@ export default function Impostazioni() {
             </button>
           ))}
         </div>
+        <p className="text-xs text-muted dark:text-muted-dark">
+          Il pulsante nell&apos;header imposta chiaro o scuro; da qui puoi tornare a
+          &quot;Sistema&quot;.
+        </p>
       </section>
 
       <section className="flex flex-col gap-3">
@@ -234,29 +248,66 @@ export default function Impostazioni() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
-            Apple Pay Shortcut
-          </h2>
-          <span className="text-[10px] font-medium text-neon-amber bg-neon-amber/10 px-2 py-0.5 rounded-full">
-            Fase 3
+        <h2 className="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
+          Accesso
+        </h2>
+        <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-1 text-sm">
+          <span className="text-[10px] text-muted dark:text-muted-dark uppercase tracking-wide">
+            Il tuo codice Fru Pass
           </span>
-        </div>
-        <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-2 text-sm">
-          <p className="text-muted dark:text-muted-dark">
-            Qui compariranno l&apos;URL del webhook, l&apos;API key personale e le istruzioni
-            per collegare il Comando Rapido &quot;Alla ricezione di una notifica&quot; di Apple
-            Pay, una volta collegato il backend reale.
+          <code className="text-base tracking-widest">{user.code}</code>
+          <p className="text-xs text-muted dark:text-muted-dark mt-1">
+            È lo stesso codice che usi nelle altre app dell&apos;ecosistema: inseriscilo su un
+            altro dispositivo per ritrovare gli stessi dati.
           </p>
-          <div className="flex items-center gap-2 opacity-40 pointer-events-none select-none">
-            <code className="flex-1 rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-xs break-all">
-              {user.api_key}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
+          Automazione Apple Pay
+        </h2>
+        <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3 text-sm">
+          <p className="text-muted dark:text-muted-dark">
+            Nell&apos;automazione dell&apos;iPhone che scatta al pagamento Apple Pay, fai una
+            POST a questo URL con l&apos;header <code>x-api-key</code> impostato sulla chiave
+            qui sotto. Non usare il codice Fru Pass: è la credenziale di tutto
+            l&apos;ecosistema e non va copiata in un&apos;automazione.
+          </p>
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] text-muted dark:text-muted-dark uppercase tracking-wide">
+              URL webhook
+            </span>
+            <code className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-xs break-all">
+              {webhookUrl}
             </code>
-            <button className="text-xs rounded-lg bg-ink dark:bg-white text-white dark:text-black px-3 py-2 shrink-0">
-              Copia
-            </button>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] text-muted dark:text-muted-dark uppercase tracking-wide">
+              Chiave del webhook
+            </span>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-xs break-all">
+                {user.api_key ?? "non disponibile"}
+              </code>
+              <button
+                onClick={copyApiKey}
+                className="text-xs rounded-lg bg-ink dark:bg-white text-white dark:text-black px-3 py-2 shrink-0"
+              >
+                {copied ? "Copiata!" : "Copia"}
+              </button>
+            </div>
           </div>
         </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <button
+          onClick={logout}
+          className="rounded-xl bg-surface dark:bg-surface-dark text-muted dark:text-muted-dark text-sm py-2.5"
+        >
+          Disconnetti (cambia codice Fru Pass/dispositivo)
+        </button>
       </section>
     </div>
   );

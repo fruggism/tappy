@@ -64,9 +64,31 @@ body {
   animation: overflowPulse 1.8s ease-in-out infinite;
 }
 
+/* Codice rifiutato al login: una scossa breve, non un lampeggio. */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.3s ease-in-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gauge-overflow-pulse {
     animation: none;
     opacity: 1;
+  }
+
+  .animate-shake {
+    animation: none;
   }
 }
