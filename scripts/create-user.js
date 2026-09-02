@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { pool } = require('../src/db');
-const { generateToken, hashToken } = require('../src/token');
+const { generateCode, hashCode } = require('../src/token');
 
 async function main() {
   const name = process.argv[2];
@@ -10,12 +10,12 @@ async function main() {
     process.exit(1);
   }
 
-  const token = generateToken();
-  await pool.query('INSERT INTO users (name, token_hash) VALUES ($1, $2)', [name, hashToken(token)]);
+  const code = generateCode();
+  await pool.query('INSERT INTO users (name, code_hash) VALUES ($1, $2)', [name, hashCode(code)]);
 
   console.log(`Utente "${name}" creato.`);
-  console.log('Token (mostrato una sola volta, salvalo in un posto sicuro):');
-  console.log(token);
+  console.log('Codice frupass (mostrato una sola volta, consegnalo all\'utente):');
+  console.log(code);
 
   await pool.end();
 }

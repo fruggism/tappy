@@ -7,7 +7,7 @@
   body { font-family: -apple-system, sans-serif; max-width: 480px; margin: 2rem auto; padding: 0 1rem; color: #222; }
   h1 { font-size: 1.4rem; }
   input, button { font-size: 1rem; padding: 0.5rem; }
-  #token { width: 100%; box-sizing: border-box; margin-bottom: 0.5rem; }
+  #code { width: 100%; box-sizing: border-box; margin-bottom: 0.5rem; text-transform: uppercase; }
   form { display: flex; gap: 0.5rem; margin: 1rem 0; flex-wrap: wrap; }
   form input { flex: 1; min-width: 80px; }
   ul { list-style: none; padding: 0; }
@@ -19,7 +19,7 @@
 </head>
 <body>
 <h1>Tappy — le tue spese</h1>
-<input id="token" type="password" placeholder="Il tuo token API">
+<input id="code" type="text" placeholder="Il tuo codice frupass" autocapitalize="characters" autocomplete="off">
 <div id="summary"></div>
 <form id="add-form">
   <input id="amount" type="number" step="0.01" placeholder="Importo" required>
@@ -31,22 +31,22 @@
 <ul id="list"></ul>
 
 <script>
-const tokenInput = document.getElementById('token');
+const codeInput = document.getElementById('code');
 const errorEl = document.getElementById('error');
 
-tokenInput.value = localStorage.getItem('tappy_token') || '';
-tokenInput.addEventListener('change', () => {
-  localStorage.setItem('tappy_token', tokenInput.value);
+codeInput.value = localStorage.getItem('tappy_code') || '';
+codeInput.addEventListener('change', () => {
+  localStorage.setItem('tappy_code', codeInput.value);
   load();
 });
 
 async function api(path, options = {}) {
-  const token = tokenInput.value.trim();
+  const code = codeInput.value.trim();
   const res = await fetch(path, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${code}`,
       ...(options.headers || {}),
     },
   });
@@ -59,7 +59,7 @@ async function api(path, options = {}) {
 
 async function load() {
   errorEl.textContent = '';
-  if (!tokenInput.value.trim()) return;
+  if (!codeInput.value.trim()) return;
   try {
     const [expenses, summary] = await Promise.all([api('/api/expenses'), api('/api/expenses/summary')]);
     document.getElementById('summary').textContent =

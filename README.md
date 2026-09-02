@@ -1,9 +1,17 @@
 # tappy
 
-Tappy è un piccolo servizio per registrare le proprie spese, pensato per essere
-usato sia da un'app **Comandi Rapidi (Shortcuts)** su iPhone sia da una
-semplice pagina web. Ogni utente ha un token personale e vede **solo le
-proprie spese**: tutte le query nel backend filtrano sempre per `user_id`.
+Tappy è un piccolo servizio per registrare le proprie spese, pensato per far
+parte di **frupass** (il pass unico per le mie app) e per essere usato sia da
+un'app **Comandi Rapidi (Shortcuts)** su iPhone sia da una semplice pagina
+web. Ogni utente frupass ha un **codice personale breve** (8 caratteri, es.
+`7K4P9Q2R`) e vede **solo le proprie spese**: tutte le query nel backend
+filtrano sempre per `user_id`.
+
+Per ora i codici sono generati e verificati direttamente da tappy (vedi
+`src/token.js` e `scripts/create-user.js`); se in futuro frupass diventa un
+servizio di identità centralizzato condiviso da più app, la verifica in
+`src/middleware/auth.js` potrà essere sostituita con una chiamata a quel
+servizio senza cambiare il resto dell'API.
 
 ## Setup
 
@@ -15,7 +23,7 @@ proprie spese**: tutte le query nel backend filtrano sempre per `user_id`.
    npm run migrate
    ```
 
-3. Crea un utente e ottieni il suo token (mostrato una sola volta):
+3. Crea un utente e ottieni il suo codice frupass (mostrato una sola volta):
 
    ```
    npm run create-user -- "Mario Rossi"
@@ -27,12 +35,13 @@ proprie spese**: tutte le query nel backend filtrano sempre per `user_id`.
    npm start
    ```
 
-La pagina web è disponibile su `/` (inserisci il token per vedere le tue spese).
+La pagina web è disponibile su `/` (inserisci il codice per vedere le tue spese).
 
 ## API
 
-Tutte le rotte richiedono l'header `Authorization: Bearer <token>` (o, in
-alternativa, `?token=...` come query string, comodo per URL da Comandi Rapidi).
+Tutte le rotte richiedono l'header `Authorization: Bearer <codice>` (o, in
+alternativa, `?code=...` come query string, comodo per URL da Comandi Rapidi).
+Il codice non fa distinzione tra maiuscole/minuscole e ignora spazi o trattini.
 
 - `POST /api/expenses` — body JSON `{ "amount": 12.5, "description": "Pranzo", "category": "cibo" }`
 - `GET /api/expenses` — elenco delle proprie spese (più recenti prima)
@@ -48,7 +57,7 @@ Crea un nuovo Comando Rapido su iPhone con questi passi:
 3. Aggiungi l'azione **"Ottieni contenuto URL"** (Get Contents of URL):
    - URL: `https://<il-tuo-dominio>/api/expenses`
    - Metodo: `POST`
-   - Intestazioni (Headers): `Authorization: Bearer <IL_TUO_TOKEN>`, `Content-Type: application/json`
+   - Intestazioni (Headers): `Authorization: Bearer <IL_TUO_CODICE_FRUPASS>`, `Content-Type: application/json`
    - Corpo (Body, tipo JSON):
      ```json
      { "amount": Importo, "description": Descrizione }
@@ -58,5 +67,5 @@ Crea un nuovo Comando Rapido su iPhone con questi passi:
 Puoi anche aggiungere Comandi Rapidi in sola lettura, ad esempio uno che chiama
 `GET /api/expenses/summary` e mostra il totale del mese come notifica.
 
-Ogni persona che userà il comando deve avere il proprio token (creato con
-`npm run create-user`): così ognuno registra e vede solo le proprie spese.
+Ogni persona che userà il comando deve avere il proprio codice frupass (creato
+con `npm run create-user`): così ognuno registra e vede solo le proprie spese.
