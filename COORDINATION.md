@@ -160,12 +160,18 @@ linguaggio visivo di tappy:
 | Palette cyber, Orbitron, `--foil`, raggi/ombre dell'ecosistema | **no** |
 | Nessuna credenziale dell'ecosistema nel repo | sì, tassativo |
 
-⚠️ **Da comunicare all'amministratore Fru Pass**: tappy entra nell'hub con
-una deroga sullo standard grafico, conforme su login, auto-login, sessione,
-header/footer e safe-area. Se la deroga venisse negata, il fallback è il
-"guscio conforme, cuore tappy" (login/header/footer in palette Fru Pass, le
-tre schermate interne invariate) — è un rifacimento del solo task F5, non
-dell'app.
+✅ **Deroga confermata dal proprietario del progetto.** Va comunicata
+all'amministratore Fru Pass alla consegna: il punto per punto di cosa è
+conforme e cosa è in deroga sta in `RELEASE-HUB.md` §2 (sul branch di
+deploy). Se venisse negata, il fallback è il "guscio conforme, cuore tappy"
+— un rifacimento del solo task F5, non dell'app.
+
+**Logo Fru Pass e URL dell'hub**: rinviati alla consegna, come deciso. Nel
+codice sono due costanti e un file segnaposto; la procedura per sostituirli
+è in `RELEASE-HUB.md` §1. Non bloccano F5.
+
+**Nome utente**: non serve. L'identità che conta è il codice Fru Pass, che
+è mostrato in Impostazioni → Accesso.
 
 ### 6.2 Assegnazione dei task
 
