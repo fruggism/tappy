@@ -17,7 +17,7 @@ senza passare da qui.
 | **UI Expert** | Design, non codice di produzione. Definisce layout, gerarchia visiva, micro-interazioni, palette, copy. Consegna spec + mockup, non PR sull'app. | `design/` (spec, mockup, note), `tailwind.config.js` (proposte di palette) | tutto `src/` |
 | **UI Developer** | Implementa le spec dell'UI Expert. Componenti, viste, grafici SVG, animazioni, stato locale. | `client/src/views/`, `client/src/components/`, `client/src/index.css`, `client/src/App.tsx` | `client/src/lib/*Api.ts`, `server/` |
 | **Backend & Deploy** | Server Express/SQLite, schema, rotte, autenticazione, hosting, sincronizzazione multi-dispositivo, migrazione dal mock ai dati reali. | `server/`, `client/src/lib/realApi.ts`, `client/src/lib/api.ts`, `client/.env*`, config di deploy | viste e componenti |
-| **Shortcuts (iPhone)** | Comando Rapido Apple Pay: parsing della notifica, POST al webhook, onboarding dell'utente, sezione "Apple Pay Shortcut" in Impostazioni (solo la parte funzionale). | `shortcuts/` (documentazione + file del comando), contratto del webhook | schema DB, layout delle viste |
+| **Automazioni (iPhone)** | L'**automazione** Apple Pay (non un comando rapido da lanciare a mano): trigger, estrazione di importo ed esercente, POST al webhook, onboarding dell'utente, sezione "Automazione Apple Pay" in Impostazioni (solo la parte funzionale). | `shortcuts/` (documentazione + file dell'automazione), contratto del webhook | schema DB, layout delle viste |
 
 **Zone condivise** (serve accordo esplicito del coordinatore prima di
 modificarle, perché rompono tutti):
@@ -59,8 +59,7 @@ Quando mi proponi un'idea la classifico così, e questo determina l'agent:
   sequenza, mai in parallelo: il developer parte solo quando la spec esiste.
 - **"Si salva / si sincronizza / va online"** (nuovi dati, nuove rotte,
   hosting, backup, più dispositivi, login) → Backend & Deploy.
-- **"Parte dall'iPhone"** (notifiche, automazioni, Comandi Rapidi, widget)
-  → Shortcuts.
+- **"Parte dall'iPhone"** (notifiche, automazioni, widget) → Automazioni.
 - **Idea che tocca due o tre di questi** → la spezzo io in task per agent, con
   l'ordine di esecuzione e il contratto (tipi/rotte) fissato **prima** che
   qualcuno inizi.
@@ -182,9 +181,9 @@ codice sono due costanti e un file segnaposto; la procedura per sostituirli
 | F2 | `users.frupass_code`, rotte legate al codice invece che alla api key, api key declassata a solo-webhook | Backend & Deploy | F1 |
 | F3 | Deploy: client + Netlify Functions su Netlify, dati su Airtable, variabili `AIRTABLE_*` in Site configuration, `USE_MOCK = false` | Backend & Deploy | F2 |
 | F4 ✅ | *Fatto* (`claude/ui-expert-f4-frupass`, `design/F4-login-header-footer.md` + mockup). Spec di login, header e footer **nel linguaggio visivo tappy**: dove sta il logo Fru Pass senza rompere la palette, come si veste il campo codice, come sta il toggle nell'header | UI Expert | F0 |
-| F5 ⬅ **prossimo** | Implementazione di F4: schermata login (campo unico, placeholder `FRU-••••-••••`), header fisso (logo Fru Pass → home → toggle giorno/notte), footer fisso con versione, `viewport-fit=cover` + `env(safe-area-inset-*)` | UI Developer | F4, F1 |
-| F6 | Sezione "Apple Pay Shortcut" attiva: URL webhook + api key copiabili, ora che l'utente è identificato | Shortcuts | F2, F3 |
-| F7 | Comando Rapido reale (parsing notifica → POST al webhook) | Shortcuts | F6 |
+| F5 ✅ | *Fatto* (sul branch di deploy). Implementazione di F4: schermata login (campo unico, placeholder `FRU-••••-••••`), header fisso (logo Fru Pass → home → toggle giorno/notte), footer fisso con versione, `viewport-fit=cover` + `env(safe-area-inset-*)` | UI Developer | F4, F1 |
+| F6 ⬅ **prossimo** | Sezione "Apple Pay Shortcut" attiva: URL webhook + api key copiabili, ora che l'utente è identificato | Shortcuts | F2, F3 |
+| F7 | **Automazione** iPhone reale (Comandi Rapidi → Automazione: scatta al pagamento, estrae importo ed esercente, POST al webhook). Non è un comando rapido da lanciare a mano: va su "Esegui immediatamente" senza conferma, e il trigger disponibile dipende dalla versione di iOS — prima cosa da verificare sull'iPhone | Shortcuts | F6 |
 
 Il toggle giorno/notte manuale richiesto dalla guida **c'è già**
 (`AppContext.tsx`, chiaro/scuro/sistema): F5 lo espone nell'header, non lo
