@@ -205,6 +205,63 @@ function TimeTravelMenu({
   );
 }
 
+// Piccolo anello di progresso animato, riusato per le categorie e la proiezione.
+function MiniRing({
+  pct,
+  color,
+  size = 60,
+  strokeWidth = 6,
+  children,
+}: {
+  pct: number;
+  color: string;
+  size?: number;
+  strokeWidth?: number;
+  children?: React.ReactNode;
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const r = (size - strokeWidth) / 2;
+  const circ = 2 * Math.PI * r;
+  const clamped = Math.min(100, Math.max(0, pct));
+
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="currentColor"
+          className="text-black/[0.06] dark:text-white/10"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={mounted ? circ * (1 - clamped / 100) : circ}
+          style={{
+            transition: "stroke-dashoffset 0.9s cubic-bezier(0.22,1,0.36,1)",
+            filter: `drop-shadow(0 0 4px ${color}99)`,
+          }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">{children}</div>
+    </div>
+  );
+}
+
 function TrendArrow({ up, className }: { up: boolean; className?: string }) {
   return (
     <svg
@@ -233,21 +290,53 @@ function TrendCard({ current, previous }: { current: number; previous: number })
   }
   const deltaPct = ((current - previous) / previous) * 100;
   const up = deltaPct >= 0;
-  const color = up ? "text-neon-pink" : "text-neon-green";
+  const color = up ? "#ff2ecb" : "#39ff88";
+  const textColor = up ? "text-neon-pink" : "text-neon-green";
+  const maxVal = Math.max(current, previous, 1);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   return (
-    <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-2 flex-1 min-w-0 overflow-hidden">
+    <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3 flex-1 min-w-0 overflow-hidden">
       <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
         Vs periodo prec.
       </span>
-      <div className={`flex items-center gap-1.5 ${color}`}>
-        <TrendArrow up={up} className="h-4 w-4 shrink-0" />
-        <span className="text-xl font-semibold tabular-nums">
-          {Math.abs(deltaPct).toFixed(0)}%
-        </span>
+      <div className="flex items-end gap-3">
+        <div className="flex flex-col items-center gap-1">
+          <div className="h-12 w-3 rounded-full bg-black/[0.06] dark:bg-white/10 relative overflow-hidden">
+            <div
+              className="absolute bottom-0 left-0 right-0 rounded-full bg-muted/50 dark:bg-muted-dark/50 transition-all duration-700 ease-out"
+              style={{ height: mounted ? `${(previous / maxVal) * 100}%` : 0 }}
+            />
+          </div>
+          <span className="text-[9px] text-muted dark:text-muted-dark">prima</span>
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <div className="h-12 w-3 rounded-full bg-black/[0.06] dark:bg-white/10 relative overflow-hidden">
+            <div
+              className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-700 ease-out"
+              style={{
+                height: mounted ? `${(current / maxVal) * 100}%` : 0,
+                background: color,
+                boxShadow: `0 0 8px 0 ${color}aa`,
+              }}
+            />
+          </div>
+          <span className="text-[9px] text-muted dark:text-muted-dark">ora</span>
+        </div>
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <div className={`flex items-center gap-1 ${textColor}`}>
+            <TrendArrow up={up} className="h-4 w-4 shrink-0" />
+            <span className="text-xl font-semibold tabular-nums">{Math.abs(deltaPct).toFixed(0)}%</span>
+          </div>
+          <span className="text-[11px] text-muted dark:text-muted-dark tabular-nums truncate">
+            €{animated.toFixed(0)} vs €{previous.toFixed(0)}
+          </span>
+        </div>
       </div>
-      <span className="text-xs text-muted dark:text-muted-dark tabular-nums truncate">
-        €{animated.toFixed(0)} vs €{previous.toFixed(0)}
-      </span>
     </div>
   );
 }
@@ -264,21 +353,30 @@ function ProjectionCard({
   const projected = perDay * daysTotal;
   const animated = useCountUp(projected);
   const over = budget > 0 && projected > budget;
+  const pct = budget > 0 ? (projected / budget) * 100 : 0;
+  const color = over ? "#ff2ecb" : "#39ff88";
   return (
-    <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-2 flex-1 min-w-0 overflow-hidden">
-      <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
-        Proiezione fine periodo
-      </span>
-      <span className={`text-xl font-semibold tabular-nums ${over ? "text-neon-pink" : "text-neon-green"}`}>
-        €{animated.toFixed(0)}
-      </span>
-      <span className="text-xs text-muted dark:text-muted-dark truncate">
-        {budget > 0
-          ? over
-            ? `€${(projected - budget).toFixed(0)} oltre il budget`
-            : "di questo passo, sei in linea"
-          : "in base al ritmo attuale"}
-      </span>
+    <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+      <MiniRing pct={pct} color={color} size={52} strokeWidth={5}>
+        <span className="text-[10px] font-semibold tabular-nums" style={{ color }}>
+          {Math.round(pct)}%
+        </span>
+      </MiniRing>
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
+          Proiezione
+        </span>
+        <span className="text-lg font-semibold tabular-nums" style={{ color }}>
+          €{animated.toFixed(0)}
+        </span>
+        <span className="text-[11px] text-muted dark:text-muted-dark truncate">
+          {budget > 0
+            ? over
+              ? `€${(projected - budget).toFixed(0)} oltre budget`
+              : "in linea col budget"
+            : "in base al ritmo attuale"}
+        </span>
+      </div>
     </div>
   );
 }
@@ -322,8 +420,13 @@ function TopCard({
   );
 }
 
+function formatShortDate(iso: string) {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+}
+
 function Sparkline({ data }: { data: { date: string; total: number }[] }) {
   const [mounted, setMounted] = useState(false);
+  const [hover, setHover] = useState<number | null>(null);
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(raf);
@@ -346,24 +449,68 @@ function Sparkline({ data }: { data: { date: string; total: number }[] }) {
         {data.map((d, i) => {
           const isToday = d.date === today;
           const h = mounted ? Math.max(3, (d.total / max) * 100) : 0;
+          const isHover = hover === i;
           return (
             <div
               key={d.date}
-              className="flex-1 h-full rounded-full bg-black/5 dark:bg-white/10 relative overflow-hidden"
+              className="relative flex-1 h-full cursor-pointer"
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+              onTouchStart={() => setHover(i)}
             >
-              <div
-                className="absolute bottom-0 left-0 right-0 rounded-full transition-all ease-out"
-                style={{
-                  height: `${h}%`,
-                  transitionDuration: "800ms",
-                  transitionDelay: `${i * 35}ms`,
-                  background: isToday ? "#39ff88" : "#39ff8855",
-                  boxShadow: isToday ? "0 0 10px #39ff88aa" : "none",
-                }}
-              />
+              {isHover && (
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink dark:bg-white text-white dark:text-black text-[10px] font-medium px-2 py-1 shadow-lg z-10 animate-rise">
+                  €{d.total.toFixed(0)} · {formatShortDate(d.date)}
+                </div>
+              )}
+              <div className="h-full w-full rounded-full bg-black/5 dark:bg-white/10 relative overflow-hidden">
+                <div
+                  className="absolute bottom-0 left-0 right-0 rounded-full transition-all ease-out"
+                  style={{
+                    height: `${h}%`,
+                    transitionDuration: "800ms",
+                    transitionDelay: `${i * 35}ms`,
+                    background: isHover ? "#39ff88" : isToday ? "#39ff88" : "#39ff8855",
+                    boxShadow: isHover || isToday ? "0 0 10px #39ff88aa" : "none",
+                  }}
+                />
+              </div>
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function CategoryRing({
+  category: c,
+  total,
+}: {
+  category: { id: string; label: string; color: string; value: number; budget: number | null };
+  total: number;
+}) {
+  const hasBudget = c.budget != null && c.budget > 0;
+  const over = hasBudget && c.value > c.budget!;
+  const pct = hasBudget
+    ? (c.value / c.budget!) * 100
+    : total > 0
+    ? (c.value / total) * 100
+    : 0;
+  const color = over ? "#ff2ecb" : c.color;
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <MiniRing pct={pct} color={color}>
+        <span className="text-[13px] font-semibold tabular-nums leading-none" style={{ color }}>
+          €{c.value.toFixed(0)}
+        </span>
+      </MiniRing>
+      <div className="flex flex-col items-center gap-0.5 max-w-[5.5rem]">
+        <span className="text-xs font-medium truncate max-w-full">{c.label}</span>
+        <span className="text-[10px] text-muted dark:text-muted-dark truncate max-w-full">
+          {hasBudget ? (over ? "oltre budget" : `su €${c.budget!.toFixed(0)}`) : `${Math.round(pct)}% del totale`}
+        </span>
       </div>
     </div>
   );
@@ -386,42 +533,10 @@ function CategoryBreakdown({
           Nessuna spesa in questo periodo.
         </p>
       )}
-      <div className="flex flex-col gap-3.5">
-        {categories.map((c) => {
-          const hasBudget = c.budget != null && c.budget > 0;
-          const over = hasBudget && c.value > c.budget!;
-          const pct = hasBudget
-            ? Math.min(100, (c.value / c.budget!) * 100)
-            : total > 0
-            ? (c.value / total) * 100
-            : 0;
-          return (
-            <div key={c.id} className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between gap-2 text-sm">
-                <span className="flex items-center gap-2 min-w-0">
-                  <span className="h-2 w-2 rounded-full shrink-0" style={{ background: c.color }} />
-                  <span className="truncate">{c.label}</span>
-                  {over && <span className="text-[11px] text-neon-pink shrink-0">oltre</span>}
-                </span>
-                <span className="tabular-nums text-muted dark:text-muted-dark shrink-0">
-                  {hasBudget ? (
-                    <>
-                      €{c.value.toFixed(0)} <span className="opacity-60">/ €{c.budget!.toFixed(0)}</span>
-                    </>
-                  ) : (
-                    `€${c.value.toFixed(0)}`
-                  )}
-                </span>
-              </div>
-              <div className="h-1.5 rounded-full bg-black/[0.06] dark:bg-white/10 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${pct}%`, background: over ? "#ff2ecb" : c.color }}
-                />
-              </div>
-            </div>
-          );
-        })}
+      <div className="grid grid-cols-3 gap-y-4 gap-x-2 justify-items-center">
+        {categories.map((c) => (
+          <CategoryRing key={c.id} category={c} total={total} />
+        ))}
       </div>
     </div>
   );
