@@ -5,22 +5,12 @@ import type { Card, Category, Transaction, User } from "./types";
 // utile solo per puntare a un deploy diverso in fase di sviluppo/debug.
 const BASE = import.meta.env.VITE_API_URL || "";
 
-const FRUPAS_CODE_STORAGE_KEY = "tappy_frupas_code";
-
-export function getFrupasCode(): string | null {
-  return localStorage.getItem(FRUPAS_CODE_STORAGE_KEY);
-}
-
-export function setFrupasCode(code: string) {
-  localStorage.setItem(FRUPAS_CODE_STORAGE_KEY, code.trim());
-}
-
-export function clearFrupasCode() {
-  localStorage.removeItem(FRUPAS_CODE_STORAGE_KEY);
-}
+// L'identità è una sola: quella salvata dalla sessione Fru Pass. Qui la
+// leggiamo e basta, per non avere due copie del codice che possono divergere.
+import { readSession } from "./frupass";
 
 async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const frupasCode = getFrupasCode();
+  const frupasCode = readSession()?.code ?? null;
   const res = await fetch(`${BASE}${path}`, {
     ...options,
     headers: {

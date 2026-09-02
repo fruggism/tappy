@@ -1,6 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "./api";
-import { clearFrupasCode, setFrupasCode as persistFrupasCode } from "./realApi";
+import {
+  clearSession,
+  readSession,
+  refreshFruPass,
+  saveSession,
+  takeCodeFromHash,
+  verifyFruPass,
+  type FruPassProfile,
+} from "./frupass";
 import type { Card, Category, Transaction, User } from "./types";
 
 interface AppState {
@@ -9,13 +17,16 @@ interface AppState {
   cards: Card[];
   transactions: Transaction[];
   loading: boolean;
-  authError: boolean;
+  /** true quando serve mostrare la schermata di login Fru Pass */
+  needsLogin: boolean;
+  profile: FruPassProfile | null;
   effectiveTheme: "light" | "dark";
   refresh: () => Promise<boolean>;
   refreshTransactions: () => Promise<void>;
   setTheme: (t: User["theme"]) => Promise<void>;
   setBudget: (amount: number) => Promise<void>;
-  login: (frupasCode: string) => Promise<boolean>;
+  /** Rifiuta con un errore leggibile se il codice non è valido. */
+  login: (frupasCode: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -27,7 +38,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [cards, setCards] = useState<Card[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState(false);
+  const [needsLogin, setNeedsLogin] = useState(false);
+  const [profile, setProfile] = useState<FruPassProfile | null>(null);
   const [systemDark, setSystemDark] = useState(
     () => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false
   );
@@ -56,38 +68,103 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCategories(c);
       setCards(cd);
       setTransactions(tx);
-      setAuthError(false);
+      setNeedsLogin(false);
       return true;
     } catch {
       setUser(null);
-      setAuthError(true);
       return false;
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Avvio: si decide una volta sola chi è l'utente.
+  //
+  // 1. Se arriviamo dall'hub, il codice è nell'hash dell'URL e l'utente è già
+  //    identificato: si entra diretti, senza far vedere il login.
+  // 2. Altrimenti si riusa la sessione salvata, mostrando subito la home; il
+  //    ri-controllo del codice presso l'ecosistema parte in background e non
+  //    blocca nulla — invalida la sessione solo se il codice è stato revocato.
+  // 3. Se non c'è né l'uno né l'altra, si mostra il login.
   useEffect(() => {
-    refresh();
+    let annullato = false;
+
+    (async () => {
+      const codeFromHub = takeCodeFromHash();
+
+      if (codeFromHub) {
+        try {
+          const p = await verifyFruPass(codeFromHub);
+          if (annullato) return;
+          saveSession(p);
+          setProfile(p);
+          await refresh();
+          return;
+        } catch {
+          // Codice nell'URL non valido: si ripiega sulla sessione salvata,
+          // se c'è, altrimenti sul login.
+        }
+      }
+
+      const salvata = readSession();
+      if (!salvata) {
+        if (!annullato) {
+          setNeedsLogin(true);
+          setLoading(false);
+        }
+        return;
+      }
+
+      setProfile(salvata);
+      refresh();
+
+      // Ri-validazione in background: un errore di rete non deve buttare
+      // fuori l'utente, solo un codice davvero revocato.
+      refreshFruPass(salvata.code)
+        .then((p) => {
+          if (!annullato) {
+            saveSession(p);
+            setProfile(p);
+          }
+        })
+        .catch((err) => {
+          // Solo un codice davvero revocato invalida la sessione: un
+          // FruPassUnreachable (rete giù, ecosistema in manutenzione) si ignora.
+          if (annullato) return;
+          if (err instanceof Error && err.message === "Codice non riconosciuto") {
+            clearSession();
+            setProfile(null);
+            setUser(null);
+            setNeedsLogin(true);
+          }
+        });
+    })();
+
+    return () => {
+      annullato = true;
+    };
   }, [refresh]);
 
   const login = useCallback(
     async (frupasCode: string) => {
-      persistFrupasCode(frupasCode);
-      const ok = await refresh();
-      if (!ok) clearFrupasCode();
-      return ok;
+      const p = await verifyFruPass(frupasCode); // rilancia con messaggio leggibile
+      saveSession(p);
+      setProfile(p);
+      setNeedsLogin(false);
+      await refresh();
     },
     [refresh]
   );
 
   const logout = useCallback(() => {
-    clearFrupasCode();
+    clearSession();
+    setProfile(null);
     setUser(null);
     setCategories([]);
     setCards([]);
     setTransactions([]);
-    setAuthError(true);
+    setNeedsLogin(true);
+    setLoading(false);
   }, []);
 
   const effectiveTheme: "light" | "dark" = useMemo(() => {
@@ -115,7 +192,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     cards,
     transactions,
     loading,
-    authError,
+    needsLogin,
+    profile,
     effectiveTheme,
     refresh,
     refreshTransactions,

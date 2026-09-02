@@ -4,24 +4,40 @@ App per registrare live le spese fatte con le carte, con l'obiettivo finale di
 ricevere automaticamente i pagamenti Apple Pay via un'automazione di Comandi
 Rapidi su iPhone. Stile grafico minimale in linea ad Apple, con dettagli
 fluorescenti. I dati sono sincronizzati automaticamente su tutti i
-dispositivi da cui accedi con lo stesso codice frupas.
+dispositivi da cui accedi con lo stesso codice Fru Pass.
 
-tappy fa parte dell'ecosistema **frupas**: ogni utente è identificato da un
-codice frupas personale (non da un account con password), e quello stesso
-codice è ciò che lega un utente alle sue categorie, carte e transazioni
-nelle tabelle Airtable.
+tappy fa parte dell'ecosistema **Fru Pass**: ogni utente è identificato dal
+suo codice `FRU-XXXX-XXXX` (non da un account con password), lo stesso che
+usa in tutte le altre app dell'hub. Il codice viene verificato dall'endpoint
+condiviso dell'ecosistema — noi non lo validiamo e non abbiamo le credenziali
+per farlo — e una volta verificato è ciò che lega l'utente alle sue
+categorie, carte e transazioni nella **nostra** base Airtable.
 
 ## Architettura
 
 ```
 client/               — React + Vite + Tailwind (l'app vera e propria)
 netlify/functions/    — API REST come Netlify Function (Express + Airtable)
-scripts/seed-user.js  — crea un utente su Airtable e stampa la sua chiave
 ```
 
 Tutto vive su **Netlify**: il client (sito statico) e il backend (una
 funzione serverless) sono nello stesso deploy. I dati sono su **Airtable**
 (vedi [`GUIDE.md`](./GUIDE.md) per lo schema completo delle tabelle).
+
+## Come funziona l'accesso
+
+1. L'utente inserisce il codice `FRU-XXXX-XXXX` (oppure arriva dall'hub, che
+   apre l'app come `https://…/#code=FRU-XXXX-XXXX`: in quel caso entra
+   diretto, senza vedere la schermata di login).
+2. Il client chiama `POST /api/auth/login`; la nostra funzione gira il codice
+   all'endpoint condiviso Fru Pass e, solo se torna un profilo valido, crea o
+   recupera l'utente su Airtable.
+3. Il profilo viene salvato in `localStorage` con chiave `tappy_frupass`, e
+   riusato ai successivi avvii. Al riavvio parte in background un
+   `POST /api/auth/refresh` che se ne accorge se il codice è stato revocato;
+   se invece è l'ecosistema a non rispondere, la sessione resta valida.
+4. Le rotte dati viaggiano con l'header `x-frupas-code`. Mai in query string:
+   metterebbe la credenziale dell'ecosistema negli URL e nei log.
 
 ## Setup rapido
 
@@ -31,20 +47,16 @@ funzione serverless) sono nello stesso deploy. I dati sono su **Airtable**
    e `data.records:write` sulla base creata) — sarà `AIRTABLE_API_KEY`.
    L'ID della base (`appXXXXXXXXXXXXXX`, si trova nell'URL della base o in
    [airtable.com/api](https://airtable.com/api)) sarà `AIRTABLE_BASE_ID`.
-3. **Crea il tuo utente**:
-   ```bash
-   npm install
-   AIRTABLE_API_KEY=... AIRTABLE_BASE_ID=... node scripts/seed-user.js "Il tuo nome"
-   ```
-   Stampa un codice frupas nuovo (o passa il tuo se già lo hai, vedi
-   `GUIDE.md`): è quello che userai per accedere all'app da ogni dispositivo.
+3. **Non serve creare utenti a mano.** Al primo accesso con un codice Fru
+   Pass valido, tappy crea da sé l'utente su Airtable con le 4 categorie di
+   default. Il codice te lo dà l'amministratore dell'ecosistema.
 4. **In locale** (richiede la [Netlify CLI](https://docs.netlify.com/cli/get-started/), `npm install -g netlify-cli`):
    ```bash
    cd client && npm install && cd ..
    AIRTABLE_API_KEY=... AIRTABLE_BASE_ID=... netlify dev
    ```
    Apri l'URL stampato (di solito `http://localhost:8888`) e inserisci il
-   codice frupas.
+   tuo codice Fru Pass.
 5. **In produzione**: collega il repo GitHub a un nuovo sito Netlify (build
    già configurata in `netlify.toml`), imposta `AIRTABLE_API_KEY` e
    `AIRTABLE_BASE_ID` nelle variabili d'ambiente del sito, fai il deploy.
@@ -115,17 +127,17 @@ inserire manualmente uscite o entrate.
 Tema chiaro/scuro/sistema (persistito), budget mensile generale (con
 equivalente settimanale/giornaliero calcolato in automatico), gestione
 categorie (nome, colore, budget facoltativo), URL del webhook Apple Pay e
-codice frupas copiabili, e un pulsante per disconnettersi (utile per
-passare a un altro dispositivo/codice).
+chiave del webhook copiabili, e un pulsante per disconnettersi.
 
 ## Il webhook Apple Pay
 
 `POST /api/webhook/applepay` — pensato per un'automazione Comandi Rapidi
-"Alla ricezione di una notifica" filtrata su Apple Pay. La spesa viene
-salvata su Airtable con lo stesso codice frupas dell'header, così finisce
-tra le transazioni di quell'utente.
+"Alla ricezione di una notifica" filtrata su Apple Pay.
 
-- **Header** `x-frupas-code`: il codice frupas (visibile in Impostazioni).
+- **Header** `x-api-key`: la **chiave del webhook**, visibile in
+  Impostazioni. È un segreto interno di tappy, generato al primo accesso.
+  Non si usa qui il codice Fru Pass: quello è la credenziale dell'intero
+  ecosistema e non va copiata dentro un Comando Rapido.
 - **Body JSON**:
   ```json
   { "amount": 12.5, "name": "Bar Roma", "card": "Visa", "category": "Leisure" }

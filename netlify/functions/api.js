@@ -1,13 +1,20 @@
 // Un'unica Netlify Function che espone tutta l'API REST di tappy
 // (stesse rotte del vecchio server Express+SQLite, ma dati su Airtable).
 //
-// Ogni utente è identificato dal suo codice frupas (header x-frupas-code):
+// Ogni utente è identificato dal suo codice Fru Pass (header x-frupas-code):
 // è quel codice, non un id interno Airtable, a comparire come "UserId"
 // nelle righe di Categories/Cards/Transactions.
+//
+// Il codice viene **verificato presso l'ecosistema Fru Pass** (POST /auth/login
+// e /auth/refresh, vedi lib/frupass.js), mai qui: un utente esiste nella nostra
+// base Airtable solo perché almeno una volta l'endpoint condiviso ha confermato
+// il suo codice. Le rotte dati si limitano quindi a cercarlo in Airtable, e la
+// revoca di un codice viene intercettata dal refresh periodico del client.
 const express = require("express");
 const cors = require("cors");
 const serverless = require("serverless-http");
 const db = require("./lib/airtable");
+const { verifyFruPass, canonicalCode } = require("./lib/frupass");
 
 const app = express();
 app.use(cors());
@@ -23,10 +30,10 @@ app.use((req, _res, next) => {
 
 const router = express.Router();
 
+// Solo l'header. Niente ?code=... in query string: metterebbe la credenziale
+// dell'intero ecosistema Fru Pass negli URL, nella cronologia e nei log.
 function frupasCodeFromRequest(req) {
-  // Header dedicato, con fallback a query string ?code=... (comodo per URL
-  // da Comandi Rapidi) e al vecchio nome x-api-key per compatibilità.
-  return req.header("x-frupas-code") || req.query.code || req.header("x-api-key");
+  return canonicalCode(req.header("x-frupas-code"));
 }
 
 async function resolveUser(req) {
@@ -45,6 +52,39 @@ function withUser(handler) {
     }
   };
 }
+
+// ---------- autenticazione Fru Pass ----------
+// Il client manda qui il codice; noi lo facciamo verificare all'ecosistema e,
+// solo se è valido, restituiamo (creandolo al primo accesso) l'utente tappy.
+function handleAuth(action) {
+  return async (req, res) => {
+    try {
+      const code = canonicalCode(req.body && req.body.code);
+      if (!code) return res.status(400).json({ error: "Codice mancante" });
+
+      let profile;
+      try {
+        profile = await verifyFruPass(code, action);
+      } catch (err) {
+        // Ecosistema irraggiungibile: è un guasto temporaneo, non un codice
+        // sbagliato. Il client non deve cancellare la sessione salvata.
+        console.error("Fru Pass irraggiungibile:", err);
+        return res.status(503).json({ error: "Fru Pass non raggiungibile, riprova" });
+      }
+
+      if (!profile) return res.status(401).json({ error: "Codice non riconosciuto" });
+
+      const user = await db.provisionUser(profile);
+      res.json({ profile, user });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "internal error" });
+    }
+  };
+}
+
+router.post("/auth/login", handleAuth("login"));
+router.post("/auth/refresh", handleAuth("refresh"));
 
 // ---------- users / settings ----------
 router.get("/me", withUser(async (req, res, user) => res.json(user)));
@@ -155,12 +195,13 @@ router.delete(
 
 // ---------- Apple Pay Shortcut webhook ----------
 // L'automazione Comandi Rapidi "Alla ricezione di una notifica" fa la POST
-// qui, con l'header x-frupas-code impostato sul codice frupas dell'utente:
-// la spesa viene salvata su Transactions con quello stesso codice.
+// qui con l'header x-api-key: è l'api key interna di tappy, leggibile in
+// Impostazioni. NON si usa il codice Fru Pass — è la credenziale dell'intero
+// ecosistema e non va copiata dentro un Comando Rapido.
 router.post("/webhook/applepay", async (req, res) => {
   try {
-    const user = await db.getUserByFrupasCode(frupasCodeFromRequest(req));
-    if (!user) return res.status(401).json({ error: "invalid frupas code" });
+    const user = await db.getUserByApiKey(req.header("x-api-key"));
+    if (!user) return res.status(401).json({ error: "invalid api key" });
 
     const { amount, name, card, category, date, time, note } = req.body;
     if (amount === undefined || !name) {
@@ -204,3 +245,5 @@ router.post("/webhook/applepay", async (req, res) => {
 app.use(router);
 
 module.exports.handler = serverless(app);
+// Esportata anche l'app nuda, così si può testare senza simulare un evento Lambda.
+module.exports.app = app;

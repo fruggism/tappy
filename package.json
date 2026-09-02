@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Dipendenze delle Netlify Functions di tappy (backend su Airtable)",
   "scripts": {
-    "seed-user": "node scripts/seed-user.js"
+    "test": "node tests/frupass.test.mjs && node tests/auth-routes.test.mjs"
   },
   "dependencies": {
     "airtable": "^0.12.2",

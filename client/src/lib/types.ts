@@ -1,6 +1,9 @@
 export interface User {
   id: string;
-  code: string; // codice frupas: identità condivisa nell'ecosistema frupas
+  code: string; // codice Fru Pass: identità condivisa in tutto l'ecosistema
+  // Segreto interno di tappy, usato SOLO dal webhook Apple Pay. Non è una
+  // credenziale d'accesso e non sostituisce mai il codice Fru Pass.
+  api_key: string | null;
   name: string;
   theme: "light" | "dark" | "system";
   monthly_budget: number;

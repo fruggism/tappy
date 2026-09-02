@@ -73,9 +73,9 @@ export default function Impostazioni() {
 
   const webhookUrl = `${window.location.origin}/api/webhook/applepay`;
 
-  async function copyFrupasCode() {
-    if (!user) return;
-    await navigator.clipboard.writeText(user.code);
+  async function copyApiKey() {
+    if (!user?.api_key) return;
+    await navigator.clipboard.writeText(user.api_key);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -208,8 +208,9 @@ export default function Impostazioni() {
         <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3 text-sm">
           <p className="text-muted dark:text-muted-dark">
             Nel Comando Rapido &quot;Alla ricezione di una notifica&quot; di Apple Pay, fai una
-            POST a questo URL con l&apos;header <code>x-frupas-code</code> impostato sul tuo
-            codice frupas.
+            POST a questo URL con l&apos;header <code>x-api-key</code> impostato sulla chiave
+            qui sotto. Non usare il codice Fru Pass: è la credenziale di tutto
+            l&apos;ecosistema e non va copiata dentro un Comando Rapido.
           </p>
           <div className="flex flex-col gap-1">
             <span className="text-[10px] text-muted dark:text-muted-dark uppercase tracking-wide">
@@ -221,14 +222,14 @@ export default function Impostazioni() {
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-[10px] text-muted dark:text-muted-dark uppercase tracking-wide">
-              Codice frupas
+              Chiave del webhook
             </span>
             <div className="flex items-center gap-2">
               <code className="flex-1 rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-xs break-all">
-                {user.code}
+                {user.api_key ?? "non disponibile"}
               </code>
               <button
-                onClick={copyFrupasCode}
+                onClick={copyApiKey}
                 className="text-xs rounded-lg bg-ink dark:bg-white text-white dark:text-black px-3 py-2 shrink-0"
               >
                 {copied ? "Copiata!" : "Copia"}
@@ -243,7 +244,7 @@ export default function Impostazioni() {
           onClick={logout}
           className="rounded-xl bg-surface dark:bg-surface-dark text-muted dark:text-muted-dark text-sm py-2.5"
         >
-          Disconnetti (cambia codice frupas/dispositivo)
+          Disconnetti (cambia codice Fru Pass/dispositivo)
         </button>
       </section>
     </div>

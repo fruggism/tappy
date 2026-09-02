@@ -2,19 +2,19 @@
 // Le 4 tabelle (Users, Categories, Cards, Transactions) rispecchiano lo
 // stesso modello dati del vecchio server Express+SQLite (vedi GUIDE.md).
 //
-// tappy fa parte dell'ecosistema frupas: ogni utente è identificato dal suo
-// codice frupas (non da un id interno Airtable), ed è questo stesso codice
-// a comparire come UserId nelle righe di Categories/Cards/Transactions, così
-// da restare leggibile e portabile anche fuori da Airtable.
+// tappy fa parte dell'ecosistema Fru Pass: ogni utente è identificato dal suo
+// codice Fru Pass (formato FRU-XXXX-XXXX, non un id interno Airtable), ed è
+// questo stesso codice a comparire come UserId nelle righe di
+// Categories/Cards/Transactions, così da restare leggibile e portabile anche
+// fuori da Airtable.
+//
+// ATTENZIONE: questa base Airtable è **nostra** e contiene solo i dati di
+// tappy. La verifica del codice non avviene qui: passa sempre dall'endpoint
+// condiviso dell'ecosistema (vedi lib/frupass.js). Qui il codice arriva già
+// verificato.
+const crypto = require("crypto");
 const Airtable = require("airtable");
-
-// Normalizza un codice frupas: maiuscolo, senza spazi/trattini, così
-// "7k4p-9q2r" e "7K4P 9Q2R" sono la stessa identità.
-function normalizeFrupasCode(code) {
-  return String(code || "")
-    .toUpperCase()
-    .replace(/[\s-]/g, "");
-}
+const { canonicalCode } = require("./frupass");
 
 function getBase() {
   const apiKey = process.env.AIRTABLE_API_KEY;
@@ -41,7 +41,8 @@ function esc(value) {
 function userFromRecord(r) {
   return {
     id: r.id, // record id Airtable, usato solo per l'update della riga stessa
-    code: r.get("FrupasCode"), // identità frupas: è questa a legare le altre tabelle
+    code: r.get("FrupasCode"), // identità Fru Pass: è questa a legare le altre tabelle
+    api_key: r.get("ApiKey") || null, // segreto interno di tappy, solo per il webhook Apple Pay
     name: r.get("Name"),
     theme: r.get("Theme") || "system",
     monthly_budget: r.get("MonthlyBudget") || 0,
@@ -85,12 +86,78 @@ function transactionFromRecord(r) {
 }
 
 async function getUserByFrupasCode(code) {
-  const normalized = normalizeFrupasCode(code);
+  const normalized = canonicalCode(code);
   if (!normalized) return null;
   const records = await table("Users")
     .select({ filterByFormula: `{FrupasCode} = '${esc(normalized)}'`, maxRecords: 1 })
     .firstPage();
   return records[0] ? userFromRecord(records[0]) : null;
+}
+
+// L'api key è il segreto del **webhook Apple Pay**, interno a tappy: non è
+// una credenziale d'accesso e non sostituisce mai il codice Fru Pass (che è
+// la credenziale dell'intero ecosistema e non va messa in un Comando Rapido).
+function generateApiKey() {
+  return crypto.randomBytes(24).toString("base64url");
+}
+
+async function getUserByApiKey(apiKey) {
+  const key = String(apiKey || "").trim();
+  if (!key) return null;
+  const records = await table("Users")
+    .select({ filterByFormula: `{ApiKey} = '${esc(key)}'`, maxRecords: 1 })
+    .firstPage();
+  return records[0] ? userFromRecord(records[0]) : null;
+}
+
+const DEFAULT_CATEGORIES = [
+  { name: "Spesa", color: "#39ff88", icon: "cart" },
+  { name: "Macchina", color: "#00e5ff", icon: "car" },
+  { name: "Leisure", color: "#ff2ecb", icon: "sparkles" },
+  { name: "Altro", color: "#a3a3ff", icon: "dots" },
+];
+
+/**
+ * Recupera l'utente tappy legato a un profilo Fru Pass **già verificato**,
+ * creandolo al primo accesso con le 4 categorie di default.
+ * Il chiamante deve aver validato il codice presso l'endpoint condiviso:
+ * qui non si verifica nulla, si prende atto.
+ */
+async function provisionUser(profile) {
+  const code = canonicalCode(profile.code);
+  const existing = await getUserByFrupasCode(code);
+  if (existing) {
+    // L'api key manca solo sugli utenti creati prima della sua introduzione.
+    if (!existing.api_key) {
+      const r = await table("Users").update(existing.id, { ApiKey: generateApiKey() });
+      return userFromRecord(r);
+    }
+    return existing;
+  }
+
+  const record = await table("Users").create({
+    Name: profile.name || "",
+    FrupasCode: code,
+    ApiKey: generateApiKey(),
+    Theme: "system",
+    MonthlyBudget: 800,
+    CreatedAt: new Date().toISOString(),
+  });
+
+  for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+    const c = DEFAULT_CATEGORIES[i];
+    await table("Categories").create({
+      UserId: code,
+      Name: c.name,
+      Color: c.color,
+      Icon: c.icon,
+      IsDefault: true,
+      SortOrder: i,
+    });
+  }
+  await table("Cards").create({ UserId: code, Name: "Carta principale" });
+
+  return userFromRecord(record);
 }
 
 async function updateUser(id, fields) {
@@ -255,8 +322,9 @@ async function reassignTransactionsCategory(userId, fromCategoryId, toCategoryId
 }
 
 module.exports = {
-  normalizeFrupasCode,
   getUserByFrupasCode,
+  getUserByApiKey,
+  provisionUser,
   updateUser,
   listCategories,
   createCategory,

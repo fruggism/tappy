@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useApp } from "./lib/AppContext";
+import { formatCodeInput, isCompleteCode } from "./lib/frupass";
 import Andamento from "./views/Andamento";
 import Movimenti from "./views/Movimenti";
 import Impostazioni from "./views/Impostazioni";
@@ -48,19 +49,25 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   },
 ];
 
-function FrupasCodeGate() {
+function FruPassLogin() {
   const { login } = useApp();
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState("FRU-");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const completo = isCompleteCode(value);
+
   async function submit() {
-    if (!value.trim() || busy) return;
+    if (!completo || busy) return;
     setBusy(true);
     setError(null);
-    const ok = await login(value.trim());
-    setBusy(false);
-    if (!ok) setError("Codice frupas non valido");
+    try {
+      await login(value);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Accesso non riuscito");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -70,24 +77,30 @@ function FrupasCodeGate() {
           tap<span className="text-neon-green">py</span>
         </h1>
         <p className="text-sm text-muted dark:text-muted-dark text-center">
-          Inserisci il tuo codice frupas per accedere ai tuoi dati (lo stesso su tutti i tuoi
-          dispositivi).
+          Accedi con il tuo codice Fru Pass, lo stesso che usi nelle altre app.
         </p>
         <input
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            setValue(formatCodeInput(e.target.value));
+            setError(null);
+          }}
           onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder="Codice frupas"
+          placeholder="FRU-\u2022\u2022\u2022\u2022-\u2022\u2022\u2022\u2022"
           autoFocus
-          className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60 text-center"
+          autoCapitalize="characters"
+          autoCorrect="off"
+          spellCheck={false}
+          inputMode="text"
+          className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60 text-center tracking-widest"
         />
         {error && <p className="text-xs text-neon-pink text-center">{error}</p>}
         <button
           onClick={submit}
-          disabled={busy}
+          disabled={busy || !completo}
           className="rounded-xl bg-ink dark:bg-white text-white dark:text-black text-sm font-medium py-2 disabled:opacity-50"
         >
-          Accedi
+          {busy ? "Verifica\u2026" : "Accedi"}
         </button>
       </div>
     </div>
@@ -95,11 +108,14 @@ function FrupasCodeGate() {
 }
 
 export default function App() {
-  const { loading, user, authError } = useApp();
+  const { loading, user, needsLogin } = useApp();
   const [tab, setTab] = useState<Tab>("andamento");
 
-  if (authError) return <FrupasCodeGate />;
+  if (needsLogin) return <FruPassLogin />;
 
+  // Finché non si sa chi è l'utente si mostra lo spinner, mai il login: chi
+  // arriva dall'hub con il codice nell'URL non deve vedere la schermata di
+  // accesso comparire e sparire.
   if (loading || !user) {
     return (
       <div className="h-full flex items-center justify-center">

@@ -9,7 +9,6 @@ lo schema esatto delle tabelle Airtable che fanno da database.
 client/               — React + Vite + Tailwind, l'app vera e propria
 netlify/functions/    — API REST come un'unica Netlify Function (Express)
 netlify/functions/lib/airtable.js — layer di accesso dati (legge/scrive su Airtable)
-scripts/seed-user.js  — crea un nuovo utente + categorie di default
 netlify.toml          — config build/deploy e redirect /api/* -> funzione
 ```
 
@@ -19,31 +18,66 @@ usa **Airtable** come database al posto di un file SQLite locale — così i
 dati sono raggiungibili da qualunque dispositivo, non solo dal computer su
 cui gira il server.
 
-## Autenticazione: il codice frupas
+## Autenticazione: il codice Fru Pass
 
-tappy fa parte dell'ecosistema **frupas**: ogni utente è identificato da un
-**codice frupas** (8 caratteri leggibili, es. `7K4P-9Q2R`), normalizzato
-prima di ogni confronto (maiuscolo, senza spazi/trattini — vedi
-`normalizeFrupasCode` in `netlify/functions/lib/airtable.js`).
+tappy fa parte dell'ecosistema **Fru Pass**: ogni utente è identificato dal
+suo codice `FRU-XXXX-XXXX`, lo stesso che usa nelle altre app dell'hub.
+La forma canonica è maiuscola e senza spazi; i trattini fanno parte del
+formato e si mantengono (`canonicalCode` in
+`netlify/functions/lib/frupass.js`).
 
-Non è solo una chiave d'accesso: è la vera **chiave esterna** usata nelle
-tabelle. Il campo `UserId` di `Categories`, `Cards` e `Transactions`
-contiene il codice frupas stesso (non un id interno di Airtable), così i
-dati restano identificabili e portabili anche fuori da Airtable, in linea
-con gli altri servizi dell'ecosistema frupas.
+**Il codice non lo validiamo noi.** L'unico modo legittimo di verificarlo è
+l'endpoint pubblico condiviso dell'ecosistema:
 
-Il client salva il codice in `localStorage` dopo il primo inserimento
-(schermata "Inserisci il tuo codice frupas") e lo manda in ogni richiesta
-come header `x-frupas-code`. Il backend risolve l'utente cercando quel
-codice nella tabella `Users` — nessuna sessione lato server, nessuna
-password: usare lo stesso codice su un altro dispositivo dà accesso agli
-stessi dati, esattamente come per le altre app dell'ecosistema.
+```
+POST https://frupass-user.netlify.app/.netlify/functions/api
+{ "action": "login", "payload": { "code": "FRU-XXXX-XXXX" } }
+```
 
-Oggi il codice è generato e verificato direttamente da tappy
-(`scripts/seed-user.js`); se in futuro frupas diventa un servizio di
-identità centralizzato condiviso da più app, la verifica in
-`getUserByFrupasCode` potrà essere sostituita con una chiamata a quel
-servizio senza cambiare il resto dell'API né lo schema delle tabelle.
+Della risposta ci serve solo `profile` (`code`, `name`, `username`):
+`apps`/`categories`/`messages`/`medals` sono roba dell'hub. `action:
+"refresh"` è la stessa chiamata, usata per accorgersi che un codice salvato
+è stato revocato. Non abbiamo — e non ci servono — le credenziali Airtable
+dell'ecosistema: la nostra base Airtable è un'altra cosa e contiene solo i
+dati di tappy.
+
+Il flusso completo:
+
+1. `POST /api/auth/login` con `{ code }`. La funzione chiama l'endpoint
+   condiviso; se il profilo torna valido, `provisionUser` crea l'utente su
+   Airtable al primo accesso (con le 4 categorie di default e la carta
+   "Carta principale"), altrimenti lo recupera.
+2. Il client salva il profilo in `localStorage` alla chiave `tappy_frupass`
+   (convenzione dell'ecosistema, `<nome-app>_frupass`).
+3. **Arrivo dall'hub**: l'hub apre l'app come `https://…/#code=FRU-XXXX-XXXX`.
+   Il client legge l'hash all'avvio, entra diretto senza mostrare il login, e
+   ripulisce subito l'URL con `history.replaceState`.
+4. Agli avvii successivi si riusa il profilo salvato — la home compare
+   subito — e parte in background un `POST /api/auth/refresh`. Solo un
+   "Codice non riconosciuto" invalida la sessione: se è l'ecosistema a non
+   rispondere (503), l'utente resta dentro.
+5. Le rotte dati viaggiano con l'header `x-frupas-code`, risolto cercando il
+   codice nella tabella `Users`. Non esiste un fallback in query string: ci
+   finirebbe la credenziale dell'intero ecosistema, negli URL e nei log.
+
+Nota di progetto: la verifica presso l'ecosistema avviene al login e ai
+refresh, non a ogni richiesta — un utente esiste nella nostra base solo
+perché il codice è stato confermato almeno una volta. È il compromesso che
+la guida dell'ecosistema stessa suggerisce (ri-validare periodicamente), e
+tiene le rotte dati a una sola chiamata di rete.
+
+### La chiave del webhook è un'altra cosa
+
+`users.ApiKey` è un segreto **interno di tappy**, generato al primo accesso
+e mostrato in Impostazioni. Serve solo al webhook Apple Pay
+(`x-api-key`). Non è una credenziale d'accesso e non sostituisce il codice
+Fru Pass — che, essendo la credenziale di tutto l'ecosistema, non va mai
+copiato dentro un Comando Rapido.
+
+Non è solo una chiave d'accesso: il codice Fru Pass è anche la **chiave
+esterna** usata nelle tabelle. Il campo `UserId` di `Categories`, `Cards` e
+`Transactions` contiene il codice stesso (non un id interno di Airtable),
+così i dati restano identificabili e portabili anche fuori da Airtable.
 
 ## Schema Airtable
 
@@ -54,7 +88,8 @@ contano: il backend li usa così come sono).
 | Campo | Tipo | Note |
 |---|---|---|
 | `Name` | Single line text | |
-| `FrupasCode` | Single line text | codice frupas normalizzato, unico (es. `7K4P9Q2R`) |
+| `FrupasCode` | Single line text | codice Fru Pass in forma canonica, unico (es. `FRU-AB12-CD34`) |
+| `ApiKey` | Single line text | segreto del webhook Apple Pay, generato al primo accesso |
 | `Theme` | Single line text | `light` / `dark` / `system` |
 | `MonthlyBudget` | Number | |
 | `CreatedAt` | Single line text | ISO 8601, scritta dal backend |
@@ -97,8 +132,8 @@ l'identità condivisa nell'ecosistema, la stessa su tutte le app. `CardId` e
 `CategoryId` restano invece record id interni di Airtable — identificano
 solo righe di *questa* base, non serve che siano leggibili fuori da tappy.
 
-**Categorie predefinite**: "Spesa", "Macchina", "Leisure", "Altro" —
-create da `scripts/seed-user.js` per ogni nuovo utente. "Altro" è il
+**Categorie predefinite**: "Spesa", "Macchina", "Leisure", "Altro" — create
+da `provisionUser` al primo accesso di ogni nuovo utente. "Altro" è il
 fallback quando una spesa non ha (o perde) una categoria valida.
 
 ## Deploy
@@ -107,11 +142,9 @@ fallback quando una spesa non ha (o perde) una categoria valida.
    Access Token (airtable.com/create/tokens) con scope `data.records:read`
    e `data.records:write` sulla base — è `AIRTABLE_API_KEY`. L'ID base
    (`appXXXXXXXXXXXXXX`) è `AIRTABLE_BASE_ID`.
-2. **Crea il primo utente**: `AIRTABLE_API_KEY=... AIRTABLE_BASE_ID=... node scripts/seed-user.js "Nome"`
-   (dopo `npm install` nella root del repo) — genera un nuovo codice frupas
-   e lo stampa. Se l'utente ha già un codice frupas assegnato altrove
-   nell'ecosistema, passalo come secondo argomento (`... "Nome" 7K4P9Q2R`)
-   invece di farne generare uno nuovo.
+2. **Nessun utente da creare a mano**: al primo accesso con un codice Fru
+   Pass valido l'utente viene creato da sé su Airtable, con le categorie di
+   default. I codici li assegna l'amministratore dell'ecosistema.
 3. **Netlify**: "Add new site" → "Import an existing project" → collega il
    repo GitHub. Netlify legge `netlify.toml` da solo (build command,
    publish dir, redirect `/api/*`). Aggiungi in Site configuration →
