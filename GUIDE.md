@@ -4,17 +4,12 @@ Questo documento è pensato per gli agent/sviluppatori che riprenderanno il
 progetto (in particolare per collegare il **Comando Rapido iPhone** e
 pubblicare l'app). Spiega cosa esiste già, come è organizzato, e cosa manca.
 
-## ⚠️ Dove si trova il codice
+## Dove si trova il codice
 
-Tutto il lavoro fatto finora **non è su questo branch (`main`)**, che
-contiene solo questo file. Il codice vive sul branch:
-
-```
-claude/sviluppa-questa-idea-9ye66e
-```
-
-Prima di continuare, `git checkout` (o merge) di quel branch. Contiene
-client, server e uno storico di commit descrittivi di ogni fase.
+Il codice (`client/` e `server/`) è su `main`, pronto all'uso — non serve
+cambiare branch. Se vuoi lo storico dettagliato di ogni fase (commit
+descrittivi passo passo), guarda il branch `claude/sviluppa-questa-idea-9ye66e`,
+da cui `main` è stato aggiornato.
 
 ## Cos'è tappy
 
