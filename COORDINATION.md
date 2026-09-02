@@ -128,7 +128,8 @@ dell'intero ecosistema, non di tappy.
 → `users` prende una colonna `frupass_code` (unica); il seed dell'utente di
 default resta solo per lo sviluppo locale.
 
-**b) L'attuale server Express+SQLite non è deployabile come richiesto.**
+**b) Il deploy. → Risolto, vedi §7:** si va su Netlify Functions + Airtable.
+Contesto originale: l'attuale server Express+SQLite non è deployabile come richiesto.
 La guida presuppone un sito Netlify. SQLite su Netlify non persiste. Serve
 portare le rotte a Netlify Functions con uno storage gestito (Firebase o una
 base Airtable nostra, come suggerisce §5 della guida) — oppure ospitare il
@@ -190,3 +191,67 @@ riscrive.
 - L'ordine è quello della tabella: **F1 prima di tutto**, perché senza
   identità reale né il deploy né il Comando Rapido hanno un utente a cui
   attaccare i dati.
+
+---
+
+## 7. Stato delle branch (fotografia al 2026-09-02)
+
+Due agent hanno già lavorato in parallelo, **senza contratto condiviso**, e i
+risultati collidono. Questa sezione è il verdetto: cosa si tiene, cosa si
+riparte.
+
+### `claude/app-deployment-sync-agzd2h` — Backend & Deploy ✅ **linea principale**
+
+Sostituisce Express+SQLite con **Netlify Functions + Airtable**, elimina
+`server/`, aggiunge `netlify.toml`, `scripts/seed-user.js`, e mette
+`USE_MOCK = false`. Riusa le stesse rotte e lo stesso modello dati del server
+originale, quindi il client non è stato stravolto: `realApi.ts` e
+`AppContext.tsx` cambiano poco. È coerente col progetto e con il vincolo
+Netlify della guida Fru Pass, e risolve da sola il nodo §6.1b — **adottiamo
+questa, non l'host separato che avevo ipotizzato.**
+
+**Da correggere prima del merge** (task per Backend & Deploy):
+- Usa un header `x-frupas-code` e cerca l'utente **direttamente su Airtable**
+  per codice. Ma il codice Fru Pass non è nostro da validare: la verifica
+  deve passare dall'endpoint condiviso
+  (`POST .../functions/api`, `action: "login"` / `"refresh"`), come impone
+  §1 della guida. Airtable resta solo per i *dati* di tappy, indicizzati su
+  `profile.code`.
+- Il fallback `?code=...` in query string espone il codice dell'intero
+  ecosistema negli URL e nei log. Va rimosso: il Comando Rapido usa la sua
+  api key sul webhook, non il codice Fru Pass (§6.1a).
+- Manca tutto il lato client di F1: schermata di login, sessione
+  `tappy_frupass`, auto-login da `#code=`.
+
+### `claude/comandi-rapidi-tappy-fweyvr` — Shortcuts ❌ **da rifare**
+
+Ha costruito un **secondo backend indipendente** nella radice del repo
+(Express + Postgres, `src/server.js`, `migrations/001_init.sql`) più una
+`public/index.html` propria, ignorando `client/` e `server/` esistenti. Il
+suo modello dati è un'altra app: `expenses(amount, description, category)` —
+niente `my_share`, niente spese divise, niente `cards`, niente
+`is_income`, niente budget. E introduce un terzo schema di autenticazione
+(codici a 8 caratteri hashati SHA-256), diverso sia dall'api key sia da Fru
+Pass. Al momento del merge collide con l'altra branch su `package.json`,
+`.env.example`, `.gitignore` e `README.md`, tutti in radice.
+
+Non è codice da recuperare: è la stessa app riscritta in piccolo. Si tiene
+solo l'**idea** — token dedicato per i Comandi Rapidi e normalizzazione del
+codice in input — e si riparte **dalla branch di deploy**, contribuendo solo
+il Comando Rapido e la sezione Impostazioni (task F6/F7). Il webhook
+`/api/webhook/applepay` esiste già ed è quello il punto di ingresso.
+
+### Ordine di merge
+
+1. Correzioni Fru Pass su `app-deployment-sync-agzd2h` (auth vera + F1 client).
+2. Merge su `main`. Da qui in poi **tutte le branch ripartono da `main`.**
+3. UI Expert (F4) → UI Developer (F5) sul guscio Fru Pass.
+4. Shortcuts riparte da zero su `main` per F6/F7.
+
+### La lezione, che vale come regola
+
+Le due branch sono nate in parallelo senza che nessuno fissasse prima
+l'autenticazione e il modello dati — e hanno prodotto tre schemi di auth
+diversi e due backend. Da adesso: **nessun agent apre una branch che tocca
+`types.ts`, `db`/storage o l'autenticazione senza che il contratto sia
+scritto qui prima.** È esattamente il ruolo delle "zone condivise" di §1.
