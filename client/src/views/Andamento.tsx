@@ -28,59 +28,71 @@ const PERIOD_LABELS: Record<Period, string> = {
   month: "Mensile",
 };
 
-function getRange(period: Period, offset: number, now: Date) {
-  const today = toISODate(now);
+// Calcola l'intervallo di un periodo (giorno/settimana/mese) ancorato a una data
+// di riferimento (il "giorno nel passato" scelto con la macchina del tempo).
+function getRange(period: Period, refDate: Date, today: Date) {
+  const todayISO = toISODate(today);
 
   if (period === "day") {
-    const d = new Date(now);
-    d.setDate(d.getDate() - offset);
-    const iso = toISODate(d);
-    return { from: iso, to: iso, daysTotal: 1, daysElapsed: 1, ref: d };
+    const iso = toISODate(refDate);
+    return { from: iso, to: iso, daysTotal: 1, daysElapsed: 1, ref: refDate, current: iso === todayISO };
   }
 
   if (period === "week") {
-    const base = startOfWeek(now);
-    const start = new Date(base);
-    start.setDate(start.getDate() - offset * 7);
+    const start = startOfWeek(refDate);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
-    const daysElapsed =
-      offset === 0 ? Math.floor((now.getTime() - start.getTime()) / 86400000) + 1 : 7;
-    return {
-      from: toISODate(start),
-      to: offset === 0 ? today : toISODate(end),
-      daysTotal: 7,
-      daysElapsed,
-      ref: start,
-    };
+    const startISO = toISODate(start);
+    const endISO = toISODate(end);
+    const current = todayISO >= startISO && todayISO <= endISO;
+    const daysElapsed = current
+      ? Math.floor((today.getTime() - start.getTime()) / 86400000) + 1
+      : 7;
+    return { from: startISO, to: current ? todayISO : endISO, daysTotal: 7, daysElapsed, ref: start, current };
   }
 
   // month
-  const ref = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+  const ref = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
   const dim = daysInMonth(ref.getFullYear(), ref.getMonth());
   const prefix = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, "0")}`;
+  const current = today.getFullYear() === ref.getFullYear() && today.getMonth() === ref.getMonth();
   return {
     from: `${prefix}-01`,
-    to: offset === 0 ? today : `${prefix}-${String(dim).padStart(2, "0")}`,
+    to: current ? todayISO : `${prefix}-${String(dim).padStart(2, "0")}`,
     daysTotal: dim,
-    daysElapsed: offset === 0 ? now.getDate() : dim,
+    daysElapsed: current ? today.getDate() : dim,
     ref,
+    current,
   };
 }
 
-function formatPeriodLabel(period: Period, offset: number, range: ReturnType<typeof getRange>) {
+function shiftPeriod(date: Date, period: Period, delta: number) {
+  const d = new Date(date);
+  if (period === "day") d.setDate(d.getDate() + delta);
+  else if (period === "week") d.setDate(d.getDate() + delta * 7);
+  else d.setMonth(d.getMonth() + delta);
+  return d;
+}
+
+function formatPeriodLabel(period: Period, range: ReturnType<typeof getRange>, today: Date) {
   if (period === "day") {
-    if (offset === 0) return "Oggi";
-    if (offset === 1) return "Ieri";
+    if (range.current) return "Oggi";
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (toISODate(range.ref) === toISODate(yesterday)) return "Ieri";
     return range.ref.toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" });
   }
   if (period === "week") {
-    if (offset === 0) return "Questa settimana";
-    if (offset === 1) return "Settimana scorsa";
+    if (range.current) return "Questa settimana";
+    const lastWeekStart = startOfWeek(shiftPeriod(today, "week", -1));
+    if (toISODate(range.ref) === toISODate(lastWeekStart)) return "Settimana scorsa";
     return `Settimana del ${range.ref.toLocaleDateString("it-IT", { day: "numeric", month: "short" })}`;
   }
-  if (offset === 0) return "Questo mese";
-  if (offset === 1) return "Mese scorso";
+  if (range.current) return "Questo mese";
+  const lastMonth = shiftPeriod(today, "month", -1);
+  if (range.ref.getFullYear() === lastMonth.getFullYear() && range.ref.getMonth() === lastMonth.getMonth()) {
+    return "Mese scorso";
+  }
   const label = range.ref.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
@@ -113,15 +125,18 @@ function useCountUp(value: number, duration = 700) {
   return display;
 }
 
-function HistoryMenu({
-  period,
+function TimeTravelMenu({
+  travelDate,
+  today,
   onPick,
 }: {
-  period: Period;
-  onPick: (period: Period, offset: number) => void;
+  travelDate: Date;
+  today: Date;
+  onPick: (date: Date) => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const isToday = toISODate(travelDate) === toISODate(today);
 
   useEffect(() => {
     if (!open) return;
@@ -132,22 +147,22 @@ function HistoryMenu({
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  const options: { label: string; period: Period; offset: number }[] = [
-    { label: "Oggi", period: "day", offset: 0 },
-    { label: "Ieri", period: "day", offset: 1 },
-    { label: "Questa settimana", period: "week", offset: 0 },
-    { label: "Settimana scorsa", period: "week", offset: 1 },
-    { label: "Questo mese", period: "month", offset: 0 },
-    { label: "Mese scorso", period: "month", offset: 1 },
-  ];
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = e.target.value;
+    if (!v) return;
+    const [y, m, d] = v.split("-").map(Number);
+    onPick(new Date(y, m - 1, d));
+  }
 
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        aria-label="Vai a un periodo precedente"
+        aria-label="Viaggia nel tempo"
         className={`h-8 w-8 flex items-center justify-center rounded-full transition-colors ${
-          open
+          !isToday
+            ? "bg-neon-cyan/15 text-neon-cyan"
+            : open
             ? "bg-neon-green/15 text-neon-green"
             : "text-muted dark:text-muted-dark hover:bg-black/5 dark:hover:bg-white/10"
         }`}
@@ -158,21 +173,32 @@ function HistoryMenu({
         </svg>
       </button>
       {open && (
-        <div className="absolute right-0 top-10 z-10 w-48 rounded-2xl bg-surface dark:bg-surface-dark shadow-xl border border-black/5 dark:border-white/10 overflow-hidden animate-rise py-1">
-          {options.map((o) => (
+        <div className="absolute right-0 top-10 z-10 w-56 rounded-2xl bg-surface dark:bg-surface-dark shadow-xl border border-black/5 dark:border-white/10 overflow-hidden animate-rise p-3 flex flex-col gap-2">
+          <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
+            Viaggia nel tempo
+          </span>
+          <input
+            type="date"
+            defaultValue={toISODate(travelDate)}
+            max={toISODate(today)}
+            onChange={handleChange}
+            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neon-cyan/60"
+          />
+          <p className="text-[11px] text-muted dark:text-muted-dark leading-snug">
+            Scegli un giorno per rivedere i tuoi dati come se fossi lì: giornaliero, settimanale e
+            mensile si aggiornano di conseguenza.
+          </p>
+          {!isToday && (
             <button
-              key={o.label}
               onClick={() => {
+                onPick(today);
                 setOpen(false);
-                onPick(o.period, o.offset);
               }}
-              className={`w-full text-left px-4 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10 ${
-                o.period === period ? "text-neon-green font-medium" : ""
-              }`}
+              className="text-sm text-neon-green font-medium text-left"
             >
-              {o.label}
+              ← Torna a oggi
             </button>
-          ))}
+          )}
         </div>
       )}
     </div>
@@ -266,11 +292,11 @@ function TopCard({
 }) {
   if (!topCategory && !topMerchant) return null;
   return (
-    <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3">
+    <div className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3">
       <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
         In evidenza
       </span>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-wrap">
         {topCategory && (
           <div className="flex items-center gap-2 min-w-0">
             <span
@@ -343,6 +369,64 @@ function Sparkline({ data }: { data: { date: string; total: number }[] }) {
   );
 }
 
+function CategoryBreakdown({
+  categories,
+}: {
+  categories: { id: string; label: string; color: string; value: number; budget: number | null }[];
+}) {
+  const total = categories.reduce((s, c) => s + c.value, 0);
+
+  return (
+    <div className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-4">
+      <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
+        Per categoria
+      </span>
+      {categories.length === 0 && (
+        <p className="text-center text-sm text-muted dark:text-muted-dark py-4">
+          Nessuna spesa in questo periodo.
+        </p>
+      )}
+      <div className="flex flex-col gap-3.5">
+        {categories.map((c) => {
+          const hasBudget = c.budget != null && c.budget > 0;
+          const over = hasBudget && c.value > c.budget!;
+          const pct = hasBudget
+            ? Math.min(100, (c.value / c.budget!) * 100)
+            : total > 0
+            ? (c.value / total) * 100
+            : 0;
+          return (
+            <div key={c.id} className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="h-2 w-2 rounded-full shrink-0" style={{ background: c.color }} />
+                  <span className="truncate">{c.label}</span>
+                  {over && <span className="text-[11px] text-neon-pink shrink-0">oltre</span>}
+                </span>
+                <span className="tabular-nums text-muted dark:text-muted-dark shrink-0">
+                  {hasBudget ? (
+                    <>
+                      €{c.value.toFixed(0)} <span className="opacity-60">/ €{c.budget!.toFixed(0)}</span>
+                    </>
+                  ) : (
+                    `€${c.value.toFixed(0)}`
+                  )}
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-black/[0.06] dark:bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${pct}%`, background: over ? "#ff2ecb" : c.color }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function getRangeTotal(expenses: Transaction[], from: string, to: string) {
   return expenses.filter((t) => t.date >= from && t.date <= to).reduce((s, t) => s + t.my_share, 0);
 }
@@ -357,11 +441,14 @@ function scaleToPeriod(monthlyAmount: number, period: Period, dim: number) {
 export default function Andamento() {
   const { user, categories, transactions } = useApp();
   const [period, setPeriod] = useState<Period>("month");
-  const [offset, setOffset] = useState(0);
+  const [travelDate, setTravelDate] = useState<Date>(() => new Date());
 
   const now = new Date();
-  const range = useMemo(() => getRange(period, offset, now), [period, offset]);
-  const prevRange = useMemo(() => getRange(period, offset + 1, now), [period, offset]);
+  const range = useMemo(() => getRange(period, travelDate, now), [period, travelDate]);
+  const prevRange = useMemo(
+    () => getRange(period, shiftPeriod(travelDate, period, -1), now),
+    [period, travelDate]
+  );
   const dimForBudget = daysInMonth(range.ref.getFullYear(), range.ref.getMonth());
 
   const expenses = useMemo(
@@ -433,12 +520,7 @@ export default function Andamento() {
   const budgetLabel =
     period === "day" ? "Budget giornaliero" : period === "week" ? "Budget settimanale" : "Budget mensile";
 
-  const showProjection = period !== "day" && offset === 0 && range.daysElapsed < range.daysTotal;
-
-  function changePeriod(p: Period) {
-    setPeriod(p);
-    setOffset(0);
-  }
+  const showProjection = period !== "day" && range.current && range.daysElapsed < range.daysTotal;
 
   return (
     <div className="flex flex-col items-center gap-6 animate-rise">
@@ -447,7 +529,7 @@ export default function Andamento() {
           {(["day", "week", "month"] as const).map((p) => (
             <button
               key={p}
-              onClick={() => changePeriod(p)}
+              onClick={() => setPeriod(p)}
               className={`px-3.5 py-1.5 rounded-full transition-colors ${
                 period === p
                   ? "bg-white dark:bg-black text-ink dark:text-ink-dark shadow"
@@ -458,18 +540,12 @@ export default function Andamento() {
             </button>
           ))}
         </div>
-        <HistoryMenu
-          period={period}
-          onPick={(p, o) => {
-            setPeriod(p);
-            setOffset(o);
-          }}
-        />
+        <TimeTravelMenu travelDate={travelDate} today={now} onPick={setTravelDate} />
       </div>
 
       <div className="w-full flex items-center justify-center gap-3">
         <button
-          onClick={() => setOffset((o) => o + 1)}
+          onClick={() => setTravelDate((d) => shiftPeriod(d, period, -1))}
           aria-label="Periodo precedente"
           className="h-7 w-7 flex items-center justify-center rounded-full text-muted dark:text-muted-dark hover:bg-black/5 dark:hover:bg-white/10"
         >
@@ -477,12 +553,16 @@ export default function Andamento() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <span className="text-sm font-medium min-w-[9rem] text-center">
-          {formatPeriodLabel(period, offset, range)}
+        <span
+          className={`text-sm font-medium min-w-[9rem] text-center ${
+            !range.current ? "text-neon-cyan" : ""
+          }`}
+        >
+          {formatPeriodLabel(period, range, now)}
         </span>
         <button
-          onClick={() => setOffset((o) => Math.max(0, o - 1))}
-          disabled={offset === 0}
+          onClick={() => setTravelDate((d) => shiftPeriod(d, period, 1))}
+          disabled={range.current}
           aria-label="Periodo successivo"
           className="h-7 w-7 flex items-center justify-center rounded-full text-muted dark:text-muted-dark hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none"
         >
@@ -511,64 +591,11 @@ export default function Andamento() {
         )}
       </div>
 
-      <TopCard topCategory={byCategory[0] ?? null} topMerchant={topMerchant} />
-
-      <div className="w-full flex flex-col gap-3">
-        {byCategory.length === 0 && (
-          <p className="text-center text-sm text-muted dark:text-muted-dark py-8">
-            Nessuna spesa in questo periodo.
-          </p>
-        )}
-        {byCategory.map((c) => {
-          const hasBudget = c.budget != null && c.budget > 0;
-          const overOwnBudget = hasBudget && c.value > c.budget!;
-          const pct = hasBudget
-            ? Math.min(100, (c.value / c.budget!) * 100)
-            : totalPeriod > 0
-            ? (c.value / totalPeriod) * 100
-            : 0;
-          return (
-            <div key={c.id} className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-baseline text-sm gap-2">
-                <span className="flex items-center gap-1.5 min-w-0">
-                  <span className="truncate">{c.label}</span>
-                  {overOwnBudget && (
-                    <span className="text-[10px] font-medium text-neon-pink shrink-0">
-                      oltre budget
-                    </span>
-                  )}
-                </span>
-                <span className="tabular-nums text-muted dark:text-muted-dark shrink-0">
-                  {hasBudget ? (
-                    <>
-                      €{c.value.toFixed(0)}{" "}
-                      <span className="opacity-60">/ €{c.budget!.toFixed(0)}</span>
-                    </>
-                  ) : (
-                    `€${c.value.toFixed(0)}`
-                  )}
-                </span>
-              </div>
-              <div
-                className={`h-2 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden ${
-                  overOwnBudget ? "ring-1 ring-neon-pink/50" : ""
-                }`}
-              >
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${pct}%`,
-                    background: overOwnBudget ? "#ff2ecb" : c.color,
-                    boxShadow: `0 0 8px 0 ${overOwnBudget ? "#ff2ecb" : c.color}aa`,
-                  }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <CategoryBreakdown categories={byCategory} />
 
       <Sparkline data={last14} />
+
+      <TopCard topCategory={byCategory[0] ?? null} topMerchant={topMerchant} />
     </div>
   );
 }
