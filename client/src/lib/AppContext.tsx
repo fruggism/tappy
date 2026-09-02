@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "./api";
-import { clearApiKey, setApiKey as persistApiKey } from "./realApi";
+import { clearFrupasCode, setFrupasCode as persistFrupasCode } from "./realApi";
 import type { Card, Category, Transaction, User } from "./types";
 
 interface AppState {
@@ -15,7 +15,7 @@ interface AppState {
   refreshTransactions: () => Promise<void>;
   setTheme: (t: User["theme"]) => Promise<void>;
   setBudget: (amount: number) => Promise<void>;
-  login: (apiKey: string) => Promise<boolean>;
+  login: (frupasCode: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -72,17 +72,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const login = useCallback(
-    async (apiKey: string) => {
-      persistApiKey(apiKey);
+    async (frupasCode: string) => {
+      persistFrupasCode(frupasCode);
       const ok = await refresh();
-      if (!ok) clearApiKey();
+      if (!ok) clearFrupasCode();
       return ok;
     },
     [refresh]
   );
 
   const logout = useCallback(() => {
-    clearApiKey();
+    clearFrupasCode();
     setUser(null);
     setCategories([]);
     setCards([]);

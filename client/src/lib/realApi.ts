@@ -5,27 +5,27 @@ import type { Card, Category, Transaction, User } from "./types";
 // utile solo per puntare a un deploy diverso in fase di sviluppo/debug.
 const BASE = import.meta.env.VITE_API_URL || "";
 
-const API_KEY_STORAGE_KEY = "tappy_api_key";
+const FRUPAS_CODE_STORAGE_KEY = "tappy_frupas_code";
 
-export function getApiKey(): string | null {
-  return localStorage.getItem(API_KEY_STORAGE_KEY);
+export function getFrupasCode(): string | null {
+  return localStorage.getItem(FRUPAS_CODE_STORAGE_KEY);
 }
 
-export function setApiKey(key: string) {
-  localStorage.setItem(API_KEY_STORAGE_KEY, key.trim());
+export function setFrupasCode(code: string) {
+  localStorage.setItem(FRUPAS_CODE_STORAGE_KEY, code.trim());
 }
 
-export function clearApiKey() {
-  localStorage.removeItem(API_KEY_STORAGE_KEY);
+export function clearFrupasCode() {
+  localStorage.removeItem(FRUPAS_CODE_STORAGE_KEY);
 }
 
 async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const apiKey = getApiKey();
+  const frupasCode = getFrupasCode();
   const res = await fetch(`${BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(apiKey ? { "x-api-key": apiKey } : {}),
+      ...(frupasCode ? { "x-frupas-code": frupasCode } : {}),
       ...(options.headers || {}),
     },
   });

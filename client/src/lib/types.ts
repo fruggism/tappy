@@ -1,7 +1,7 @@
 export interface User {
   id: string;
+  code: string; // codice frupas: identità condivisa nell'ecosistema frupas
   name: string;
-  api_key: string;
   theme: "light" | "dark" | "system";
   monthly_budget: number;
   created_at: string;

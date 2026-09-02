@@ -1,7 +1,20 @@
 // Layer di accesso dati: parla con Airtable al posto di una query SQL.
 // Le 4 tabelle (Users, Categories, Cards, Transactions) rispecchiano lo
 // stesso modello dati del vecchio server Express+SQLite (vedi GUIDE.md).
+//
+// tappy fa parte dell'ecosistema frupas: ogni utente è identificato dal suo
+// codice frupas (non da un id interno Airtable), ed è questo stesso codice
+// a comparire come UserId nelle righe di Categories/Cards/Transactions, così
+// da restare leggibile e portabile anche fuori da Airtable.
 const Airtable = require("airtable");
+
+// Normalizza un codice frupas: maiuscolo, senza spazi/trattini, così
+// "7k4p-9q2r" e "7K4P 9Q2R" sono la stessa identità.
+function normalizeFrupasCode(code) {
+  return String(code || "")
+    .toUpperCase()
+    .replace(/[\s-]/g, "");
+}
 
 function getBase() {
   const apiKey = process.env.AIRTABLE_API_KEY;
@@ -27,9 +40,9 @@ function esc(value) {
 
 function userFromRecord(r) {
   return {
-    id: r.id,
+    id: r.id, // record id Airtable, usato solo per l'update della riga stessa
+    code: r.get("FrupasCode"), // identità frupas: è questa a legare le altre tabelle
     name: r.get("Name"),
-    api_key: r.get("ApiKey"),
     theme: r.get("Theme") || "system",
     monthly_budget: r.get("MonthlyBudget") || 0,
     created_at: r.get("CreatedAt") || null,
@@ -71,10 +84,11 @@ function transactionFromRecord(r) {
   };
 }
 
-async function getUserByApiKey(key) {
-  if (!key) return null;
+async function getUserByFrupasCode(code) {
+  const normalized = normalizeFrupasCode(code);
+  if (!normalized) return null;
   const records = await table("Users")
-    .select({ filterByFormula: `{ApiKey} = '${esc(key)}'`, maxRecords: 1 })
+    .select({ filterByFormula: `{FrupasCode} = '${esc(normalized)}'`, maxRecords: 1 })
     .firstPage();
   return records[0] ? userFromRecord(records[0]) : null;
 }
@@ -241,7 +255,8 @@ async function reassignTransactionsCategory(userId, fromCategoryId, toCategoryId
 }
 
 module.exports = {
-  getUserByApiKey,
+  normalizeFrupasCode,
+  getUserByFrupasCode,
   updateUser,
   listCategories,
   createCategory,

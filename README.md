@@ -4,7 +4,12 @@ App per registrare live le spese fatte con le carte, con l'obiettivo finale di
 ricevere automaticamente i pagamenti Apple Pay via un'automazione di Comandi
 Rapidi su iPhone. Stile grafico minimale in linea ad Apple, con dettagli
 fluorescenti. I dati sono sincronizzati automaticamente su tutti i
-dispositivi da cui accedi con la stessa chiave personale.
+dispositivi da cui accedi con lo stesso codice frupas.
+
+tappy fa parte dell'ecosistema **frupas**: ogni utente è identificato da un
+codice frupas personale (non da un account con password), e quello stesso
+codice è ciò che lega un utente alle sue categorie, carte e transazioni
+nelle tabelle Airtable.
 
 ## Architettura
 
@@ -31,27 +36,27 @@ funzione serverless) sono nello stesso deploy. I dati sono su **Airtable**
    npm install
    AIRTABLE_API_KEY=... AIRTABLE_BASE_ID=... node scripts/seed-user.js "Il tuo nome"
    ```
-   Salva la chiave personale stampata: è quella che userai per accedere
-   all'app da ogni dispositivo.
+   Stampa un codice frupas nuovo (o passa il tuo se già lo hai, vedi
+   `GUIDE.md`): è quello che userai per accedere all'app da ogni dispositivo.
 4. **In locale** (richiede la [Netlify CLI](https://docs.netlify.com/cli/get-started/), `npm install -g netlify-cli`):
    ```bash
    cd client && npm install && cd ..
    AIRTABLE_API_KEY=... AIRTABLE_BASE_ID=... netlify dev
    ```
-   Apri l'URL stampato (di solito `http://localhost:8888`) e inserisci la
-   chiave personale.
+   Apri l'URL stampato (di solito `http://localhost:8888`) e inserisci il
+   codice frupas.
 5. **In produzione**: collega il repo GitHub a un nuovo sito Netlify (build
    già configurata in `netlify.toml`), imposta `AIRTABLE_API_KEY` e
    `AIRTABLE_BASE_ID` nelle variabili d'ambiente del sito, fai il deploy.
-   Apri il dominio Netlify da ogni dispositivo e inserisci la stessa chiave.
+   Apri il dominio Netlify da ogni dispositivo e inserisci lo stesso codice.
 
 ## Modello dati
 
 ```ts
-User { id, name, api_key, theme: "light"|"dark"|"system", monthly_budget, created_at }
+User { id, code /* codice frupas */, name, theme: "light"|"dark"|"system", monthly_budget, created_at }
 
 Category {
-  id, user_id, name, color, icon,
+  id, user_id /* = codice frupas del proprietario */, name, color, icon,
   is_default,             // le 4 categorie di base non si rinominano/eliminano
   sort_order,
   budget: number | null   // budget mensile dedicato, facoltativo
@@ -110,15 +115,17 @@ inserire manualmente uscite o entrate.
 Tema chiaro/scuro/sistema (persistito), budget mensile generale (con
 equivalente settimanale/giornaliero calcolato in automatico), gestione
 categorie (nome, colore, budget facoltativo), URL del webhook Apple Pay e
-chiave personale copiabili, e un pulsante per disconnettersi (utile per
-passare a un altro dispositivo/chiave).
+codice frupas copiabili, e un pulsante per disconnettersi (utile per
+passare a un altro dispositivo/codice).
 
 ## Il webhook Apple Pay
 
 `POST /api/webhook/applepay` — pensato per un'automazione Comandi Rapidi
-"Alla ricezione di una notifica" filtrata su Apple Pay.
+"Alla ricezione di una notifica" filtrata su Apple Pay. La spesa viene
+salvata su Airtable con lo stesso codice frupas dell'header, così finisce
+tra le transazioni di quell'utente.
 
-- **Header** `x-api-key`: la chiave personale (visibile in Impostazioni).
+- **Header** `x-frupas-code`: il codice frupas (visibile in Impostazioni).
 - **Body JSON**:
   ```json
   { "amount": 12.5, "name": "Bar Roma", "card": "Visa", "category": "Leisure" }

@@ -38,8 +38,8 @@ function seed(): Db {
   const userId = uid();
   const user: User = {
     id: userId,
+    code: "MOCK" + userId.slice(0, 4).toUpperCase(),
     name: "Riccardo",
-    api_key: "mock-api-key-" + userId.slice(0, 8),
     theme: "system",
     monthly_budget: 800,
     created_at: new Date().toISOString(),

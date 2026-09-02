@@ -48,7 +48,7 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   },
 ];
 
-function ApiKeyGate() {
+function FrupasCodeGate() {
   const { login } = useApp();
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +60,7 @@ function ApiKeyGate() {
     setError(null);
     const ok = await login(value.trim());
     setBusy(false);
-    if (!ok) setError("Chiave non valida");
+    if (!ok) setError("Codice frupas non valido");
   }
 
   return (
@@ -70,14 +70,14 @@ function ApiKeyGate() {
           tap<span className="text-neon-green">py</span>
         </h1>
         <p className="text-sm text-muted dark:text-muted-dark text-center">
-          Inserisci la tua chiave personale per accedere ai tuoi dati (la stessa su tutti i tuoi
+          Inserisci il tuo codice frupas per accedere ai tuoi dati (lo stesso su tutti i tuoi
           dispositivi).
         </p>
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder="Chiave personale"
+          placeholder="Codice frupas"
           autoFocus
           className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60 text-center"
         />
@@ -98,7 +98,7 @@ export default function App() {
   const { loading, user, authError } = useApp();
   const [tab, setTab] = useState<Tab>("andamento");
 
-  if (authError) return <ApiKeyGate />;
+  if (authError) return <FrupasCodeGate />;
 
   if (loading || !user) {
     return (

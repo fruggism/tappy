@@ -19,15 +19,31 @@ usa **Airtable** come database al posto di un file SQLite locale — così i
 dati sono raggiungibili da qualunque dispositivo, non solo dal computer su
 cui gira il server.
 
-## Autenticazione
+## Autenticazione: il codice frupas
 
-Ogni utente ha una **chiave personale** (stringa esadecimale generata da
-`scripts/seed-user.js`). Il client la salva in `localStorage` dopo il primo
-inserimento (schermata "Inserisci la tua chiave personale") e la manda in
-ogni richiesta come header `x-api-key`. Il backend risolve l'utente
-cercando quella chiave nella tabella `Users` di Airtable — nessuna sessione
-lato server, nessuna password: usare la stessa chiave su un altro
-dispositivo dà accesso agli stessi dati.
+tappy fa parte dell'ecosistema **frupas**: ogni utente è identificato da un
+**codice frupas** (8 caratteri leggibili, es. `7K4P-9Q2R`), normalizzato
+prima di ogni confronto (maiuscolo, senza spazi/trattini — vedi
+`normalizeFrupasCode` in `netlify/functions/lib/airtable.js`).
+
+Non è solo una chiave d'accesso: è la vera **chiave esterna** usata nelle
+tabelle. Il campo `UserId` di `Categories`, `Cards` e `Transactions`
+contiene il codice frupas stesso (non un id interno di Airtable), così i
+dati restano identificabili e portabili anche fuori da Airtable, in linea
+con gli altri servizi dell'ecosistema frupas.
+
+Il client salva il codice in `localStorage` dopo il primo inserimento
+(schermata "Inserisci il tuo codice frupas") e lo manda in ogni richiesta
+come header `x-frupas-code`. Il backend risolve l'utente cercando quel
+codice nella tabella `Users` — nessuna sessione lato server, nessuna
+password: usare lo stesso codice su un altro dispositivo dà accesso agli
+stessi dati, esattamente come per le altre app dell'ecosistema.
+
+Oggi il codice è generato e verificato direttamente da tappy
+(`scripts/seed-user.js`); se in futuro frupas diventa un servizio di
+identità centralizzato condiviso da più app, la verifica in
+`getUserByFrupasCode` potrà essere sostituita con una chiamata a quel
+servizio senza cambiare il resto dell'API né lo schema delle tabelle.
 
 ## Schema Airtable
 
@@ -38,7 +54,7 @@ contano: il backend li usa così come sono).
 | Campo | Tipo | Note |
 |---|---|---|
 | `Name` | Single line text | |
-| `ApiKey` | Single line text | generata da `seed-user.js`, unica |
+| `FrupasCode` | Single line text | codice frupas normalizzato, unico (es. `7K4P9Q2R`) |
 | `Theme` | Single line text | `light` / `dark` / `system` |
 | `MonthlyBudget` | Number | |
 | `CreatedAt` | Single line text | ISO 8601, scritta dal backend |
@@ -46,7 +62,7 @@ contano: il backend li usa così come sono).
 ### `Categories`
 | Campo | Tipo | Note |
 |---|---|---|
-| `UserId` | Single line text | record id di `Users` (es. `recXXXXXXXX`) |
+| `UserId` | Single line text | codice frupas del proprietario |
 | `Name` | Single line text | |
 | `Color` | Single line text | es. `#39ff88` |
 | `Icon` | Single line text | |
@@ -57,29 +73,29 @@ contano: il backend li usa così come sono).
 ### `Cards`
 | Campo | Tipo | Note |
 |---|---|---|
-| `UserId` | Single line text | record id di `Users` |
+| `UserId` | Single line text | codice frupas del proprietario |
 | `Name` | Single line text | |
 
 ### `Transactions`
 | Campo | Tipo | Note |
 |---|---|---|
-| `UserId` | Single line text | record id di `Users` |
+| `UserId` | Single line text | codice frupas del proprietario |
 | `Date` | Single line text | `YYYY-MM-DD` |
 | `Time` | Single line text | `HH:MM`, facoltativo |
 | `Amount` | Number | importo totale della spesa |
 | `MyShare` | Number | quota a proprio carico (spese divise) |
 | `Name` | Single line text | esercente/descrizione |
-| `CardId` | Single line text | record id di `Cards`, facoltativo |
-| `CategoryId` | Single line text | record id di `Categories` |
+| `CardId` | Single line text | record id Airtable di `Cards`, facoltativo |
+| `CategoryId` | Single line text | record id Airtable di `Categories` |
 | `Source` | Single line text | `manual` / `applepay` |
 | `IsIncome` | Checkbox | |
 | `Note` | Single line text | facoltativo |
 | `CreatedAt` | Single line text | ISO 8601, scritta dal backend |
 
-I campi `UserId`/`CardId`/`CategoryId` sono testo semplice contenente il
-record id Airtable (non "linked record"): il backend li tratta come le
-vecchie foreign key SQLite, e questo mantiene semplici le query
-(`filterByFormula`).
+`UserId` è il **codice frupas** (testo semplice, non "linked record"): è
+l'identità condivisa nell'ecosistema, la stessa su tutte le app. `CardId` e
+`CategoryId` restano invece record id interni di Airtable — identificano
+solo righe di *questa* base, non serve che siano leggibili fuori da tappy.
 
 **Categorie predefinite**: "Spesa", "Macchina", "Leisure", "Altro" —
 create da `scripts/seed-user.js` per ogni nuovo utente. "Altro" è il
@@ -92,16 +108,19 @@ fallback quando una spesa non ha (o perde) una categoria valida.
    e `data.records:write` sulla base — è `AIRTABLE_API_KEY`. L'ID base
    (`appXXXXXXXXXXXXXX`) è `AIRTABLE_BASE_ID`.
 2. **Crea il primo utente**: `AIRTABLE_API_KEY=... AIRTABLE_BASE_ID=... node scripts/seed-user.js "Nome"`
-   (dopo `npm install` nella root del repo). Salva la chiave stampata.
+   (dopo `npm install` nella root del repo) — genera un nuovo codice frupas
+   e lo stampa. Se l'utente ha già un codice frupas assegnato altrove
+   nell'ecosistema, passalo come secondo argomento (`... "Nome" 7K4P9Q2R`)
+   invece di farne generare uno nuovo.
 3. **Netlify**: "Add new site" → "Import an existing project" → collega il
    repo GitHub. Netlify legge `netlify.toml` da solo (build command,
    publish dir, redirect `/api/*`). Aggiungi in Site configuration →
    Environment variables: `AIRTABLE_API_KEY`, `AIRTABLE_BASE_ID`. Deploy.
 4. Apri il dominio Netlify da ogni dispositivo (telefono, computer) e
-   inserisci la chiave personale al primo accesso.
+   inserisci il codice frupas al primo accesso.
 5. **Comando Rapido Apple Pay**: usa come URL `https://<tuo-dominio-netlify>/api/webhook/applepay`
-   e come header `x-api-key: <chiave personale>` (vedi sezione dedicata in
-   Impostazioni nell'app, che mostra URL e chiave pronti da copiare).
+   e come header `x-frupas-code: <codice frupas>` (vedi sezione dedicata in
+   Impostazioni nell'app, che mostra URL e codice pronti da copiare).
 
 ## Sviluppo locale
 
@@ -144,8 +163,8 @@ modale per inserire manualmente uscite o entrate.
 Tema (chiaro/scuro/sistema, persistito), budget mensile generale (con
 equivalente settimanale/giornaliero mostrato in automatico), gestione
 categorie (nome, colore, budget facoltativo), sezione "Apple Pay Shortcut"
-con URL webhook e chiave personale copiabili, e pulsante per disconnettersi
-(cambia chiave/dispositivo).
+con URL webhook e codice frupas copiabili, e pulsante per disconnettersi
+(cambia codice frupas/dispositivo).
 
 ## Cosa manca
 
