@@ -95,7 +95,7 @@ Quello che ricevi da me per ogni idea: *cosa* si costruisce, *chi* lo fa,
 | 1 — UI su dati mock | ✅ fatta | UI Expert + UI Developer |
 | 2 — collegamento ai dati reali | ⏳ server pronto, client ancora su mock | Backend & Deploy |
 | 3 — Comando Rapido + vista di dettaglio | ❌ da fare | Shortcuts + UI Developer |
-| 4 — integrazione fru-pass | 🆕 da definire | vedi §6 |
+| 4 — integrazione fru-pass | 🆕 pianificata | Backend & Deploy (guida, §6) |
 
 Ordine consigliato: **la Fase 2 sblocca tutto il resto.** Il Comando Rapido
 non ha senso finché il client legge dal `localStorage`, e la vista di
@@ -111,24 +111,82 @@ dettaglio è più veloce da fare quando i dati sono già veri. Quindi:
 
 ## 6. Integrazione fru-pass
 
-**Stato: in attesa della guida fru-pass.** Non progetto l'integrazione a
-scatola chiusa: appena ricevo il documento aggiorno questa sezione con
-l'assegnazione dei task.
+Guida ricevuta. Fru Pass è **solo identità**: un endpoint pubblico condiviso
+che verifica un codice `FRU-XXXX-XXXX` e restituisce un `profile`
+(`code`, `name`, `username`). I dati dell'app restano nostri, associati a
+`profile.code`. Questo cambia tre cose in tappy — chi è l'utente, dove gira
+il backend, e come si veste l'app.
 
-Quello che mi serve sapere dalla guida, per poter instradare:
+### 6.1 I tre nodi da sciogliere (decisioni, non task)
 
-- **Cos'è fru-pass rispetto a tappy** — un provider di identità/login, un
-  wallet/fonte di transazioni, o entrambi?
-- **Superficie di integrazione**: API REST, OAuth, webhook, SDK, file?
-- **Autenticazione**: chi possiede l'utente? Se fru-pass fa da login, l'attuale
-  `api_key` in `users` diventa un dettaglio interno e cambia `db.ts` — ed è una
-  modifica in zona condivisa.
-- **Direzione dei dati**: tappy legge da fru-pass, ci scrive, o si sincronizza
-  nei due sensi? Da questo dipende se è un task del solo Backend & Deploy o
-  anche dello Shortcuts (se fru-pass può sostituire il parsing della notifica).
+**a) L'identità passa a `profile.code`.** Oggi `users.api_key` è insieme
+login e chiave del webhook. Con Fru Pass il login è il codice, e l'api key
+resta *solo* come segreto del webhook Apple Pay — non la si mostra più come
+"credenziale d'accesso" ma come token dell'automazione. Il codice Fru Pass
+non va mai messo nel Comando Rapido al posto della api key: è la credenziale
+dell'intero ecosistema, non di tappy.
+→ `users` prende una colonna `frupass_code` (unica); il seed dell'utente di
+default resta solo per lo sviluppo locale.
 
-Ipotesi di instradamento, da confermare: se fru-pass è **identità/dati**, il
-grosso è Backend & Deploy con un task UI a valle per il login; se è una
-**fonte di transazioni**, potrebbe rendere superfluo il Comando Rapido e va
-deciso *prima* di costruirlo — motivo in più per non partire con la Fase 3
-finché la guida non è sul tavolo.
+**b) L'attuale server Express+SQLite non è deployabile come richiesto.**
+La guida presuppone un sito Netlify. SQLite su Netlify non persiste. Serve
+portare le rotte a Netlify Functions con uno storage gestito (Firebase o una
+base Airtable nostra, come suggerisce §5 della guida) — oppure ospitare il
+server Express altrove e mettere su Netlify solo il client. **La seconda è
+più economica** (il codice server esiste già e funziona), ma richiede un
+host con disco persistente. Decisione mia, da confermare con te: client su
+Netlify + server Express su host separato, con la migrazione a Functions
+rimandata solo se l'host dà problemi.
+
+**c) Conflitto di stile, ed è il punto più delicato.** Fru Pass impone
+palette "spaziale/cyber" (`#06070f`, ciano/magenta/gold), font Orbitron +
+Space Grotesk, header e footer fissi con logo Fru Pass, card `20px`,
+bottoni `12px`. Tappy oggi è **l'opposto dichiarato**: minimale Apple, font
+di sistema, accenti fluorescenti. I due standard non si sommano da soli.
+Le opzioni sono tre e la scelta è tua, non degli agent:
+1. **Conformità piena** — tappy si riveste da app dell'ecosistema. Coerente
+   nell'hub, ma butta via l'identità visiva costruita in Fase 1.
+2. **Guscio conforme, cuore tappy** — login, header e footer esattamente
+   secondo lo standard Fru Pass; le tre schermate interne restano Apple-
+   minimali. È il compromesso che la guida stessa rende possibile ("cambiando
+   solo il contenuto centrale con la tua funzionalità"). **È la mia
+   raccomandazione.**
+3. **Deroga** — si chiede all'amministratore di accettare tappy com'è, con il
+   solo login conforme. Va negoziato fuori dal codice.
+
+Il resto della sezione assume l'opzione 2. Se scegli la 1, il task UI
+diventa molto più grosso e va rifatta anche la palette in
+`tailwind.config.js`.
+
+### 6.2 Assegnazione dei task
+
+| # | Task | Agent | Dipende da |
+|---|---|---|---|
+| F0 | Scelta dell'opzione di stile (§6.1c) e dell'host (§6.1b) | **tu** | — |
+| F1 | Client Fru Pass: `verifyFruPass()`, login/refresh, sessione `tappy_frupass` in `localStorage`, **auto-login da `#code=`**, logout | Backend & Deploy | F0 |
+| F2 | `users.frupass_code`, rotte legate al codice invece che alla api key, api key declassata a solo-webhook | Backend & Deploy | F1 |
+| F3 | Deploy: client su Netlify, server sull'host scelto, `VITE_API_URL`, `USE_MOCK = false` | Backend & Deploy | F2 |
+| F4 | Spec di login/header/footer in stile Fru Pass innestati su tappy: cosa resta neon-Apple e cosa diventa cyber, e come non stonano fra loro | UI Expert | F0 |
+| F5 | Implementazione di F4: schermata login (campo unico, placeholder `FRU-••••-••••`), header fisso (logo Fru Pass → home → toggle giorno/notte), footer fisso con versione, `viewport-fit=cover` + `env(safe-area-inset-*)` | UI Developer | F4, F1 |
+| F6 | Sezione "Apple Pay Shortcut" attiva: URL webhook + api key copiabili, ora che l'utente è identificato | Shortcuts | F2, F3 |
+| F7 | Comando Rapido reale (parsing notifica → POST al webhook) | Shortcuts | F6 |
+
+Il toggle giorno/notte manuale richiesto dalla guida **c'è già**
+(`AppContext.tsx`, chiaro/scuro/sistema): F5 lo espone nell'header, non lo
+riscrive.
+
+### 6.3 Vincoli non negoziabili per chiunque tocchi questa parte
+
+- Nessuna credenziale dell'ecosistema (token Airtable, base id) entra in
+  questo repository. La verifica del codice passa **solo** dall'endpoint
+  `https://frupass-user.netlify.app/.netlify/functions/api`.
+- Chiave di sessione locale: `tappy_frupass`. Nome app nell'ecosistema:
+  `tappy`, minuscolo.
+- L'auto-login da `#code=` è obbligatorio e va testato: la guida segnala che
+  è il passaggio più spesso dimenticato. L'URL va ripulito con
+  `history.replaceState` subito dopo la lettura.
+- Il `refresh` all'avvio non deve bloccare la UI: si mostra la home con il
+  profilo salvato e si invalida la sessione solo se la verifica fallisce.
+- L'ordine è quello della tabella: **F1 prima di tutto**, perché senza
+  identità reale né il deploy né il Comando Rapido hanno un utente a cui
+  attaccare i dati.
