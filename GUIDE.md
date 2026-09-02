@@ -72,7 +72,7 @@ tiene le rotte dati a una sola chiamata di rete.
 e mostrato in Impostazioni. Serve solo al webhook Apple Pay
 (`x-api-key`). Non è una credenziale d'accesso e non sostituisce il codice
 Fru Pass — che, essendo la credenziale di tutto l'ecosistema, non va mai
-copiato dentro un Comando Rapido.
+copiato dentro un'automazione dell'iPhone.
 
 Non è solo una chiave d'accesso: il codice Fru Pass è anche la **chiave
 esterna** usata nelle tabelle. Il campo `UserId` di `Categories`, `Cards` e
@@ -151,7 +151,7 @@ fallback quando una spesa non ha (o perde) una categoria valida.
    Environment variables: `AIRTABLE_API_KEY`, `AIRTABLE_BASE_ID`. Deploy.
 4. Apri il dominio Netlify da ogni dispositivo (telefono, computer) e
    inserisci il codice frupas al primo accesso.
-5. **Comando Rapido Apple Pay**: usa come URL `https://<tuo-dominio-netlify>/api/webhook/applepay`
+5. **Automazione Apple Pay**: usa come URL `https://<tuo-dominio-netlify>/api/webhook/applepay`
    e come header `x-frupas-code: <codice frupas>` (vedi sezione dedicata in
    Impostazioni nell'app, che mostra URL e codice pronti da copiare).
 
@@ -201,7 +201,7 @@ con URL webhook e codice frupas copiabili, e pulsante per disconnettersi
 
 ## Cosa manca
 
-Il **Comando Rapido iPhone vero e proprio** (estrarre importo ed esercente
+L'**automazione iPhone vera e propria** (estrarre importo ed esercente
 dal testo della notifica Apple Pay e fare la POST al webhook) e una
 **vista di dettaglio** per il singolo movimento (oggi c'è solo il modale di
 modifica/eliminazione dalla lista Movimenti) restano da costruire.

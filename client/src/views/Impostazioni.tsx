@@ -219,14 +219,14 @@ export default function Impostazioni() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
-          Apple Pay Shortcut
+          Automazione Apple Pay
         </h2>
         <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3 text-sm">
           <p className="text-muted dark:text-muted-dark">
-            Nel Comando Rapido &quot;Alla ricezione di una notifica&quot; di Apple Pay, fai una
+            Nell&apos;automazione dell&apos;iPhone che scatta al pagamento Apple Pay, fai una
             POST a questo URL con l&apos;header <code>x-api-key</code> impostato sulla chiave
             qui sotto. Non usare il codice Fru Pass: è la credenziale di tutto
-            l&apos;ecosistema e non va copiata dentro un Comando Rapido.
+            l&apos;ecosistema e non va copiata in un&apos;automazione.
           </p>
           <div className="flex flex-col gap-1">
             <span className="text-[10px] text-muted dark:text-muted-dark uppercase tracking-wide">

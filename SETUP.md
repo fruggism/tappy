@@ -195,15 +195,29 @@ Tutti dalla radice del repo.
 | `cd client && npm run build` | verifica che compili prima di pushare |
 | `cd client && npm run lint` | controllo statico |
 
-## 6. Il Comando Rapido Apple Pay
+## 6. L'automazione Apple Pay
 
-Non è ancora pronto (è il task F7), ma il webhook lato server sì. Quando ci
-arriviamo servirà:
+**È un'automazione, non un comando rapido da lanciare a mano**: si crea
+nell'app Comandi Rapidi, scheda **Automazione**, e scatta da sé quando arriva
+il pagamento. Tu non tocchi niente — paghi, e la spesa è già registrata.
+
+Due conseguenze pratiche, che sono il motivo per cui la distinzione conta:
+
+- Va impostata su **«Esegui immediatamente»** con la richiesta di conferma
+  **disattivata**, altrimenti a ogni pagamento l'iPhone chiede il permesso e
+  l'automatismo non serve più a niente.
+- Il trigger disponibile dipende dalla versione di iOS: va verificato sul tuo
+  iPhone quale c'è fra quelli legati ai pagamenti o alle notifiche. È la prima
+  cosa da guardare quando affronteremo il task, perché da lì dipende come si
+  estraggono importo ed esercente.
+
+Non è ancora pronta (è il task F7), ma il webhook lato server sì. Quando ci
+arriveremo servirà:
 
 - **URL**: `https://<tuo-sito>.netlify.app/api/webhook/applepay`
 - **Header**: `x-api-key` con la **chiave del webhook**, che trovi in
   Impostazioni → Apple Pay Shortcut.
 
-⚠️ Nel Comando Rapido va la **chiave del webhook**, mai il codice Fru Pass:
-quello è la credenziale di tutto l'ecosistema, e un Comando Rapido si
-condivide con un link.
+⚠️ Nell'automazione va la **chiave del webhook**, mai il codice Fru Pass:
+quello è la credenziale di tutto l'ecosistema, e un'automazione si può
+esportare e condividere con un link.

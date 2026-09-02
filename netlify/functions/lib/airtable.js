@@ -96,7 +96,7 @@ async function getUserByFrupasCode(code) {
 
 // L'api key è il segreto del **webhook Apple Pay**, interno a tappy: non è
 // una credenziale d'accesso e non sostituisce mai il codice Fru Pass (che è
-// la credenziale dell'intero ecosistema e non va messa in un Comando Rapido).
+// la credenziale dell'intero ecosistema e non va messa in un'automazione).
 function generateApiKey() {
   return crypto.randomBytes(24).toString("base64url");
 }

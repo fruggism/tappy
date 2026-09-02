@@ -194,10 +194,10 @@ router.delete(
 );
 
 // ---------- Apple Pay Shortcut webhook ----------
-// L'automazione Comandi Rapidi "Alla ricezione di una notifica" fa la POST
-// qui con l'header x-api-key: è l'api key interna di tappy, leggibile in
-// Impostazioni. NON si usa il codice Fru Pass — è la credenziale dell'intero
-// ecosistema e non va copiata dentro un Comando Rapido.
+// L'automazione dell'iPhone (Comandi Rapidi → Automazione), che scatta da sé
+// alla notifica di pagamento Apple Pay, fa la POST qui con l'header x-api-key:
+// è l'api key interna di tappy, leggibile in Impostazioni. NON si usa il
+// codice Fru Pass — è la credenziale dell'intero ecosistema.
 router.post("/webhook/applepay", async (req, res) => {
   try {
     const user = await db.getUserByApiKey(req.header("x-api-key"));

@@ -131,13 +131,15 @@ chiave del webhook copiabili, e un pulsante per disconnettersi.
 
 ## Il webhook Apple Pay
 
-`POST /api/webhook/applepay` — pensato per un'automazione Comandi Rapidi
-"Alla ricezione di una notifica" filtrata su Apple Pay.
+`POST /api/webhook/applepay` — pensato per un'**automazione** di iPhone
+(app Comandi Rapidi → scheda *Automazione*), che scatta da sé alla notifica
+di pagamento Apple Pay. Non è un comando rapido da lanciare a mano: l'utente
+non fa nulla, la spesa arriva mentre paga.
 
 - **Header** `x-api-key`: la **chiave del webhook**, visibile in
   Impostazioni. È un segreto interno di tappy, generato al primo accesso.
   Non si usa qui il codice Fru Pass: quello è la credenziale dell'intero
-  ecosistema e non va copiata dentro un Comando Rapido.
+  ecosistema e non va copiata dentro un'automazione.
 - **Body JSON**:
   ```json
   { "amount": 12.5, "name": "Bar Roma", "card": "Visa", "category": "Leisure" }
