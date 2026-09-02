@@ -203,6 +203,22 @@ export default function Impostazioni() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
+          Accesso
+        </h2>
+        <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-1 text-sm">
+          <span className="text-[10px] text-muted dark:text-muted-dark uppercase tracking-wide">
+            Il tuo codice Fru Pass
+          </span>
+          <code className="text-base tracking-widest">{user.code}</code>
+          <p className="text-xs text-muted dark:text-muted-dark mt-1">
+            È lo stesso codice che usi nelle altre app dell&apos;ecosistema: inseriscilo su un
+            altro dispositivo per ritrovare gli stessi dati.
+          </p>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
           Apple Pay Shortcut
         </h2>
         <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3 text-sm">
