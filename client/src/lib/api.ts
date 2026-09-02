@@ -1,56 +1,10 @@
-import type { Card, Category, Transaction, User } from "./types";
+// FASE 1: l'app usa dati mock locali (localStorage) per sviluppare e finalizzare la UI
+// senza dipendere dal backend. FASE 2 collegherà queste stesse funzioni alle tabelle reali:
+// per farlo basterà cambiare USE_MOCK a false (il backend Express+SQLite è già pronto in server/).
+import { mockApi, API_BASE as MOCK_BASE } from "./mockApi";
+import { realApi, API_BASE as REAL_BASE } from "./realApi";
 
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const USE_MOCK = true;
 
-async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `Request failed: ${res.status}`);
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json();
-}
-
-export const api = {
-  me: () => req<User>("/api/me"),
-  updateMe: (data: Partial<Pick<User, "theme" | "monthly_budget" | "name">>) =>
-    req<User>("/api/me", { method: "PATCH", body: JSON.stringify(data) }),
-
-  categories: () => req<Category[]>("/api/categories"),
-  createCategory: (data: { name: string; color: string; icon?: string }) =>
-    req<Category>("/api/categories", { method: "POST", body: JSON.stringify(data) }),
-  updateCategory: (id: string, data: Partial<Pick<Category, "name" | "color" | "icon">>) =>
-    req<Category>(`/api/categories/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  deleteCategory: (id: string) => req<void>(`/api/categories/${id}`, { method: "DELETE" }),
-
-  cards: () => req<Card[]>("/api/cards"),
-  createCard: (name: string) =>
-    req<Card>("/api/cards", { method: "POST", body: JSON.stringify({ name }) }),
-
-  transactions: (params?: { from?: string; to?: string }) => {
-    const qs = params
-      ? "?" +
-        Object.entries(params)
-          .filter(([, v]) => v)
-          .map(([k, v]) => `${k}=${v}`)
-          .join("&")
-      : "";
-    return req<Transaction[]>(`/api/transactions${qs}`);
-  },
-  createTransaction: (
-    data: Partial<Transaction> & { amount: number; name: string }
-  ) => req<Transaction>("/api/transactions", { method: "POST", body: JSON.stringify(data) }),
-  updateTransaction: (id: string, data: Partial<Transaction>) =>
-    req<Transaction>(`/api/transactions/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  deleteTransaction: (id: string) =>
-    req<void>(`/api/transactions/${id}`, { method: "DELETE" }),
-};
-
-export { BASE as API_BASE };
+export const api = USE_MOCK ? mockApi : realApi;
+export const API_BASE = USE_MOCK ? MOCK_BASE : REAL_BASE;

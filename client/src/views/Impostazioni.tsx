@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useApp } from "../lib/AppContext";
-import { api, API_BASE } from "../lib/api";
+import { api } from "../lib/api";
 
 const PALETTE = ["#39ff88", "#00e5ff", "#ff2ecb", "#a3a3ff", "#ffcf4d", "#ff6b6b"];
 
@@ -13,7 +13,6 @@ export default function Impostazioni() {
   const [budgetInput, setBudgetInput] = useState(user ? String(user.monthly_budget) : "");
   const [newCatName, setNewCatName] = useState("");
   const [newCatColor, setNewCatColor] = useState(PALETTE[0]);
-  const [copied, setCopied] = useState(false);
 
   if (!user) return null;
 
@@ -36,12 +35,6 @@ export default function Impostazioni() {
   async function removeCategory(id: string) {
     await api.deleteCategory(id);
     await refresh();
-  }
-
-  function copyKey() {
-    navigator.clipboard.writeText(user!.api_key);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
   }
 
   return (
@@ -148,36 +141,28 @@ export default function Impostazioni() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
-          Apple Pay Shortcut
-        </h2>
-        <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3 text-sm">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
+            Apple Pay Shortcut
+          </h2>
+          <span className="text-[10px] font-medium text-neon-amber bg-neon-amber/10 px-2 py-0.5 rounded-full">
+            Fase 3
+          </span>
+        </div>
+        <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-2 text-sm">
           <p className="text-muted dark:text-muted-dark">
-            Crea un&apos;automazione &quot;Alla ricezione di una notifica&quot; (Apple Pay) su
-            Comandi Rapidi che invii una richiesta POST a:
+            Qui compariranno l&apos;URL del webhook, l&apos;API key personale e le istruzioni
+            per collegare il Comando Rapido &quot;Alla ricezione di una notifica&quot; di Apple
+            Pay, una volta collegato il backend reale.
           </p>
-          <code className="block rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-xs break-all">
-            {API_BASE}/api/webhook/applepay
-          </code>
-          <p className="text-muted dark:text-muted-dark">
-            Header <code className="bg-surface2 dark:bg-surface2-dark px-1 rounded">x-api-key</code>:
-          </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 opacity-40 pointer-events-none select-none">
             <code className="flex-1 rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-xs break-all">
               {user.api_key}
             </code>
-            <button
-              onClick={copyKey}
-              className="text-xs rounded-lg bg-ink dark:bg-white text-white dark:text-black px-3 py-2 shrink-0"
-            >
-              {copied ? "Copiato" : "Copia"}
+            <button className="text-xs rounded-lg bg-ink dark:bg-white text-white dark:text-black px-3 py-2 shrink-0">
+              Copia
             </button>
           </div>
-          <p className="text-muted dark:text-muted-dark">
-            Corpo JSON: <code className="bg-surface2 dark:bg-surface2-dark px-1 rounded">
-              {`{"amount": 12.5, "name": "Bar Roma", "card": "Visa", "category": "Leisure"}`}
-            </code>
-          </p>
         </div>
       </section>
     </div>
