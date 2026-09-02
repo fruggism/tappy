@@ -92,7 +92,7 @@ Quello che ricevi da me per ogni idea: *cosa* si costruisce, *chi* lo fa,
 | Fase | Stato | Proprietario |
 |---|---|---|
 | 1 — UI su dati mock | ✅ fatta | UI Expert + UI Developer |
-| 2 — collegamento ai dati reali | ⏳ server pronto, client ancora su mock | Backend & Deploy |
+| 2 — collegamento ai dati reali | ✅ funzionante in locale: accesso Fru Pass verificato con un codice vero, dati su Airtable | Backend & Deploy |
 | 3 — Comando Rapido + vista di dettaglio | ❌ da fare | Shortcuts + UI Developer |
 | 4 — integrazione fru-pass | 🆕 pianificata, F0 chiuso | Backend & Deploy (§6) |
 
@@ -177,12 +177,12 @@ codice sono due costanti e un file segnaposto; la procedura per sostituirli
 | # | Task | Agent | Dipende da |
 |---|---|---|---|
 | F0 | ~~Scelta stile e host~~ — **decisi**: stile tappy, deploy Netlify + Airtable | ✅ fatto | — |
-| F1 ✅ | *Fatto* (`claude/app-deployment-sync-agzd2h`). Client Fru Pass: `verifyFruPass()`, login/refresh, sessione `tappy_frupass` in `localStorage`, **auto-login da `#code=`**, logout | Backend & Deploy | F0 |
+| F1 ✅ | *Fatto e verificato in locale con un codice Fru Pass reale.* (`claude/app-deployment-sync-agzd2h`). Client Fru Pass: `verifyFruPass()`, login/refresh, sessione `tappy_frupass` in `localStorage`, **auto-login da `#code=`**, logout | Backend & Deploy | F0 |
 | F2 | `users.frupass_code`, rotte legate al codice invece che alla api key, api key declassata a solo-webhook | Backend & Deploy | F1 |
-| F3 | Deploy: client + Netlify Functions su Netlify, dati su Airtable, variabili `AIRTABLE_*` in Site configuration, `USE_MOCK = false` | Backend & Deploy | F2 |
+| F3 ⬅ **prossimo** | Deploy: client + Netlify Functions su Netlify, dati su Airtable, variabili `AIRTABLE_*` in Site configuration, `USE_MOCK = false` | Backend & Deploy | F2 |
 | F4 ✅ | *Fatto* (`claude/ui-expert-f4-frupass`, `design/F4-login-header-footer.md` + mockup). Spec di login, header e footer **nel linguaggio visivo tappy**: dove sta il logo Fru Pass senza rompere la palette, come si veste il campo codice, come sta il toggle nell'header | UI Expert | F0 |
 | F5 ✅ | *Fatto* (sul branch di deploy). Implementazione di F4: schermata login (campo unico, placeholder `FRU-••••-••••`), header fisso (logo Fru Pass → home → toggle giorno/notte), footer fisso con versione, `viewport-fit=cover` + `env(safe-area-inset-*)` | UI Developer | F4, F1 |
-| F6 ⬅ **prossimo** | Sezione "Apple Pay Shortcut" attiva: URL webhook + api key copiabili, ora che l'utente è identificato | Shortcuts | F2, F3 |
+| F6 | Sezione "Apple Pay Shortcut" attiva: URL webhook + api key copiabili, ora che l'utente è identificato | Shortcuts | F2, F3 |
 | F7 | **Automazione** iPhone reale (Comandi Rapidi → Automazione: scatta al pagamento, estrae importo ed esercente, POST al webhook). Non è un comando rapido da lanciare a mano: va su "Esegui immediatamente" senza conferma, e il trigger disponibile dipende dalla versione di iOS — prima cosa da verificare sull'iPhone | Shortcuts | F6 |
 
 Il toggle giorno/notte manuale richiesto dalla guida **c'è già**
