@@ -22,6 +22,18 @@ function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
+function formatShortDate(iso: string) {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+}
+
+// Etichetta compatta per un intervallo di date, usata nel confronto vs periodo precedente.
+function formatRangeShort(period: Period, r: { from: string; to: string }) {
+  if (period === "day") return formatShortDate(r.from);
+  if (period === "week") return `${formatShortDate(r.from)}–${formatShortDate(r.to)}`;
+  const label = new Date(`${r.from}T00:00:00`).toLocaleDateString("it-IT", { month: "short" });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 const PERIOD_LABELS: Record<Period, string> = {
   day: "Giornaliero",
   week: "Settimanale",
@@ -276,8 +288,22 @@ function TrendArrow({ up, className }: { up: boolean; className?: string }) {
   );
 }
 
-function TrendCard({ current, previous }: { current: number; previous: number }) {
+function TrendCard({
+  current,
+  previous,
+  period,
+  range,
+  prevRange,
+}: {
+  current: number;
+  previous: number;
+  period: Period;
+  range: { from: string; to: string };
+  prevRange: { from: string; to: string };
+}) {
   const animated = useCountUp(current);
+  const rangeLabel = formatRangeShort(period, range);
+  const prevRangeLabel = formatRangeShort(period, prevRange);
   if (previous <= 0) {
     return (
       <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-2 flex-1 min-w-0">
@@ -285,6 +311,9 @@ function TrendCard({ current, previous }: { current: number; previous: number })
           Vs periodo prec.
         </span>
         <span className="text-sm text-muted dark:text-muted-dark">Nessun dato di confronto</span>
+        <span className="text-[10px] text-muted dark:text-muted-dark truncate">
+          {rangeLabel} vs {prevRangeLabel}
+        </span>
       </div>
     );
   }
@@ -334,6 +363,9 @@ function TrendCard({ current, previous }: { current: number; previous: number })
           </div>
           <span className="text-[11px] text-muted dark:text-muted-dark tabular-nums truncate">
             €{animated.toFixed(0)} vs €{previous.toFixed(0)}
+          </span>
+          <span className="text-[10px] text-muted dark:text-muted-dark truncate">
+            {rangeLabel} vs {prevRangeLabel}
           </span>
         </div>
       </div>
@@ -420,10 +452,6 @@ function TopCard({
   );
 }
 
-function formatShortDate(iso: string) {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
-}
-
 function Sparkline({ data }: { data: { date: string; total: number }[] }) {
   const [mounted, setMounted] = useState(false);
   const [hover, setHover] = useState<number | null>(null);
@@ -500,13 +528,13 @@ function CategoryRing({
   const color = over ? "#ff2ecb" : c.color;
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-2 w-[5.5rem] shrink-0">
       <MiniRing pct={pct} color={color}>
         <span className="text-[13px] font-semibold tabular-nums leading-none" style={{ color }}>
           €{c.value.toFixed(0)}
         </span>
       </MiniRing>
-      <div className="flex flex-col items-center gap-0.5 max-w-[5.5rem]">
+      <div className="flex flex-col items-center gap-0.5 max-w-full">
         <span className="text-xs font-medium truncate max-w-full">{c.label}</span>
         <span className="text-[10px] text-muted dark:text-muted-dark truncate max-w-full">
           {hasBudget ? (over ? "oltre budget" : `su €${c.budget!.toFixed(0)}`) : `${Math.round(pct)}% del totale`}
@@ -533,7 +561,7 @@ function CategoryBreakdown({
           Nessuna spesa in questo periodo.
         </p>
       )}
-      <div className="grid grid-cols-3 gap-y-4 gap-x-2 justify-items-center">
+      <div className="flex flex-wrap justify-center gap-y-4 gap-x-2">
         {categories.map((c) => (
           <CategoryRing key={c.id} category={c} total={total} />
         ))}
@@ -700,7 +728,13 @@ export default function Andamento() {
       </div>
 
       <div className="w-full flex gap-3">
-        <TrendCard current={totalPeriod} previous={previousTotal} />
+        <TrendCard
+          current={totalPeriod}
+          previous={previousTotal}
+          period={period}
+          range={range}
+          prevRange={prevRange}
+        />
         {showProjection && (
           <ProjectionCard perDay={perDay} daysTotal={range.daysTotal} budget={budget} />
         )}
