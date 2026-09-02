@@ -51,7 +51,7 @@ app.get("/api/categories", (req, res) => {
 
 app.post("/api/categories", (req, res) => {
   const user = resolveUser(req);
-  const { name, color, icon } = req.body;
+  const { name, color, icon, budget } = req.body;
   if (!name) return res.status(400).json({ error: "name required" });
   const id = randomUUID();
   const maxOrder = (
@@ -60,8 +60,8 @@ app.post("/api/categories", (req, res) => {
       .get(user.id) as any
   ).m ?? -1;
   db.prepare(
-    "INSERT INTO categories (id, user_id, name, color, icon, is_default, sort_order) VALUES (?,?,?,?,?,0,?)"
-  ).run(id, user.id, name, color || "#39ff88", icon || "circle", maxOrder + 1);
+    "INSERT INTO categories (id, user_id, name, color, icon, is_default, sort_order, budget) VALUES (?,?,?,?,?,0,?,?)"
+  ).run(id, user.id, name, color || "#39ff88", icon || "circle", maxOrder + 1, budget ?? null);
   res.status(201).json(db.prepare("SELECT * FROM categories WHERE id = ?").get(id));
 });
 
@@ -73,10 +73,22 @@ app.patch("/api/categories/:id", (req, res) => {
   if (!cat) return res.status(404).json({ error: "not found" });
   if (cat.is_default && cat.name === "Altro" && req.body.name)
     return res.status(400).json({ error: "cannot rename Altro" });
-  const { name, color, icon } = req.body;
+  const { name, color, icon, budget } = req.body;
   db.prepare(
-    "UPDATE categories SET name = COALESCE(?, name), color = COALESCE(?, color), icon = COALESCE(?, icon) WHERE id = ?"
-  ).run(name ?? null, color ?? null, icon ?? null, cat.id);
+    `UPDATE categories SET
+      name = COALESCE(?, name),
+      color = COALESCE(?, color),
+      icon = COALESCE(?, icon),
+      budget = CASE WHEN ? THEN ? ELSE budget END
+     WHERE id = ?`
+  ).run(
+    name ?? null,
+    color ?? null,
+    icon ?? null,
+    Object.prototype.hasOwnProperty.call(req.body, "budget") ? 1 : 0,
+    budget ?? null,
+    cat.id
+  );
   res.json(db.prepare("SELECT * FROM categories WHERE id = ?").get(cat.id));
 });
 

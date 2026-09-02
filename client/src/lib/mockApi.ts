@@ -17,10 +17,10 @@ function uid() {
 }
 
 const DEFAULT_CATEGORIES: Omit<Category, "id" | "user_id">[] = [
-  { name: "Spesa", color: "#39ff88", icon: "cart", is_default: 1, sort_order: 0 },
-  { name: "Macchina", color: "#00e5ff", icon: "car", is_default: 1, sort_order: 1 },
-  { name: "Leisure", color: "#ff2ecb", icon: "sparkles", is_default: 1, sort_order: 2 },
-  { name: "Altro", color: "#a3a3ff", icon: "dots", is_default: 1, sort_order: 3 },
+  { name: "Spesa", color: "#39ff88", icon: "cart", is_default: 1, sort_order: 0, budget: null },
+  { name: "Macchina", color: "#00e5ff", icon: "car", is_default: 1, sort_order: 1, budget: null },
+  { name: "Leisure", color: "#ff2ecb", icon: "sparkles", is_default: 1, sort_order: 2, budget: null },
+  { name: "Altro", color: "#a3a3ff", icon: "dots", is_default: 1, sort_order: 3, budget: null },
 ];
 
 const MERCHANTS: Record<string, string[]> = {
@@ -115,7 +115,13 @@ function load(): Db {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
     try {
-      return JSON.parse(raw);
+      const parsed: Db = JSON.parse(raw);
+      // migrazione: le categorie salvate prima dell'introduzione del budget
+      // per categoria non hanno il campo, lo aggiungiamo come "nessun limite".
+      parsed.categories.forEach((c) => {
+        if (c.budget === undefined) c.budget = null;
+      });
+      return parsed;
     } catch {
       // corrupted, reseed
     }
@@ -144,7 +150,7 @@ export const mockApi = {
   },
 
   categories: () => delay([...db.categories].sort((a, b) => a.sort_order - b.sort_order)),
-  createCategory: (data: { name: string; color: string; icon?: string }) => {
+  createCategory: (data: { name: string; color: string; icon?: string; budget?: number | null }) => {
     const maxOrder = Math.max(-1, ...db.categories.map((c) => c.sort_order));
     const cat: Category = {
       id: uid(),
@@ -154,12 +160,13 @@ export const mockApi = {
       icon: data.icon ?? "circle",
       is_default: 0,
       sort_order: maxOrder + 1,
+      budget: data.budget ?? null,
     };
     db.categories.push(cat);
     save(db);
     return delay(cat);
   },
-  updateCategory: (id: string, data: Partial<Pick<Category, "name" | "color" | "icon">>) => {
+  updateCategory: (id: string, data: Partial<Pick<Category, "name" | "color" | "icon" | "budget">>) => {
     const cat = db.categories.find((c) => c.id === id);
     if (!cat) throw new Error("not found");
     Object.assign(cat, data);

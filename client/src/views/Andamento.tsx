@@ -347,6 +347,13 @@ function getRangeTotal(expenses: Transaction[], from: string, to: string) {
   return expenses.filter((t) => t.date >= from && t.date <= to).reduce((s, t) => s + t.my_share, 0);
 }
 
+// Converte un budget mensile nell'equivalente del periodo selezionato (stessa logica del budget generale).
+function scaleToPeriod(monthlyAmount: number, period: Period, dim: number) {
+  if (period === "day") return monthlyAmount / dim;
+  if (period === "week") return (monthlyAmount / dim) * 7;
+  return monthlyAmount;
+}
+
 export default function Andamento() {
   const { user, categories, transactions } = useApp();
   const [period, setPeriod] = useState<Period>("month");
@@ -398,10 +405,16 @@ export default function Andamento() {
       map.set(t.category_id, (map.get(t.category_id) ?? 0) + t.my_share);
     }
     return categories
-      .map((c) => ({ id: c.id, label: c.name, color: c.color, value: map.get(c.id) ?? 0 }))
+      .map((c) => ({
+        id: c.id,
+        label: c.name,
+        color: c.color,
+        value: map.get(c.id) ?? 0,
+        budget: c.budget != null ? scaleToPeriod(c.budget, period, dimForBudget) : null,
+      }))
       .filter((s) => s.value > 0)
       .sort((a, b) => b.value - a.value);
-  }, [periodTx, categories]);
+  }, [periodTx, categories, period, dimForBudget]);
 
   const topMerchant = useMemo(() => {
     const map = new Map<string, number>();
@@ -507,22 +520,46 @@ export default function Andamento() {
           </p>
         )}
         {byCategory.map((c) => {
-          const pct = totalPeriod > 0 ? (c.value / totalPeriod) * 100 : 0;
+          const hasBudget = c.budget != null && c.budget > 0;
+          const overOwnBudget = hasBudget && c.value > c.budget!;
+          const pct = hasBudget
+            ? Math.min(100, (c.value / c.budget!) * 100)
+            : totalPeriod > 0
+            ? (c.value / totalPeriod) * 100
+            : 0;
           return (
             <div key={c.id} className="flex flex-col gap-1.5">
-              <div className="flex justify-between text-sm">
-                <span>{c.label}</span>
-                <span className="tabular-nums text-muted dark:text-muted-dark">
-                  €{c.value.toFixed(0)}
+              <div className="flex justify-between items-baseline text-sm gap-2">
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <span className="truncate">{c.label}</span>
+                  {overOwnBudget && (
+                    <span className="text-[10px] font-medium text-neon-pink shrink-0">
+                      oltre budget
+                    </span>
+                  )}
+                </span>
+                <span className="tabular-nums text-muted dark:text-muted-dark shrink-0">
+                  {hasBudget ? (
+                    <>
+                      €{c.value.toFixed(0)}{" "}
+                      <span className="opacity-60">/ €{c.budget!.toFixed(0)}</span>
+                    </>
+                  ) : (
+                    `€${c.value.toFixed(0)}`
+                  )}
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
+              <div
+                className={`h-2 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden ${
+                  overOwnBudget ? "ring-1 ring-neon-pink/50" : ""
+                }`}
+              >
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
                     width: `${pct}%`,
-                    background: c.color,
-                    boxShadow: `0 0 8px 0 ${c.color}aa`,
+                    background: overOwnBudget ? "#ff2ecb" : c.color,
+                    boxShadow: `0 0 8px 0 ${overOwnBudget ? "#ff2ecb" : c.color}aa`,
                   }}
                 />
               </div>

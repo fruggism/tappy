@@ -24,9 +24,9 @@ export const realApi = {
     req<User>("/api/me", { method: "PATCH", body: JSON.stringify(data) }),
 
   categories: () => req<Category[]>("/api/categories"),
-  createCategory: (data: { name: string; color: string; icon?: string }) =>
+  createCategory: (data: { name: string; color: string; icon?: string; budget?: number | null }) =>
     req<Category>("/api/categories", { method: "POST", body: JSON.stringify(data) }),
-  updateCategory: (id: string, data: Partial<Pick<Category, "name" | "color" | "icon">>) =>
+  updateCategory: (id: string, data: Partial<Pick<Category, "name" | "color" | "icon" | "budget">>) =>
     req<Category>(`/api/categories/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteCategory: (id: string) => req<void>(`/api/categories/${id}`, { method: "DELETE" }),
 

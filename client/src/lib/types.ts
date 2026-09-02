@@ -15,6 +15,8 @@ export interface Category {
   icon: string;
   is_default: 0 | 1;
   sort_order: number;
+  // Budget mensile dedicato alla categoria, facoltativo (null = nessun limite specifico).
+  budget: number | null;
 }
 
 export interface Card {

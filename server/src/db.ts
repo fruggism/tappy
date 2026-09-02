@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS categories (
   color TEXT NOT NULL,
   icon TEXT NOT NULL DEFAULT 'circle',
   is_default INTEGER NOT NULL DEFAULT 0,
-  sort_order INTEGER NOT NULL DEFAULT 0
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  budget REAL
 );
 
 CREATE TABLE IF NOT EXISTS cards (

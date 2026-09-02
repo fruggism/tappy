@@ -1,11 +1,67 @@
 import { useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { api } from "../lib/api";
+import type { Category } from "../lib/types";
 
 const PALETTE = ["#39ff88", "#00e5ff", "#ff2ecb", "#a3a3ff", "#ffcf4d", "#ff6b6b"];
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
+}
+
+function CategoryRow({
+  category: c,
+  onRemove,
+  onSaveBudget,
+}: {
+  category: Category;
+  onRemove: () => void;
+  onSaveBudget: (budget: number | null) => void;
+}) {
+  const [budgetInput, setBudgetInput] = useState(c.budget != null ? String(c.budget) : "");
+
+  function handleBlur() {
+    const trimmed = budgetInput.trim();
+    if (trimmed === "") {
+      onSaveBudget(null);
+      return;
+    }
+    const v = parseFloat(trimmed.replace(",", "."));
+    if (!isNaN(v) && v >= 0) onSaveBudget(v);
+    else setBudgetInput(c.budget != null ? String(c.budget) : "");
+  }
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-surface dark:bg-surface-dark px-4 py-2.5">
+      <span
+        className="h-3 w-3 rounded-full shrink-0"
+        style={{ background: c.color, boxShadow: `0 0 6px ${c.color}` }}
+      />
+      <span className="flex-1 text-sm min-w-0 truncate">{c.name}</span>
+      <div className="flex items-center gap-1 shrink-0">
+        <span className="text-xs text-muted dark:text-muted-dark">€</span>
+        <input
+          value={budgetInput}
+          onChange={(e) => setBudgetInput(e.target.value)}
+          onBlur={handleBlur}
+          inputMode="decimal"
+          placeholder="opzionale"
+          className="w-20 rounded-lg bg-surface2 dark:bg-surface2-dark px-2 py-1 text-xs text-right outline-none focus:ring-2 focus:ring-neon-green/60 placeholder:text-[10px]"
+        />
+        <span className="text-[10px] text-muted dark:text-muted-dark">/mese</span>
+      </div>
+      {c.is_default ? (
+        <span className="text-[10px] text-muted dark:text-muted-dark shrink-0">predefinita</span>
+      ) : (
+        <button
+          onClick={onRemove}
+          className="text-[10px] text-muted dark:text-muted-dark hover:text-neon-pink shrink-0"
+        >
+          elimina
+        </button>
+      )}
+    </div>
+  );
 }
 
 export default function Impostazioni() {
@@ -34,6 +90,11 @@ export default function Impostazioni() {
 
   async function removeCategory(id: string) {
     await api.deleteCategory(id);
+    await refresh();
+  }
+
+  async function saveCategoryBudget(id: string, budget: number | null) {
+    await api.updateCategory(id, { budget });
     await refresh();
   }
 
@@ -86,28 +147,18 @@ export default function Impostazioni() {
         <h2 className="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
           Categorie
         </h2>
+        <p className="text-xs text-muted dark:text-muted-dark -mt-1">
+          Ogni categoria può avere un budget mensile dedicato, facoltativo: lascialo vuoto se
+          vuoi che conti solo il budget complessivo.
+        </p>
         <div className="flex flex-col gap-2">
           {categories.map((c) => (
-            <div
+            <CategoryRow
               key={c.id}
-              className="flex items-center gap-3 rounded-2xl bg-surface dark:bg-surface-dark px-4 py-2.5"
-            >
-              <span
-                className="h-3 w-3 rounded-full shrink-0"
-                style={{ background: c.color, boxShadow: `0 0 6px ${c.color}` }}
-              />
-              <span className="flex-1 text-sm">{c.name}</span>
-              {c.is_default ? (
-                <span className="text-[10px] text-muted dark:text-muted-dark">predefinita</span>
-              ) : (
-                <button
-                  onClick={() => removeCategory(c.id)}
-                  className="text-[10px] text-muted dark:text-muted-dark hover:text-neon-pink"
-                >
-                  elimina
-                </button>
-              )}
-            </div>
+              category={c}
+              onRemove={() => removeCategory(c.id)}
+              onSaveBudget={(budget) => saveCategoryBudget(c.id, budget)}
+            />
           ))}
         </div>
         <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3">
