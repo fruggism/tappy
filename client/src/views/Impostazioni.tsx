@@ -11,10 +11,12 @@ function daysInMonth(year: number, month: number) {
 
 function CategoryRow({
   category: c,
+  maxAllowed,
   onRemove,
   onSaveBudget,
 }: {
   category: Category;
+  maxAllowed: number;
   onRemove: () => void;
   onSaveBudget: (budget: number | null) => void;
 }) {
@@ -27,8 +29,14 @@ function CategoryRow({
       return;
     }
     const v = parseFloat(trimmed.replace(",", "."));
-    if (!isNaN(v) && v >= 0) onSaveBudget(v);
-    else setBudgetInput(c.budget != null ? String(c.budget) : "");
+    if (isNaN(v) || v < 0) {
+      setBudgetInput(c.budget != null ? String(c.budget) : "");
+      return;
+    }
+    // La somma dei budget di categoria non può superare il budget mensile complessivo.
+    const capped = Math.min(v, maxAllowed);
+    if (capped !== v) setBudgetInput(String(capped));
+    onSaveBudget(capped);
   }
 
   return (
@@ -75,6 +83,11 @@ export default function Impostazioni() {
   const now = new Date();
   const dim = daysInMonth(now.getFullYear(), now.getMonth());
   const weekly = (user!.monthly_budget / dim) * 7;
+
+  const allocated = categories.reduce((s, c) => s + (c.budget ?? 0), 0);
+  const unallocated = Math.max(0, user.monthly_budget - allocated);
+  const overAllocated = allocated > user.monthly_budget;
+  const allocationPct = user.monthly_budget > 0 ? (allocated / user.monthly_budget) * 100 : 0;
 
   async function saveBudget() {
     const v = parseFloat(budgetInput.replace(",", "."));
@@ -148,14 +161,43 @@ export default function Impostazioni() {
           Categorie
         </h2>
         <p className="text-xs text-muted dark:text-muted-dark -mt-1">
-          Ogni categoria può avere un budget mensile dedicato, facoltativo: lascialo vuoto se
-          vuoi che conti solo il budget complessivo.
+          Il budget mensile può essere suddiviso tra le categorie, facoltativamente: la
+          somma dei budget di categoria non supera mai il budget mensile complessivo.
         </p>
+
+        <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-2">
+          <div className="flex justify-between text-sm">
+            <span>Assegnato alle categorie</span>
+            <span className="tabular-nums font-medium">
+              €{allocated.toFixed(0)} / €{user.monthly_budget.toFixed(0)}
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-black/[0.06] dark:bg-white/10 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${Math.min(100, allocationPct)}%`,
+                background: overAllocated ? "#ff2ecb" : "#39ff88",
+              }}
+            />
+          </div>
+          <span
+            className={`text-xs ${
+              overAllocated ? "text-neon-pink" : "text-muted dark:text-muted-dark"
+            }`}
+          >
+            {overAllocated
+              ? `Hai assegnato €${(allocated - user.monthly_budget).toFixed(0)} più del budget mensile.`
+              : `Non assegnato: €${unallocated.toFixed(0)}`}
+          </span>
+        </div>
+
         <div className="flex flex-col gap-2">
           {categories.map((c) => (
             <CategoryRow
               key={c.id}
               category={c}
+              maxAllowed={Math.max(0, (c.budget ?? 0) + unallocated)}
               onRemove={() => removeCategory(c.id)}
               onSaveBudget={(budget) => saveCategoryBudget(c.id, budget)}
             />

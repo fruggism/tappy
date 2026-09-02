@@ -12,6 +12,15 @@ body,
   height: 100%;
 }
 
+/* Sfondo coerente anche nell'area del notch/status bar (con viewport-fit=cover
+   il body non copre quella striscia, quindi va colorata anche a livello di html). */
+html {
+  background-color: #f5f5f7;
+}
+html.dark {
+  background-color: #000000;
+}
+
 body {
   @apply bg-base dark:bg-base-dark text-ink dark:text-ink-dark antialiased;
   font-feature-settings: "ss01";
@@ -35,4 +44,29 @@ body {
 
 .animate-rise {
   animation: rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Sforamento budget: l'anello rosso "extra giro" respira per segnalare l'allarme
+   senza essere frenetico — non un lampeggio, un battito lento e continuo. */
+@keyframes overflowPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    filter: drop-shadow(0 0 3px #ff2ecb99);
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 10px #ff2ecbee);
+  }
+}
+
+.gauge-overflow-pulse {
+  animation: overflowPulse 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gauge-overflow-pulse {
+    animation: none;
+    opacity: 1;
+  }
 }
