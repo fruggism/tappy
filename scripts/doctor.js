@@ -56,11 +56,14 @@ async function main() {
     : ko("Dipendenze del client mancanti", "lancia: cd client && npm install && cd ..");
 
   // --- 3. Netlify CLI ------------------------------------------------------
+  // Non serve installarla: `npm run dev` la esegue con npx. L'installazione
+  // globale è solo una comodità, e su macOS spesso fallisce per i permessi
+  // di /usr/local — non è un problema da risolvere.
   try {
     const v = execFileSync("netlify", ["--version"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-    ok("Netlify CLI", v.trim().split("\n")[0]);
+    ok("Netlify CLI installata", v.trim().split("\n")[0]);
   } catch {
-    ko("Netlify CLI non installata", "lancia: npm install -g netlify-cli");
+    nota("Netlify CLI non installata", "non serve: `npm run dev` la esegue con npx");
   }
 
   // --- 4. File .env --------------------------------------------------------

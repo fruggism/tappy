@@ -164,7 +164,7 @@ sulla stessa porta, esattamente come in produzione:
 ```bash
 npm install                    # dipendenze della funzione (root)
 cd client && npm install && cd ..
-AIRTABLE_API_KEY=... AIRTABLE_BASE_ID=... netlify dev
+npm run dev
 ```
 
 Per lavorare solo sulla UI senza toccare Airtable, in `client/src/lib/api.ts`

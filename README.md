@@ -53,7 +53,7 @@ funzione serverless) sono nello stesso deploy. I dati sono su **Airtable**
 4. **In locale** (richiede la [Netlify CLI](https://docs.netlify.com/cli/get-started/), `npm install -g netlify-cli`):
    ```bash
    cd client && npm install && cd ..
-   AIRTABLE_API_KEY=... AIRTABLE_BASE_ID=... netlify dev
+   npm run dev
    ```
    Apri l'URL stampato (di solito `http://localhost:8888`) e inserisci il
    tuo codice Fru Pass.

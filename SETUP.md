@@ -148,7 +148,7 @@ npm run doctor
 ```
 
 Controlla in un colpo solo tutto ciò che è verificabile da riga di comando —
-versione di Node, dipendenze, Netlify CLI, `.env`, schema Airtable,
+versione di Node, dipendenze, `.env`, schema Airtable,
 raggiungibilità dell'ecosistema Fru Pass, e che il client compili — e per
 ogni cosa che manca dice il comando per rimediare.
 
@@ -158,14 +158,7 @@ in `Users`, le 4 categorie e la carta.
 
 ## 5. Prova in locale
 
-Serve la Netlify CLI, che fa girare client e funzione insieme come in
-produzione:
-
-```bash
-npm install -g netlify-cli        # una volta sola
-```
-
-Poi, dalla radice del repo:
+Dalla radice del repo:
 
 ```bash
 npm install                       # dipendenze della funzione
@@ -186,8 +179,13 @@ mano.
 Avvia:
 
 ```bash
-netlify dev
+npm run dev
 ```
+
+Fa girare client e funzione insieme, come in produzione, usando la Netlify
+CLI tramite `npx`: non serve installarla globalmente (su macOS l'installazione
+globale spesso fallisce per i permessi di `/usr/local`, ed è una battaglia
+inutile). La prima volta ci mette un po' perché la scarica.
 
 Apri `http://localhost:8888` e inserisci il tuo codice Fru Pass. Se tutto è a
 posto, entri e in Airtable compaiono la riga in `Users` e le 4 categorie.
@@ -201,7 +199,7 @@ posto, entri e in Airtable compaiono la riga in `Users` e le 4 categorie.
 | Errore 500 / pagina che resta a caricare | manca una delle due variabili, o un nome di campo Airtable è scritto diversamente |
 | Entri ma non vedi le categorie | tabella `Categories` con un nome o un campo diverso da quelli sopra |
 
-Per vedere l'errore vero: `netlify dev` stampa in console i log della
+Per vedere l'errore vero: `npm run dev` stampa in console i log della
 funzione, ed è lì che compare il messaggio di Airtable.
 
 ## 6. Metti online su Netlify
@@ -232,7 +230,7 @@ Tutti dalla radice del repo.
 | `npm run doctor` | controlla tutto l'ambiente e dice cosa manca |
 | `npm run setup-env` | crea il `.env` con le credenziali per lo sviluppo in locale |
 | `npm run check-airtable` | verifica che tabelle e campi della base siano quelli giusti (sola lettura) |
-| `netlify dev` | client + API insieme, come in produzione (`:8888`) |
+| `npm run dev` | client + API insieme, come in produzione (`:8888`) |
 | `npm test` | i test dell'autenticazione Fru Pass (non toccano la rete, non servono credenziali) |
 | `cd client && npm run dev` | solo il client, senza backend — utile per lavorare sulla grafica |
 | `cd client && npm run build` | verifica che compili prima di pushare |
