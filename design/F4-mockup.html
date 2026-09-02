@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>tappy — mockup F4</title>
+<style>
+  /* Mockup statico di riferimento per il task F5. Nessuna dipendenza esterna.
+     I valori qui sotto sono gli stessi token di client/tailwind.config.js. */
+  :root{
+    --base:#f5f5f7; --surface:#fff; --surface2:#f0f0f2; --ink:#1d1d1f; --muted:#6e6e73;
+    --neon-green:#39ff88; --neon-pink:#ff2ecb;
+  }
+  .dark{
+    --base:#000; --surface:#111113; --surface2:#1c1c1f; --ink:#f5f5f7; --muted:#9a9aa2;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;padding:28px 16px 48px;background:#e6e6ea;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,system-ui,sans-serif;color:#1d1d1f}
+  h1{font-size:17px;margin:0 0 4px}
+  .intro{max-width:860px;margin:0 auto 28px;font-size:13px;color:#5a5a60;line-height:1.55}
+  .row{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+  figure{margin:0;display:flex;flex-direction:column;gap:8px;align-items:center}
+  figcaption{font-size:11px;color:#6e6e73;text-align:center;max-width:300px;line-height:1.45}
+  /* telefono */
+  .phone{width:300px;height:620px;border-radius:38px;padding:8px;background:#0b0b0d;
+    box-shadow:0 18px 40px rgba(0,0,0,.28)}
+  .screen{position:relative;height:100%;border-radius:30px;overflow:hidden;
+    background:var(--base);color:var(--ink);display:flex;flex-direction:column}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:104px;height:24px;
+    background:#0b0b0d;border-radius:0 0 14px 14px;z-index:30}
+  /* header */
+  header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
+    padding:30px 20px 8px;background:color-mix(in srgb,var(--base) 80%,transparent);backdrop-filter:blur(20px)}
+  .wordmark{font-size:22px;font-weight:700;letter-spacing:-.02em}
+  .wordmark span{color:var(--neon-green)}
+  .actions{display:flex;align-items:center;gap:12px;color:var(--muted)}
+  .actions svg{width:20px;height:20px;display:block}
+  .fru{font-size:10px;font-weight:600;letter-spacing:.15em;border:1px solid currentColor;
+    border-radius:6px;padding:2px 4px;opacity:.6}
+  /* contenuto finto */
+  main{flex:1;overflow:hidden;padding:8px 20px 128px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--surface);border-radius:16px;padding:16px}
+  .bar{height:9px;border-radius:5px;background:var(--surface2)}
+  .ring{width:104px;height:104px;border-radius:50%;margin:6px auto;
+    background:conic-gradient(var(--neon-green) 0 62%, var(--surface2) 62% 100%);
+    -webkit-mask:radial-gradient(circle,transparent 58%,#000 59%);
+            mask:radial-gradient(circle,transparent 58%,#000 59%)}
+  /* dock: nav + footer, un blocco solo */
+  .dock{position:absolute;left:0;right:0;bottom:0;padding:0 16px 18px}
+  nav{display:flex;background:color-mix(in srgb,var(--surface) 80%,transparent);backdrop-filter:blur(20px);
+    border:1px solid rgba(0,0,0,.06);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.16)}
+  .dark nav{border-color:rgba(255,255,255,.10)}
+  nav button{flex:1;background:none;border:0;padding:11px 0;display:flex;flex-direction:column;
+    align-items:center;gap:4px;color:var(--muted);font:inherit;font-size:10px;font-weight:500}
+  nav button.on{color:var(--neon-green)}
+  nav svg{width:19px;height:19px}
+  .footer{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 2px;color:var(--muted)}
+  .footer .ver{font-size:10px;opacity:.7;font-variant-numeric:tabular-nums}
+  /* login */
+  .login{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+  .loginbox{width:100%;max-width:240px;display:flex;flex-direction:column;gap:14px;text-align:center}
+  .loginbox .wordmark{font-size:28px}
+  .sub{font-size:13px;color:var(--muted);line-height:1.45;margin:0}
+  .field{display:flex;align-items:center;background:var(--surface2);border-radius:12px;padding:11px 12px;gap:2px}
+  .field .pre{font-size:17px;font-weight:500;color:var(--muted);letter-spacing:.2em}
+  .field input{flex:1;min-width:0;background:none;border:0;outline:none;font:inherit;font-size:17px;
+    font-weight:500;letter-spacing:.2em;text-align:center;color:var(--ink)}
+  .field.focus{box-shadow:0 0 0 2px color-mix(in srgb,var(--neon-green) 60%,transparent)}
+  .field.err{box-shadow:0 0 0 1px color-mix(in srgb,var(--neon-pink) 50%,transparent)}
+  .status{min-height:20px;font-size:12px;color:var(--neon-pink)}
+  .status.calm{color:var(--muted)}
+  .btn{border:0;border-radius:12px;padding:11px;font:inherit;font-size:14px;font-weight:500;
+    background:var(--ink);color:var(--base)}
+  .btn[disabled]{opacity:.5}
+  .sign{margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted)}
+  .sign .lbl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;opacity:.8}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>tappy — mockup F4: login, header, footer</h1>
+  <p>Riferimento visivo per il task F5. Il marchio Fru Pass è reso col segnaposto
+  testuale <code>FRU</code> descritto in §3 della spec: quando arriva l'SVG monocromatico
+  prende il suo posto, stessa dimensione e stessa <code>opacity</code>. Il quinto schermo
+  mostra il caso che la guida dell'ecosistema segnala come più spesso sbagliato:
+  l'arrivo dall'hub non deve mai far comparire il login.</p>
+</div>
+
+<div class="row">
+
+  <!-- 1. login riposo -->
+  <figure>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="login"><div class="loginbox">
+        <div class="wordmark">tap<span>py</span></div>
+        <p class="sub">Accedi con il tuo codice Fru Pass, lo stesso che usi nelle altre app.</p>
+        <div class="field"><span class="pre">FRU-</span><input value="" placeholder="••••-••••"></div>
+        <div class="status"></div>
+        <button class="btn" disabled>Accedi</button>
+        <div class="sign"><span class="lbl">parte dell'ecosistema</span><span class="fru">FRU</span></div>
+      </div></div>
+    </div></div>
+    <figcaption><b>Login, a riposo.</b> Il prefisso <code>FRU-</code> è testo statico:
+    non si può cancellare e il cursore non ci finisce dentro. Bottone disabilitato
+    finché il codice non è completo.</figcaption>
+  </figure>
+
+  <!-- 2. login errore -->
+  <figure>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="login"><div class="loginbox">
+        <div class="wordmark">tap<span>py</span></div>
+        <p class="sub">Accedi con il tuo codice Fru Pass, lo stesso che usi nelle altre app.</p>
+        <div class="field err"><span class="pre">FRU-</span><input value="AB12-CD35"></div>
+        <div class="status">Codice non riconosciuto</div>
+        <button class="btn">Accedi</button>
+        <div class="sign"><span class="lbl">parte dell'ecosistema</span><span class="fru">FRU</span></div>
+      </div></div>
+    </div></div>
+    <figcaption><b>Codice rifiutato.</b> Scossa laterale di 0.3s, anello rosa, e
+    <b>il testo resta</b>: chi ha sbagliato un carattere lo corregge.
+    L'altezza della riga di stato è riservata, il bottone non salta.</figcaption>
+  </figure>
+
+  <!-- 3. ecosistema irraggiungibile -->
+  <figure>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="login"><div class="loginbox">
+        <div class="wordmark">tap<span>py</span></div>
+        <p class="sub">Accedi con il tuo codice Fru Pass, lo stesso che usi nelle altre app.</p>
+        <div class="field"><span class="pre">FRU-</span><input value="AB12-CD34"></div>
+        <div class="status calm">Fru Pass non risponde, riprova tra poco</div>
+        <button class="btn">Accedi</button>
+        <div class="sign"><span class="lbl">parte dell'ecosistema</span><span class="fru">FRU</span></div>
+      </div></div>
+    </div></div>
+    <figcaption><b>Ecosistema giù ≠ codice sbagliato.</b> Grigio, niente rosa,
+    niente scossa: il codice è probabilmente giusto e non è colpa dell'utente.
+    F1 restituisce già i due errori distinti.</figcaption>
+  </figure>
+
+  <!-- 4. app, chiaro -->
+  <figure>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <header>
+        <div class="wordmark">tap<span>py</span></div>
+        <div class="actions">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.2"/><path stroke-linecap="round" d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.5 10.5L12 4l8.5 6.5V19a1.5 1.5 0 01-1.5 1.5h-3.5V14h-7v6.5H5A1.5 1.5 0 013.5 19z"/></svg>
+          <span class="fru">FRU</span>
+        </div>
+      </header>
+      <main>
+        <div class="card"><div class="ring"></div>
+          <div class="bar" style="width:55%;margin:10px auto 6px"></div>
+          <div class="bar" style="width:34%;margin:0 auto"></div>
+        </div>
+        <div class="card"><div class="bar" style="width:42%;margin-bottom:10px"></div>
+          <div class="bar" style="width:88%;margin-bottom:6px"></div><div class="bar" style="width:66%"></div></div>
+      </main>
+      <div class="dock">
+        <nav>
+          <button class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" d="M4 19V9m6 10V5m6 14v-7m6 7V3"/></svg>Andamento</button>
+          <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" d="M3 7h18M3 12h18M3 17h10"/></svg>Movimenti</button>
+          <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.7 1.7 0 00.4 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2v.1a2 2 0 11-4 0v-.2A1.7 1.7 0 005 19.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.7 1.7 0 002.4 14H2a2 2 0 110-4h.2A1.7 1.7 0 004.6 5L4.5 5a2 2 0 112.8-2.8l.1.1A1.7 1.7 0 0010 2.4V2a2 2 0 114 0v.2a1.7 1.7 0 002.9 1.2l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 001.2 2.9H22a2 2 0 110 4h-.2a1.7 1.7 0 00-1.6 1z"/></svg>Impostazioni</button>
+        </nav>
+        <div class="footer"><span class="fru">FRU</span><span class="ver">2026.09.02 · v1</span></div>
+      </div>
+    </div></div>
+    <figcaption><b>App, tema chiaro.</b> A destra nell'header: sole (tema), casa
+    (torna all'hub), marchio. Il nome utente è uscito dall'header — quattro elementi
+    non ci stanno — e vive in Impostazioni. In basso <b>una sola barra</b>: la nav
+    esistente, con la riga del footer sotto, nella fascia dell'home indicator.</figcaption>
+  </figure>
+
+  <!-- 5. app, scuro -->
+  <figure>
+    <div class="phone"><div class="screen dark"><div class="notch"></div>
+      <header>
+        <div class="wordmark">tap<span>py</span></div>
+        <div class="actions">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13.4A8.2 8.2 0 1110.6 4a6.6 6.6 0 009.4 9.4z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.5 10.5L12 4l8.5 6.5V19a1.5 1.5 0 01-1.5 1.5h-3.5V14h-7v6.5H5A1.5 1.5 0 013.5 19z"/></svg>
+          <span class="fru">FRU</span>
+        </div>
+      </header>
+      <main>
+        <div class="card"><div class="ring"></div>
+          <div class="bar" style="width:55%;margin:10px auto 6px"></div>
+          <div class="bar" style="width:34%;margin:0 auto"></div>
+        </div>
+        <div class="card"><div class="bar" style="width:42%;margin-bottom:10px"></div>
+          <div class="bar" style="width:88%;margin-bottom:6px"></div><div class="bar" style="width:66%"></div></div>
+      </main>
+      <div class="dock">
+        <nav>
+          <button class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" d="M4 19V9m6 10V5m6 14v-7m6 7V3"/></svg>Andamento</button>
+          <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" d="M3 7h18M3 12h18M3 17h10"/></svg>Movimenti</button>
+          <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.7 1.7 0 00.4 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2v.1a2 2 0 11-4 0v-.2A1.7 1.7 0 005 19.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.7 1.7 0 002.4 14H2a2 2 0 110-4h.2A1.7 1.7 0 004.6 5L4.5 5a2 2 0 112.8-2.8l.1.1A1.7 1.7 0 0010 2.4V2a2 2 0 114 0v.2a1.7 1.7 0 002.9 1.2l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 001.2 2.9H22a2 2 0 110 4h-.2a1.7 1.7 0 00-1.6 1z"/></svg>Impostazioni</button>
+        </nav>
+        <div class="footer"><span class="fru">FRU</span><span class="ver">2026.09.02 · v1</span></div>
+      </div>
+    </div></div>
+    <figcaption><b>App, tema scuro.</b> L'icona mostra lo <b>stato corrente</b>
+    (luna = stai vedendo lo scuro), non l'azione: è la convenzione iOS.
+    Il marchio resta monocromatico su <code>currentColor</code> in entrambi i temi.</figcaption>
+  </figure>
+
+  <!-- 6. arrivo dall'hub -->
+  <figure>
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="login"><div style="width:34px;height:34px;border-radius:50%;
+        border:2px solid rgba(57,255,136,.3);border-top-color:#39ff88"></div></div>
+    </div></div>
+    <figcaption><b>Arrivo dall'hub (<code>#code=FRU-…</code>).</b> Si vede solo lo
+    spinner già esistente, mai il login — nemmeno per un fotogramma. È il difetto
+    che la guida dell'ecosistema segnala come più frequente.</figcaption>
+  </figure>
+
+</div>
+</body>
+</html>

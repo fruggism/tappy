@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useApp } from "./lib/AppContext";
-import { formatCodeInput, isCompleteCode } from "./lib/frupass";
+import { Dock, Header } from "./components/AppChrome";
+import Login from "./views/Login";
 import Andamento from "./views/Andamento";
 import Movimenti from "./views/Movimenti";
 import Impostazioni from "./views/Impostazioni";
@@ -49,69 +50,11 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   },
 ];
 
-function FruPassLogin() {
-  const { login } = useApp();
-  const [value, setValue] = useState("FRU-");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const completo = isCompleteCode(value);
-
-  async function submit() {
-    if (!completo || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await login(value);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Accesso non riuscito");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="h-full flex items-center justify-center px-6">
-      <div className="w-full max-w-sm flex flex-col gap-4">
-        <h1 className="text-2xl font-bold tracking-tight text-center">
-          tap<span className="text-neon-green">py</span>
-        </h1>
-        <p className="text-sm text-muted dark:text-muted-dark text-center">
-          Accedi con il tuo codice Fru Pass, lo stesso che usi nelle altre app.
-        </p>
-        <input
-          value={value}
-          onChange={(e) => {
-            setValue(formatCodeInput(e.target.value));
-            setError(null);
-          }}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder="FRU-\u2022\u2022\u2022\u2022-\u2022\u2022\u2022\u2022"
-          autoFocus
-          autoCapitalize="characters"
-          autoCorrect="off"
-          spellCheck={false}
-          inputMode="text"
-          className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60 text-center tracking-widest"
-        />
-        {error && <p className="text-xs text-neon-pink text-center">{error}</p>}
-        <button
-          onClick={submit}
-          disabled={busy || !completo}
-          className="rounded-xl bg-ink dark:bg-white text-white dark:text-black text-sm font-medium py-2 disabled:opacity-50"
-        >
-          {busy ? "Verifica\u2026" : "Accedi"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   const { loading, user, needsLogin } = useApp();
   const [tab, setTab] = useState<Tab>("andamento");
 
-  if (needsLogin) return <FruPassLogin />;
+  if (needsLogin) return <Login />;
 
   // Finché non si sa chi è l'utente si mostra lo spinner, mai il login: chi
   // arriva dall'hub con il codice nell'URL non deve vedere la schermata di
@@ -126,38 +69,40 @@ export default function App() {
 
   return (
     <div className="h-full flex flex-col max-w-md mx-auto relative">
-      <header className="px-5 pt-6 pb-2 flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">
-          tap<span className="text-neon-green">py</span>
-        </h1>
-        <span className="text-xs text-muted dark:text-muted-dark">{user.name}</span>
-      </header>
+      <Header />
 
-      <main className="flex-1 overflow-y-auto px-5 pb-24 pt-2">
+      {/* pb generoso: sotto ci sono nav e riga della versione, e l'ultima card
+          di ogni schermata non deve finirci sotto. */}
+      <main
+        className="flex-1 overflow-y-auto px-5 pt-2"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 8rem)" }}
+      >
         {tab === "andamento" && <Andamento />}
         {tab === "movimenti" && <Movimenti />}
         {tab === "impostazioni" && <Impostazioni />}
       </main>
 
-      <nav className="absolute bottom-0 left-0 right-0 mx-4 mb-4 rounded-2xl bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-xl flex">
-        {TABS.map((t) => {
-          const active = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${
-                active ? "text-neon-green" : "text-muted dark:text-muted-dark"
-              }`}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
-                {t.icon}
-              </svg>
-              <span className="text-[10px] font-medium">{t.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      <Dock>
+        <nav className="rounded-2xl bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-xl flex">
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${
+                  active ? "text-neon-green" : "text-muted dark:text-muted-dark"
+                }`}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
+                  {t.icon}
+                </svg>
+                <span className="text-[10px] font-medium">{t.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </Dock>
     </div>
   );
 }

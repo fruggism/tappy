@@ -129,6 +129,10 @@ export default function Impostazioni() {
             </button>
           ))}
         </div>
+        <p className="text-xs text-muted dark:text-muted-dark">
+          Il pulsante nell&apos;header imposta chiaro o scuro; da qui puoi tornare a
+          &quot;Sistema&quot;.
+        </p>
       </section>
 
       <section className="flex flex-col gap-3">

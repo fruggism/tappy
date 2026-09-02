@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { api } from "./api";
+import { api, USE_MOCK } from "./api";
 import {
   clearSession,
   readSession,
@@ -89,6 +89,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let annullato = false;
 
+    // Con i dati finti non esiste identità da verificare: la schermata di
+    // accesso resterebbe un muro invalicabile durante lo sviluppo della UI.
+    if (USE_MOCK) {
+      refresh();
+      return;
+    }
+
     (async () => {
       const codeFromHub = takeCodeFromHash();
 
@@ -145,6 +152,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [refresh]);
 
+  // Se l'hub riapre tappy in una scheda già aperta, cambia solo l'hash e la
+  // pagina non si ricarica: senza questo il codice resterebbe nell'URL e
+  // l'utente vedrebbe ancora la sessione (o il login) di prima.
+  useEffect(() => {
+    if (USE_MOCK) return;
+
+    const onHashChange = () => {
+      const code = takeCodeFromHash();
+      if (!code) return;
+      verifyFruPass(code)
+        .then((p) => {
+          saveSession(p);
+          setProfile(p);
+          setNeedsLogin(false);
+          return refresh();
+        })
+        .catch(() => {
+          /* codice non valido nell'URL: si resta com'eravamo */
+        });
+    };
+
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [refresh]);
+
   const login = useCallback(
     async (frupasCode: string) => {
       const p = await verifyFruPass(frupasCode); // rilancia con messaggio leggibile
@@ -174,6 +206,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", effectiveTheme === "dark");
+
+    // I <meta name="theme-color"> in index.html seguono prefers-color-scheme,
+    // che con un toggle manuale non basta più: senza questo, su iPhone la
+    // striscia del notch resta del colore del tema di sistema mentre l'app è
+    // dell'altro. Si sostituiscono con un solo meta senza media query.
+    const colore = effectiveTheme === "dark" ? "#000000" : "#f5f5f7";
+    document.querySelectorAll('meta[name="theme-color"][media]').forEach((m) => m.remove());
+    let meta = document.querySelector('meta[name="theme-color"]:not([media])');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.setAttribute("name", "theme-color");
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute("content", colore);
   }, [effectiveTheme]);
 
   const setTheme = useCallback(async (t: User["theme"]) => {
