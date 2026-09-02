@@ -20,6 +20,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Attraverso serverless-http il corpo della richiesta arriva come Buffer, che
+// express.json lascia intatto: senza questo, ogni rotta riceve un Buffer al
+// posto dell'oggetto e risponde "campo mancante". Non si nota provando
+// l'app Express direttamente — solo passando dal gestore, cioe' come gira
+// davvero su Netlify.
+app.use((req, _res, next) => {
+  if (Buffer.isBuffer(req.body) || typeof req.body === "string") {
+    const grezzo = req.body.toString("utf8").trim();
+    try {
+      req.body = grezzo ? JSON.parse(grezzo) : {};
+    } catch {
+      req.body = {};
+    }
+  }
+  if (!req.body) req.body = {};
+  next();
+});
+
 // Normalizza il path indipendentemente da come Netlify invoca la funzione
 // (via redirect "/api/*" o chiamata diretta "/.netlify/functions/api/*").
 app.use((req, _res, next) => {
