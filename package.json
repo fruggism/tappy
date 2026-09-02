@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node tests/frupass.test.mjs && node tests/auth-routes.test.mjs && node tests/check-airtable.test.mjs",
     "setup-env": "node scripts/setup-env.js",
+    "doctor": "node scripts/doctor.js",
     "check-airtable": "node scripts/check-airtable.js"
   },
   "dependencies": {

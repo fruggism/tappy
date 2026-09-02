@@ -141,7 +141,22 @@ non scrive e non cancella nulla. Ti dice esattamente cosa manca:
 
 Correggi su Airtable e rilancia finché non è tutto `ok`.
 
-## 4. Prova in locale
+## 4. Verifica che sia tutto a posto
+
+```bash
+npm run doctor
+```
+
+Controlla in un colpo solo tutto ciò che è verificabile da riga di comando —
+versione di Node, dipendenze, Netlify CLI, `.env`, schema Airtable,
+raggiungibilità dell'ecosistema Fru Pass, e che il client compili — e per
+ogni cosa che manca dice il comando per rimediare.
+
+Restano due verifiche che solo tu puoi fare, dopo aver avviato l'app: che
+si entri con il proprio codice Fru Pass, e che su Airtable compaiano la riga
+in `Users`, le 4 categorie e la carta.
+
+## 5. Prova in locale
 
 Serve la Netlify CLI, che fa girare client e funzione insieme come in
 produzione:
@@ -189,7 +204,7 @@ posto, entri e in Airtable compaiono la riga in `Users` e le 4 categorie.
 Per vedere l'errore vero: `netlify dev` stampa in console i log della
 funzione, ed è lì che compare il messaggio di Airtable.
 
-## 5. Metti online su Netlify
+## 6. Metti online su Netlify
 
 1. [app.netlify.com](https://app.netlify.com) → **Add new site → Import an
    existing project** → GitHub → scegli il repo `tappy`.
@@ -208,12 +223,13 @@ funzione, ed è lì che compare il messaggio di Airtable.
 le aggiungi dopo, serve un **Trigger deploy → Clear cache and deploy site**,
 altrimenti la funzione gira ancora senza.
 
-## 6. Comandi utili
+## 7. Comandi utili
 
 Tutti dalla radice del repo.
 
 | Comando | Cosa fa |
 |---|---|
+| `npm run doctor` | controlla tutto l'ambiente e dice cosa manca |
 | `npm run setup-env` | crea il `.env` con le credenziali per lo sviluppo in locale |
 | `npm run check-airtable` | verifica che tabelle e campi della base siano quelli giusti (sola lettura) |
 | `netlify dev` | client + API insieme, come in produzione (`:8888`) |
@@ -222,7 +238,7 @@ Tutti dalla radice del repo.
 | `cd client && npm run build` | verifica che compili prima di pushare |
 | `cd client && npm run lint` | controllo statico |
 
-## 7. L'automazione Apple Pay
+## 8. L'automazione Apple Pay
 
 **È un'automazione, non un comando rapido da lanciare a mano**: si crea
 nell'app Comandi Rapidi, scheda **Automazione**, e scatta da sé quando arriva
