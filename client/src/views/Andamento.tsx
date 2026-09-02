@@ -311,7 +311,7 @@ function TrendCard({
           Vs periodo prec.
         </span>
         <span className="text-sm text-muted dark:text-muted-dark">Nessun dato di confronto</span>
-        <span className="text-[10px] text-muted dark:text-muted-dark truncate">
+        <span className="text-[10px] text-muted dark:text-muted-dark">
           {rangeLabel} vs {prevRangeLabel}
         </span>
       </div>
@@ -361,10 +361,10 @@ function TrendCard({
             <TrendArrow up={up} className="h-4 w-4 shrink-0" />
             <span className="text-xl font-semibold tabular-nums">{Math.abs(deltaPct).toFixed(0)}%</span>
           </div>
-          <span className="text-[11px] text-muted dark:text-muted-dark tabular-nums truncate">
+          <span className="text-[11px] text-muted dark:text-muted-dark tabular-nums">
             €{animated.toFixed(0)} vs €{previous.toFixed(0)}
           </span>
-          <span className="text-[10px] text-muted dark:text-muted-dark truncate">
+          <span className="text-[10px] text-muted dark:text-muted-dark leading-snug">
             {rangeLabel} vs {prevRangeLabel}
           </span>
         </div>
@@ -401,7 +401,7 @@ function ProjectionCard({
         <span className="text-lg font-semibold tabular-nums" style={{ color }}>
           €{animated.toFixed(0)}
         </span>
-        <span className="text-[11px] text-muted dark:text-muted-dark truncate">
+        <span className="text-[11px] text-muted dark:text-muted-dark leading-snug">
           {budget > 0
             ? over
               ? `€${(projected - budget).toFixed(0)} oltre budget`
@@ -727,6 +727,10 @@ export default function Andamento() {
         <span className="font-medium tabular-nums">€{budget.toFixed(0)}</span>
       </div>
 
+      <CategoryBreakdown categories={byCategory} />
+
+      <Sparkline data={last14} />
+
       <div className="w-full flex gap-3">
         <TrendCard
           current={totalPeriod}
@@ -739,10 +743,6 @@ export default function Andamento() {
           <ProjectionCard perDay={perDay} daysTotal={range.daysTotal} budget={budget} />
         )}
       </div>
-
-      <CategoryBreakdown categories={byCategory} />
-
-      <Sparkline data={last14} />
 
       <TopCard topCategory={byCategory[0] ?? null} topMerchant={topMerchant} />
     </div>

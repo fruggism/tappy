@@ -61,21 +61,30 @@ export default function App() {
   }
 
   return (
-    <div className="h-full flex flex-col max-w-md mx-auto relative">
-      <header className="px-5 pt-6 pb-2 flex items-center justify-between">
+    <div className="h-full flex flex-col max-w-md mx-auto relative bg-base dark:bg-base-dark">
+      <header
+        className="px-5 pb-2 flex items-center justify-between"
+        style={{ paddingTop: "max(1.5rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
+      >
         <h1 className="text-2xl font-bold tracking-tight">
           tap<span className="text-neon-green">py</span>
         </h1>
         <span className="text-xs text-muted dark:text-muted-dark">{user.name}</span>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-5 pb-24 pt-2">
+      <main
+        className="flex-1 overflow-y-auto px-5 pt-2"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 6rem)" }}
+      >
         {tab === "andamento" && <Andamento />}
         {tab === "movimenti" && <Movimenti />}
         {tab === "impostazioni" && <Impostazioni />}
       </main>
 
-      <nav className="absolute bottom-0 left-0 right-0 mx-4 mb-4 rounded-2xl bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-xl flex">
+      <nav
+        className="absolute left-0 right-0 mx-4 rounded-2xl bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-xl flex"
+        style={{ bottom: "max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))" }}
+      >
         {TABS.map((t) => {
           const active = tab === t.id;
           return (

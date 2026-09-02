@@ -64,6 +64,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", effectiveTheme === "dark");
+    // Allinea la barra di stato/notch dell'iPhone allo sfondo effettivo dell'app,
+    // così non resta mai bianca su tema scuro (o viceversa).
+    const bg = effectiveTheme === "dark" ? "#000000" : "#f5f5f7";
+    document.querySelectorAll('meta[name="theme-color"]').forEach((el) => {
+      el.setAttribute("content", bg);
+    });
   }, [effectiveTheme]);
 
   const setTheme = useCallback(async (t: User["theme"]) => {
