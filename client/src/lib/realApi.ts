@@ -1,12 +1,21 @@
 import type { Card, Category, Transaction, User } from "./types";
 
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
+// In produzione client e API stanno sullo stesso dominio Netlify (redirect
+// /api/* -> funzione), quindi non serve un URL assoluto. VITE_API_URL resta
+// utile solo per puntare a un deploy diverso in fase di sviluppo/debug.
+const BASE = import.meta.env.VITE_API_URL || "";
+
+// L'identità è una sola: quella salvata dalla sessione Fru Pass. Qui la
+// leggiamo e basta, per non avere due copie del codice che possono divergere.
+import { readSession } from "./frupass";
 
 async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const frupasCode = readSession()?.code ?? null;
   const res = await fetch(`${BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...(frupasCode ? { "x-frupas-code": frupasCode } : {}),
       ...(options.headers || {}),
     },
   });
