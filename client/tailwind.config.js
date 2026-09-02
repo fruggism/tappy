@@ -32,6 +32,15 @@ export default {
           violet: "#a3a3ff",
           amber: "#ffcf4d",
         },
+        // Accenti che seguono il tema tramite variabili CSS (vedi index.css):
+        // fluo in scuro, versioni scurite/accessibili (≥4.5:1) in chiaro.
+        acc: {
+          green: "var(--acc-green)",
+          pink: "var(--acc-pink)",
+          cyan: "var(--acc-cyan)",
+          violet: "var(--acc-violet)",
+          amber: "var(--acc-amber)",
+        },
       },
       fontFamily: {
         sans: [
@@ -42,6 +51,15 @@ export default {
           "system-ui",
           "sans-serif",
         ],
+      },
+      fontSize: {
+        largeTitle: ["34px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }],
+        title2: ["22px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "600" }],
+        headline: ["17px", { lineHeight: "22px", letterSpacing: "-0.01em", fontWeight: "600" }],
+        body: ["17px", { lineHeight: "22px" }],
+        callout: ["15px", { lineHeight: "20px" }],
+        footnote: ["13px", { lineHeight: "18px" }],
+        caption: ["12px", { lineHeight: "16px", letterSpacing: "0.02em" }],
       },
       boxShadow: {
         glow: "0 0 24px -4px var(--tw-shadow-color)",

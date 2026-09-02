@@ -2,9 +2,34 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { api } from "../lib/api";
 import TransactionModal from "../components/TransactionModal";
+import SegmentedControl from "../components/SegmentedControl";
+import SpendingClock from "../components/SpendingClock";
 import type { Transaction } from "../lib/types";
 
 type Sort = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
+
+const SORT_OPTIONS: { value: Sort; label: string }[] = [
+  { value: "date_desc", label: "Data ↓" },
+  { value: "date_asc", label: "Data ↑" },
+  { value: "amount_desc", label: "€ ↓" },
+  { value: "amount_asc", label: "€ ↑" },
+];
+
+function monthFromOffset(offset: number) {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth() + offset, 1);
+}
+
+function dayLabel(iso: string, today: string, yesterday: string) {
+  if (iso === today) return "Oggi";
+  if (iso === yesterday) return "Ieri";
+  const label = new Date(`${iso}T00:00:00`).toLocaleDateString("it-IT", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
 
 function RowMenu({
   onEdit,
@@ -51,7 +76,7 @@ function RowMenu({
               setOpen(false);
               onEdit();
             }}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10"
+            className="w-full text-left px-4 py-2.5 text-callout hover:bg-black/5 dark:hover:bg-white/10"
           >
             Modifica
           </button>
@@ -60,7 +85,7 @@ function RowMenu({
               setOpen(false);
               onDelete();
             }}
-            className="w-full text-left px-4 py-2.5 text-sm text-neon-pink hover:bg-black/5 dark:hover:bg-white/10"
+            className="w-full text-left px-4 py-2.5 text-callout text-acc-pink hover:bg-black/5 dark:hover:bg-white/10"
           >
             Elimina
           </button>
@@ -76,6 +101,7 @@ export default function Movimenti() {
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [sort, setSort] = useState<Sort>("date_desc");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [monthOffset, setMonthOffset] = useState(0);
 
   const categoryById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
@@ -83,8 +109,13 @@ export default function Movimenti() {
   );
   const cardById = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
 
+  const monthPrefix = useMemo(() => {
+    const m = monthFromOffset(monthOffset);
+    return `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, "0")}`;
+  }, [monthOffset]);
+
   const filtered = useMemo(() => {
-    let list = transactions;
+    let list = transactions.filter((t) => t.date.startsWith(monthPrefix));
     if (categoryFilter !== "all") list = list.filter((t) => t.category_id === categoryFilter);
     const sorted = [...list].sort((a, b) => {
       switch (sort) {
@@ -99,7 +130,26 @@ export default function Movimenti() {
       }
     });
     return sorted;
-  }, [transactions, sort, categoryFilter]);
+  }, [transactions, sort, categoryFilter, monthPrefix]);
+
+  const groups = useMemo(() => {
+    const today = new Date();
+    const todayISO = today.toISOString().slice(0, 10);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayISO = yesterday.toISOString().slice(0, 10);
+
+    const list: { date: string; label: string; items: Transaction[] }[] = [];
+    for (const t of filtered) {
+      const last = list[list.length - 1];
+      if (last && last.date === t.date) {
+        last.items.push(t);
+      } else {
+        list.push({ date: t.date, label: dayLabel(t.date, todayISO, yesterdayISO), items: [t] });
+      }
+    }
+    return list;
+  }, [filtered]);
 
   async function handleDelete(id: string) {
     await api.deleteTransaction(id);
@@ -108,6 +158,8 @@ export default function Movimenti() {
 
   return (
     <div className="flex flex-col gap-4 animate-rise">
+      <SpendingClock offset={monthOffset} onOffsetChange={setMonthOffset} />
+
       <button
         onClick={() => {
           setEditing(null);
@@ -115,85 +167,97 @@ export default function Movimenti() {
         }}
         className="w-full rounded-2xl bg-ink dark:bg-white text-white dark:text-black font-medium py-3 flex items-center justify-center gap-2 shadow-lg shadow-black/10"
       >
-        <span className="text-lg leading-none">+</span> Registra spesa
+        <span className="text-headline leading-none">+</span> Registra spesa
       </button>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as Sort)}
-          className="text-sm rounded-full bg-surface2 dark:bg-surface2-dark px-3 py-1.5 outline-none shrink-0"
+      <SegmentedControl options={SORT_OPTIONS} value={sort} onChange={setSort} className="self-start" />
+
+      <div className="flex gap-2 overflow-x-auto snap-x pb-1 -mx-5 px-5">
+        <button
+          onClick={() => setCategoryFilter("all")}
+          className={`shrink-0 snap-start rounded-full px-3.5 py-1.5 text-callout transition-colors ${
+            categoryFilter === "all"
+              ? "bg-surface2 dark:bg-surface2-dark font-medium"
+              : "border border-black/10 dark:border-white/15 text-muted dark:text-muted-dark"
+          }`}
         >
-          <option value="date_desc">Data ↓</option>
-          <option value="date_asc">Data ↑</option>
-          <option value="amount_desc">Importo ↓</option>
-          <option value="amount_asc">Importo ↑</option>
-        </select>
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="text-sm rounded-full bg-surface2 dark:bg-surface2-dark px-3 py-1.5 outline-none shrink-0"
-        >
-          <option value="all">Tutte le categorie</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+          Tutte
+        </button>
+        {categories.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setCategoryFilter(c.id)}
+            className={`shrink-0 snap-start flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-callout transition-colors ${
+              categoryFilter === c.id
+                ? "bg-surface2 dark:bg-surface2-dark font-medium"
+                : "border border-black/10 dark:border-white/15 text-muted dark:text-muted-dark"
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full shrink-0" style={{ background: c.color }} />
+            {c.name}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-col gap-2">
-        {filtered.length === 0 && (
-          <p className="text-center text-sm text-muted dark:text-muted-dark py-10">
-            Nessun movimento registrato.
+        {groups.length === 0 && (
+          <p className="text-center text-callout text-muted dark:text-muted-dark py-10">
+            Nessun movimento in questo mese.
           </p>
         )}
-        {filtered.map((t) => {
-          const cat = categoryById.get(t.category_id);
-          const card = t.card_id ? cardById.get(t.card_id) : null;
-          const isSplit = !t.is_income && t.my_share !== t.amount;
-          return (
-            <div
-              key={t.id}
-              className="flex items-center gap-3 rounded-2xl bg-surface dark:bg-surface-dark px-4 py-3"
-            >
-              <span
-                className="h-9 w-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-                style={{
-                  background: `${cat?.color ?? "#999"}22`,
-                  color: cat?.color ?? "#999",
-                }}
-              >
-                {t.is_income ? "+" : cat?.name.slice(0, 1) ?? "?"}
+        {groups.map((group) => (
+          <div key={group.date} className="flex flex-col gap-2">
+            <div className="sticky top-0 z-[1] -mx-5 px-5 py-1.5 bg-base/90 dark:bg-base-dark/90 backdrop-blur-sm">
+              <span className="text-caption font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
+                {group.label}
               </span>
-              <span className="flex-1 min-w-0">
-                <span className="block text-sm font-medium truncate">{t.name}</span>
-                <span className="block text-xs text-muted dark:text-muted-dark truncate">
-                  {t.date}
-                  {t.time ? ` · ${t.time}` : ""}
-                  {card ? ` · ${card.name}` : ""}
-                  {t.source === "applepay" ? " · Apple Pay" : ""}
-                  {isSplit ? ` · quota di €${t.amount.toFixed(0)}` : ""}
-                </span>
-              </span>
-              <span
-                className={`text-sm font-semibold tabular-nums shrink-0 ${
-                  t.is_income ? "text-neon-green" : ""
-                }`}
-              >
-                {t.is_income ? "+" : "-"}€{t.my_share.toFixed(2)}
-              </span>
-              <RowMenu
-                onEdit={() => {
-                  setEditing(t);
-                  setShowModal(true);
-                }}
-                onDelete={() => handleDelete(t.id)}
-              />
             </div>
-          );
-        })}
+            {group.items.map((t) => {
+              const cat = categoryById.get(t.category_id);
+              const card = t.card_id ? cardById.get(t.card_id) : null;
+              const isSplit = !t.is_income && t.my_share !== t.amount;
+              return (
+                <div
+                  key={t.id}
+                  className="flex items-center gap-3 rounded-2xl bg-surface dark:bg-surface-dark px-4 py-3"
+                >
+                  <span
+                    className="h-9 w-9 rounded-full flex items-center justify-center text-footnote font-semibold shrink-0"
+                    style={{
+                      background: `${cat?.color ?? "#999"}22`,
+                      color: cat?.color ?? "#999",
+                    }}
+                  >
+                    {t.is_income ? "+" : cat?.name.slice(0, 1) ?? "?"}
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-callout font-medium truncate">{t.name}</span>
+                    <span className="block text-footnote text-muted dark:text-muted-dark truncate">
+                      {t.time ?? ""}
+                      {card ? ` · ${card.name}` : ""}
+                      {t.source === "applepay" ? " · Apple Pay" : ""}
+                      {isSplit ? ` · quota di €${t.amount.toFixed(0)}` : ""}
+                    </span>
+                  </span>
+                  <span
+                    className={`text-callout font-semibold tabular-nums shrink-0 ${
+                      t.is_income ? "text-acc-green" : ""
+                    }`}
+                  >
+                    {t.is_income ? "+" : "-"}€{t.my_share.toFixed(2)}
+                  </span>
+                  <RowMenu
+                    onEdit={() => {
+                      setEditing(t);
+                      setShowModal(true);
+                    }}
+                    onDelete={() => handleDelete(t.id)}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       {showModal && (

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import RadialGauge from "../components/RadialGauge";
+import SegmentedControl from "../components/SegmentedControl";
+import { accent } from "../lib/accent";
 import type { Transaction } from "../lib/types";
 
 type Period = "day" | "week" | "month";
@@ -34,11 +36,11 @@ function formatRangeShort(period: Period, r: { from: string; to: string }) {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-const PERIOD_LABELS: Record<Period, string> = {
-  day: "Giornaliero",
-  week: "Settimanale",
-  month: "Mensile",
-};
+const PERIOD_OPTIONS: { value: Period; label: string }[] = [
+  { value: "day", label: "Giornaliero" },
+  { value: "week", label: "Settimanale" },
+  { value: "month", label: "Mensile" },
+];
 
 // Calcola l'intervallo di un periodo (giorno/settimana/mese) ancorato a una data
 // di riferimento (il "giorno nel passato" scelto con la macchina del tempo).
@@ -137,6 +139,38 @@ function useCountUp(value: number, duration = 700) {
   return display;
 }
 
+/**
+ * Diventa true la prima volta che l'elemento entra nel viewport, e resta true:
+ * le card sotto la piega (Nel tempo, Dove) animano quando l'utente le raggiunge
+ * scrollando, non prima — altrimenti l'animazione è già finita quando arrivano.
+ */
+function useInView<T extends HTMLElement>(threshold = 0.15) {
+  const ref = useRef<T | null>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          obs.disconnect();
+        }
+      },
+      { threshold }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [threshold]);
+
+  return [ref, inView] as const;
+}
+
 function TimeTravelMenu({
   travelDate,
   today,
@@ -173,9 +207,9 @@ function TimeTravelMenu({
         aria-label="Viaggia nel tempo"
         className={`h-8 w-8 flex items-center justify-center rounded-full transition-colors ${
           !isToday
-            ? "bg-neon-cyan/15 text-neon-cyan"
+            ? "bg-acc-cyan/15 text-acc-cyan"
             : open
-            ? "bg-neon-green/15 text-neon-green"
+            ? "bg-acc-green/15 text-acc-green"
             : "text-muted dark:text-muted-dark hover:bg-black/5 dark:hover:bg-white/10"
         }`}
       >
@@ -186,7 +220,7 @@ function TimeTravelMenu({
       </button>
       {open && (
         <div className="absolute right-0 top-10 z-10 w-56 rounded-2xl bg-surface dark:bg-surface-dark shadow-xl border border-black/5 dark:border-white/10 overflow-hidden animate-rise p-3 flex flex-col gap-2">
-          <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
+          <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">
             Viaggia nel tempo
           </span>
           <input
@@ -194,9 +228,9 @@ function TimeTravelMenu({
             defaultValue={toISODate(travelDate)}
             max={toISODate(today)}
             onChange={handleChange}
-            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neon-cyan/60"
+            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-callout outline-none focus:ring-2 focus:ring-acc-cyan/60"
           />
-          <p className="text-[11px] text-muted dark:text-muted-dark leading-snug">
+          <p className="text-footnote text-muted dark:text-muted-dark leading-snug">
             Scegli un giorno per rivedere i tuoi dati come se fossi lì: giornaliero, settimanale e
             mensile si aggiornano di conseguenza.
           </p>
@@ -206,7 +240,7 @@ function TimeTravelMenu({
                 onPick(today);
                 setOpen(false);
               }}
-              className="text-sm text-neon-green font-medium text-left"
+              className="text-callout text-acc-green font-medium text-left"
             >
               ← Torna a oggi
             </button>
@@ -217,26 +251,24 @@ function TimeTravelMenu({
   );
 }
 
-// Piccolo anello di progresso animato, riusato per le categorie e la proiezione.
+// Piccolo anello di progresso, riusato per le categorie e la proiezione.
+// `visible` è pilotato dal genitore (useInView) così l'animazione parte
+// quando la card entra nel viewport, non quando il componente monta.
 function MiniRing({
   pct,
   color,
+  visible,
   size = 60,
   strokeWidth = 6,
   children,
 }: {
   pct: number;
   color: string;
+  visible: boolean;
   size?: number;
   strokeWidth?: number;
   children?: React.ReactNode;
 }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
   const r = (size - strokeWidth) / 2;
   const circ = 2 * Math.PI * r;
   const clamped = Math.min(100, Math.max(0, pct));
@@ -262,14 +294,24 @@ function MiniRing({
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circ}
-          strokeDashoffset={mounted ? circ * (1 - clamped / 100) : circ}
-          style={{
-            transition: "stroke-dashoffset 0.9s cubic-bezier(0.22,1,0.36,1)",
-            filter: `drop-shadow(0 0 4px ${color}99)`,
-          }}
+          strokeDashoffset={visible ? circ * (1 - clamped / 100) : circ}
+          style={{ transition: "stroke-dashoffset 0.9s cubic-bezier(0.22,1,0.36,1)" }}
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">{children}</div>
+    </div>
+  );
+}
+
+function PerDayRow({ perDay }: { perDay: number }) {
+  const animated = useCountUp(perDay);
+  return (
+    <div className="w-full flex justify-between text-callout px-1">
+      <span className="text-muted dark:text-muted-dark">Spesa media al giorno</span>
+      <span className="font-semibold tabular-nums text-acc-green">
+        €{animated.toFixed(0)}
+        <span className="text-footnote font-normal text-muted dark:text-muted-dark">/giorno</span>
+      </span>
     </div>
   );
 }
@@ -288,49 +330,48 @@ function TrendArrow({ up, className }: { up: boolean; className?: string }) {
   );
 }
 
-function TrendCard({
+function TrendContent({
   current,
   previous,
   period,
   range,
   prevRange,
+  visible,
 }: {
   current: number;
   previous: number;
   period: Period;
   range: { from: string; to: string };
   prevRange: { from: string; to: string };
+  visible: boolean;
 }) {
   const animated = useCountUp(current);
   const rangeLabel = formatRangeShort(period, range);
   const prevRangeLabel = formatRangeShort(period, prevRange);
+
   if (previous <= 0) {
     return (
-      <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-2 flex-1 min-w-0">
-        <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
+      <div className="flex flex-col gap-2 flex-1 min-w-0">
+        <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">
           Vs periodo prec.
         </span>
-        <span className="text-sm text-muted dark:text-muted-dark">Nessun dato di confronto</span>
-        <span className="text-[10px] text-muted dark:text-muted-dark truncate">
+        <span className="text-callout text-muted dark:text-muted-dark">Nessun dato di confronto</span>
+        <span className="text-caption text-muted dark:text-muted-dark">
           {rangeLabel} vs {prevRangeLabel}
         </span>
       </div>
     );
   }
+
   const deltaPct = ((current - previous) / previous) * 100;
   const up = deltaPct >= 0;
-  const color = up ? "#ff2ecb" : "#39ff88";
-  const textColor = up ? "text-neon-pink" : "text-neon-green";
+  const color = up ? accent("pink", "#ff2ecb") : accent("green", "#39ff88");
+  const textColor = up ? "text-acc-pink" : "text-acc-green";
   const maxVal = Math.max(current, previous, 1);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(raf);
-  }, []);
 
   return (
-    <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3 flex-1 min-w-0 overflow-hidden">
-      <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
+    <div className="flex flex-col gap-3 flex-1 min-w-0 overflow-hidden">
+      <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">
         Vs periodo prec.
       </span>
       <div className="flex items-end gap-3">
@@ -338,33 +379,32 @@ function TrendCard({
           <div className="h-12 w-3 rounded-full bg-black/[0.06] dark:bg-white/10 relative overflow-hidden">
             <div
               className="absolute bottom-0 left-0 right-0 rounded-full bg-muted/50 dark:bg-muted-dark/50 transition-all duration-700 ease-out"
-              style={{ height: mounted ? `${(previous / maxVal) * 100}%` : 0 }}
+              style={{ height: visible ? `${(previous / maxVal) * 100}%` : 0 }}
             />
           </div>
-          <span className="text-[9px] text-muted dark:text-muted-dark">prima</span>
+          <span className="text-caption text-muted dark:text-muted-dark">prima</span>
         </div>
         <div className="flex flex-col items-center gap-1">
           <div className="h-12 w-3 rounded-full bg-black/[0.06] dark:bg-white/10 relative overflow-hidden">
             <div
               className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-700 ease-out"
               style={{
-                height: mounted ? `${(current / maxVal) * 100}%` : 0,
+                height: visible ? `${(current / maxVal) * 100}%` : 0,
                 background: color,
-                boxShadow: `0 0 8px 0 ${color}aa`,
               }}
             />
           </div>
-          <span className="text-[9px] text-muted dark:text-muted-dark">ora</span>
+          <span className="text-caption text-muted dark:text-muted-dark">ora</span>
         </div>
         <div className="flex flex-col gap-0.5 min-w-0">
           <div className={`flex items-center gap-1 ${textColor}`}>
             <TrendArrow up={up} className="h-4 w-4 shrink-0" />
-            <span className="text-xl font-semibold tabular-nums">{Math.abs(deltaPct).toFixed(0)}%</span>
+            <span className="text-headline font-semibold tabular-nums">{Math.abs(deltaPct).toFixed(0)}%</span>
           </div>
-          <span className="text-[11px] text-muted dark:text-muted-dark tabular-nums truncate">
+          <span className="text-footnote text-muted dark:text-muted-dark tabular-nums">
             €{animated.toFixed(0)} vs €{previous.toFixed(0)}
           </span>
-          <span className="text-[10px] text-muted dark:text-muted-dark truncate">
+          <span className="text-caption text-muted dark:text-muted-dark leading-snug">
             {rangeLabel} vs {prevRangeLabel}
           </span>
         </div>
@@ -373,35 +413,37 @@ function TrendCard({
   );
 }
 
-function ProjectionCard({
+function ProjectionContent({
   perDay,
   daysTotal,
   budget,
+  visible,
 }: {
   perDay: number;
   daysTotal: number;
   budget: number;
+  visible: boolean;
 }) {
   const projected = perDay * daysTotal;
   const animated = useCountUp(projected);
   const over = budget > 0 && projected > budget;
   const pct = budget > 0 ? (projected / budget) * 100 : 0;
-  const color = over ? "#ff2ecb" : "#39ff88";
+  const color = over ? accent("pink", "#ff2ecb") : accent("green", "#39ff88");
   return (
-    <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
-      <MiniRing pct={pct} color={color} size={52} strokeWidth={5}>
-        <span className="text-[10px] font-semibold tabular-nums" style={{ color }}>
+    <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+      <MiniRing pct={pct} color={color} visible={visible} size={52} strokeWidth={5}>
+        <span className="text-caption font-semibold tabular-nums" style={{ color }}>
           {Math.round(pct)}%
         </span>
       </MiniRing>
       <div className="flex flex-col gap-0.5 min-w-0">
-        <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
+        <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">
           Proiezione
         </span>
-        <span className="text-lg font-semibold tabular-nums" style={{ color }}>
+        <span className="text-headline font-semibold tabular-nums" style={{ color }}>
           €{animated.toFixed(0)}
         </span>
-        <span className="text-[11px] text-muted dark:text-muted-dark truncate">
+        <span className="text-footnote text-muted dark:text-muted-dark leading-snug">
           {budget > 0
             ? over
               ? `€${(projected - budget).toFixed(0)} oltre budget`
@@ -413,7 +455,7 @@ function ProjectionCard({
   );
 }
 
-function TopCard({
+function TopContent({
   topCategory,
   topMerchant,
 }: {
@@ -422,28 +464,27 @@ function TopCard({
 }) {
   if (!topCategory && !topMerchant) return null;
   return (
-    <div className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3">
-      <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
+    <div className="w-full flex flex-col gap-3">
+      <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">
         In evidenza
       </span>
       <div className="flex items-center gap-4 flex-wrap">
         {topCategory && (
           <div className="flex items-center gap-2 min-w-0">
-            <span
-              className="h-2.5 w-2.5 rounded-full shrink-0"
-              style={{ background: topCategory.color, boxShadow: `0 0 6px ${topCategory.color}` }}
-            />
-            <span className="text-sm truncate">
-              {topCategory.label} <span className="text-muted dark:text-muted-dark">· €{topCategory.value.toFixed(0)}</span>
+            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: topCategory.color }} />
+            <span className="text-callout truncate">
+              {topCategory.label}{" "}
+              <span className="text-muted dark:text-muted-dark">· €{topCategory.value.toFixed(0)}</span>
             </span>
           </div>
         )}
         {topCategory && topMerchant && <span className="text-muted dark:text-muted-dark">·</span>}
         {topMerchant && (
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-neon-amber shrink-0">★</span>
-            <span className="text-sm truncate">
-              {topMerchant.name} <span className="text-muted dark:text-muted-dark">· €{topMerchant.value.toFixed(0)}</span>
+            <span className="text-acc-amber shrink-0">★</span>
+            <span className="text-callout truncate">
+              {topMerchant.name}{" "}
+              <span className="text-muted dark:text-muted-dark">· €{topMerchant.value.toFixed(0)}</span>
             </span>
           </div>
         )}
@@ -452,31 +493,32 @@ function TopCard({
   );
 }
 
-function Sparkline({ data }: { data: { date: string; total: number }[] }) {
-  const [mounted, setMounted] = useState(false);
+function SparklineContent({
+  data,
+  visible,
+}: {
+  data: { date: string; total: number }[];
+  visible: boolean;
+}) {
   const [hover, setHover] = useState<number | null>(null);
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
+  const green = accent("green", "#39ff88");
   const max = Math.max(1, ...data.map((d) => d.total));
   const today = toISODate(new Date());
 
   return (
-    <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
+        <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">
           Ultimi 14 giorni
         </span>
-        <span className="text-xs text-muted dark:text-muted-dark tabular-nums shrink-0">
+        <span className="text-caption text-muted dark:text-muted-dark tabular-nums shrink-0">
           picco €{max === 1 ? 0 : max.toFixed(0)}
         </span>
       </div>
       <div className="flex items-end gap-1.5 h-20">
         {data.map((d, i) => {
           const isToday = d.date === today;
-          const h = mounted ? Math.max(3, (d.total / max) * 100) : 0;
+          const h = visible ? Math.max(3, (d.total / max) * 100) : 0;
           const isHover = hover === i;
           return (
             <div
@@ -487,7 +529,7 @@ function Sparkline({ data }: { data: { date: string; total: number }[] }) {
               onTouchStart={() => setHover(i)}
             >
               {isHover && (
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink dark:bg-white text-white dark:text-black text-[10px] font-medium px-2 py-1 shadow-lg z-10 animate-rise">
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink dark:bg-white text-white dark:text-black text-caption font-medium px-2 py-1 shadow-lg z-10 animate-rise">
                   €{d.total.toFixed(0)} · {formatShortDate(d.date)}
                 </div>
               )}
@@ -498,8 +540,7 @@ function Sparkline({ data }: { data: { date: string; total: number }[] }) {
                     height: `${h}%`,
                     transitionDuration: "800ms",
                     transitionDelay: `${i * 35}ms`,
-                    background: isHover ? "#39ff88" : isToday ? "#39ff88" : "#39ff8855",
-                    boxShadow: isHover || isToday ? "0 0 10px #39ff88aa" : "none",
+                    background: isHover || isToday ? green : `${green}55`,
                   }}
                 />
               </div>
@@ -514,9 +555,11 @@ function Sparkline({ data }: { data: { date: string; total: number }[] }) {
 function CategoryRing({
   category: c,
   total,
+  visible,
 }: {
   category: { id: string; label: string; color: string; value: number; budget: number | null };
   total: number;
+  visible: boolean;
 }) {
   const hasBudget = c.budget != null && c.budget > 0;
   const over = hasBudget && c.value > c.budget!;
@@ -525,18 +568,18 @@ function CategoryRing({
     : total > 0
     ? (c.value / total) * 100
     : 0;
-  const color = over ? "#ff2ecb" : c.color;
+  const color = over ? accent("pink", "#ff2ecb") : c.color;
 
   return (
     <div className="flex flex-col items-center gap-2 w-[5.5rem] shrink-0">
-      <MiniRing pct={pct} color={color}>
-        <span className="text-[13px] font-semibold tabular-nums leading-none" style={{ color }}>
+      <MiniRing pct={pct} color={color} visible={visible}>
+        <span className="text-footnote font-semibold tabular-nums leading-none" style={{ color }}>
           €{c.value.toFixed(0)}
         </span>
       </MiniRing>
       <div className="flex flex-col items-center gap-0.5 max-w-full">
-        <span className="text-xs font-medium truncate max-w-full">{c.label}</span>
-        <span className="text-[10px] text-muted dark:text-muted-dark truncate max-w-full">
+        <span className="text-callout font-medium truncate max-w-full">{c.label}</span>
+        <span className="text-caption text-muted dark:text-muted-dark truncate max-w-full">
           {hasBudget ? (over ? "oltre budget" : `su €${c.budget!.toFixed(0)}`) : `${Math.round(pct)}% del totale`}
         </span>
       </div>
@@ -544,26 +587,28 @@ function CategoryRing({
   );
 }
 
-function CategoryBreakdown({
+function CategoryRingsContent({
   categories,
+  visible,
 }: {
   categories: { id: string; label: string; color: string; value: number; budget: number | null }[];
+  visible: boolean;
 }) {
   const total = categories.reduce((s, c) => s + c.value, 0);
 
   return (
-    <div className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-4">
-      <span className="text-xs text-muted dark:text-muted-dark uppercase tracking-wide">
+    <div className="w-full flex flex-col gap-4">
+      <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">
         Per categoria
       </span>
       {categories.length === 0 && (
-        <p className="text-center text-sm text-muted dark:text-muted-dark py-4">
+        <p className="text-center text-callout text-muted dark:text-muted-dark py-4">
           Nessuna spesa in questo periodo.
         </p>
       )}
       <div className="flex flex-wrap justify-center gap-y-4 gap-x-2">
         {categories.map((c) => (
-          <CategoryRing key={c.id} category={c} total={total} />
+          <CategoryRing key={c.id} category={c} total={total} visible={visible} />
         ))}
       </div>
     </div>
@@ -579,6 +624,155 @@ function scaleToPeriod(monthlyAmount: number, period: Period, dim: number) {
   if (period === "day") return monthlyAmount / dim;
   if (period === "week") return (monthlyAmount / dim) * 7;
   return monthlyAmount;
+}
+
+// --- le tre card della pagina -----------------------------------------------
+
+function HeroCard({
+  period,
+  onPeriodChange,
+  travelDate,
+  onTravelDateChange,
+  now,
+  range,
+  byCategory,
+  budget,
+  budgetLabel,
+  totalPeriod,
+  perDay,
+  pctText,
+}: {
+  period: Period;
+  onPeriodChange: (p: Period) => void;
+  travelDate: Date;
+  onTravelDateChange: (d: Date) => void;
+  now: Date;
+  range: ReturnType<typeof getRange>;
+  byCategory: { id: string; label: string; color: string; value: number }[];
+  budget: number;
+  budgetLabel: string;
+  totalPeriod: number;
+  perDay: number;
+  pctText: string;
+}) {
+  return (
+    <div className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col items-center gap-4">
+      <div className="w-full flex items-center justify-between gap-2">
+        <SegmentedControl options={PERIOD_OPTIONS} value={period} onChange={onPeriodChange} />
+        <TimeTravelMenu travelDate={travelDate} today={now} onPick={onTravelDateChange} />
+      </div>
+
+      <div className="w-full flex items-center justify-center gap-3">
+        <button
+          onClick={() => onTravelDateChange(shiftPeriod(travelDate, period, -1))}
+          aria-label="Periodo precedente"
+          className="h-7 w-7 flex items-center justify-center rounded-full text-muted dark:text-muted-dark hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-4 w-4">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <span
+          className={`text-callout font-medium min-w-[9rem] text-center ${
+            !range.current ? "text-acc-cyan" : ""
+          }`}
+        >
+          {formatPeriodLabel(period, range, now)}
+        </span>
+        <button
+          onClick={() => onTravelDateChange(shiftPeriod(travelDate, period, 1))}
+          disabled={range.current}
+          aria-label="Periodo successivo"
+          className="h-7 w-7 flex items-center justify-center rounded-full text-muted dark:text-muted-dark hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-4 w-4">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+      </div>
+
+      <RadialGauge
+        segments={byCategory}
+        budget={budget}
+        centerLabel={`€${totalPeriod.toFixed(0)}`}
+        centerSub={budget > 0 ? `${pctText} del budget` : pctText}
+      />
+
+      <div className="w-full flex flex-col gap-2">
+        <div className="w-full flex justify-between text-callout px-1">
+          <span className="text-muted dark:text-muted-dark">{budgetLabel}</span>
+          <span className="font-medium tabular-nums">€{budget.toFixed(0)}</span>
+        </div>
+        <PerDayRow perDay={perDay} />
+      </div>
+    </div>
+  );
+}
+
+function TimeCard({
+  last14,
+  totalPeriod,
+  previousTotal,
+  period,
+  range,
+  prevRange,
+  showProjection,
+  perDay,
+  budget,
+}: {
+  last14: { date: string; total: number }[];
+  totalPeriod: number;
+  previousTotal: number;
+  period: Period;
+  range: ReturnType<typeof getRange>;
+  prevRange: { from: string; to: string };
+  showProjection: boolean;
+  perDay: number;
+  budget: number;
+}) {
+  const [ref, visible] = useInView<HTMLDivElement>();
+  return (
+    <div ref={ref} className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-5">
+      <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">
+        Nel tempo
+      </span>
+      <SparklineContent data={last14} visible={visible} />
+      <div className="h-px bg-black/[0.06] dark:bg-white/10" />
+      <div className="flex gap-3">
+        <TrendContent
+          current={totalPeriod}
+          previous={previousTotal}
+          period={period}
+          range={range}
+          prevRange={prevRange}
+          visible={visible}
+        />
+        {showProjection && (
+          <ProjectionContent perDay={perDay} daysTotal={range.daysTotal} budget={budget} visible={visible} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function WhereCard({
+  byCategory,
+  topCategory,
+  topMerchant,
+}: {
+  byCategory: { id: string; label: string; color: string; value: number; budget: number | null }[];
+  topCategory: { label: string; color: string; value: number } | null;
+  topMerchant: { name: string; value: number } | null;
+}) {
+  const [ref, visible] = useInView<HTMLDivElement>();
+  return (
+    <div ref={ref} className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-5">
+      <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">Dove</span>
+      <CategoryRingsContent categories={byCategory} visible={visible} />
+      <div className="h-px bg-black/[0.06] dark:bg-white/10" />
+      <TopContent topCategory={topCategory} topMerchant={topMerchant} />
+    </div>
+  );
 }
 
 export default function Andamento() {
@@ -667,84 +861,34 @@ export default function Andamento() {
 
   return (
     <div className="flex flex-col items-center gap-6 animate-rise">
-      <div className="w-full flex items-center justify-between gap-2">
-        <div className="inline-flex bg-surface2 dark:bg-surface2-dark rounded-full p-1 text-sm">
-          {(["day", "week", "month"] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-3.5 py-1.5 rounded-full transition-colors ${
-                period === p
-                  ? "bg-white dark:bg-black text-ink dark:text-ink-dark shadow"
-                  : "text-muted dark:text-muted-dark"
-              }`}
-            >
-              {PERIOD_LABELS[p]}
-            </button>
-          ))}
-        </div>
-        <TimeTravelMenu travelDate={travelDate} today={now} onPick={setTravelDate} />
-      </div>
-
-      <div className="w-full flex items-center justify-center gap-3">
-        <button
-          onClick={() => setTravelDate((d) => shiftPeriod(d, period, -1))}
-          aria-label="Periodo precedente"
-          className="h-7 w-7 flex items-center justify-center rounded-full text-muted dark:text-muted-dark hover:bg-black/5 dark:hover:bg-white/10"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-4 w-4">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        <span
-          className={`text-sm font-medium min-w-[9rem] text-center ${
-            !range.current ? "text-neon-cyan" : ""
-          }`}
-        >
-          {formatPeriodLabel(period, range, now)}
-        </span>
-        <button
-          onClick={() => setTravelDate((d) => shiftPeriod(d, period, 1))}
-          disabled={range.current}
-          aria-label="Periodo successivo"
-          className="h-7 w-7 flex items-center justify-center rounded-full text-muted dark:text-muted-dark hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-4 w-4">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 18l6-6-6-6" />
-          </svg>
-        </button>
-      </div>
-
-      <RadialGauge
-        segments={byCategory}
+      <HeroCard
+        period={period}
+        onPeriodChange={setPeriod}
+        travelDate={travelDate}
+        onTravelDateChange={setTravelDate}
+        now={now}
+        range={range}
+        byCategory={byCategory}
         budget={budget}
-        centerLabel={`€${totalPeriod.toFixed(0)}`}
-        centerSub={`${pctText} · €${perDay.toFixed(0)}/giorno`}
+        budgetLabel={budgetLabel}
+        totalPeriod={totalPeriod}
+        perDay={perDay}
+        pctText={pctText}
       />
 
-      <div className="w-full flex justify-between text-sm px-1">
-        <span className="text-muted dark:text-muted-dark">{budgetLabel}</span>
-        <span className="font-medium tabular-nums">€{budget.toFixed(0)}</span>
-      </div>
+      <TimeCard
+        last14={last14}
+        totalPeriod={totalPeriod}
+        previousTotal={previousTotal}
+        period={period}
+        range={range}
+        prevRange={prevRange}
+        showProjection={showProjection}
+        perDay={perDay}
+        budget={budget}
+      />
 
-      <div className="w-full flex gap-3">
-        <TrendCard
-          current={totalPeriod}
-          previous={previousTotal}
-          period={period}
-          range={range}
-          prevRange={prevRange}
-        />
-        {showProjection && (
-          <ProjectionCard perDay={perDay} daysTotal={range.daysTotal} budget={budget} />
-        )}
-      </div>
-
-      <CategoryBreakdown categories={byCategory} />
-
-      <Sparkline data={last14} />
-
-      <TopCard topCategory={byCategory[0] ?? null} topMerchant={topMerchant} />
+      <WhereCard byCategory={byCategory} topCategory={byCategory[0] ?? null} topMerchant={topMerchant} />
     </div>
   );
 }

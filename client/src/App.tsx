@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useApp } from "./lib/AppContext";
 import { Dock, Header } from "./components/AppChrome";
 import Login from "./views/Login";
@@ -53,6 +53,23 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
 export default function App() {
   const { loading, user, needsLogin } = useApp();
   const [tab, setTab] = useState<Tab>("andamento");
+  const mainRef = useRef<HTMLElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Il titolo si contrae quando il contenuto scorre sotto l'header: una sentinella
+  // di 1px in cima al <main> segna il confine, niente da fare a ogni evento di scroll.
+  useEffect(() => {
+    const root = mainRef.current;
+    const sentinel = sentinelRef.current;
+    if (!root || !sentinel) return;
+    const obs = new IntersectionObserver(([entry]) => setScrolled(!entry.isIntersecting), {
+      root,
+      threshold: 1,
+    });
+    obs.observe(sentinel);
+    return () => obs.disconnect();
+  }, []);
 
   if (needsLogin) return <Login />;
 
@@ -62,21 +79,23 @@ export default function App() {
   if (loading || !user) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="h-8 w-8 rounded-full border-2 border-neon-green/30 border-t-neon-green animate-spin" />
+        <div className="h-8 w-8 rounded-full border-2 border-acc-green/30 border-t-acc-green animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="h-full flex flex-col max-w-md mx-auto relative">
-      <Header />
+      <Header scrolled={scrolled} />
 
       {/* pb generoso: sotto ci sono nav e riga della versione, e l'ultima card
           di ogni schermata non deve finirci sotto. */}
       <main
+        ref={mainRef}
         className="flex-1 overflow-y-auto px-5 pt-2"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 8rem)" }}
       >
+        <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
         {tab === "andamento" && <Andamento />}
         {tab === "movimenti" && <Movimenti />}
         {tab === "impostazioni" && <Impostazioni />}
@@ -91,13 +110,13 @@ export default function App() {
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${
-                  active ? "text-neon-green" : "text-muted dark:text-muted-dark"
+                  active ? "text-acc-green" : "text-muted dark:text-muted-dark"
                 }`}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
                   {t.icon}
                 </svg>
-                <span className="text-[10px] font-medium">{t.label}</span>
+                <span className="text-caption font-medium">{t.label}</span>
               </button>
             );
           })}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { api } from "../lib/api";
+import { haptic, HAPTIC } from "../lib/haptics";
 import type { Transaction } from "../lib/types";
 
 interface Props {
@@ -76,6 +77,7 @@ export default function TransactionModal({ onClose, existing }: Props) {
         await api.createTransaction(payload);
       }
       await refreshTransactions();
+      haptic(HAPTIC.saved);
       onClose();
     } catch (err: any) {
       setError(err.message ?? "Errore");
@@ -91,7 +93,7 @@ export default function TransactionModal({ onClose, existing }: Props) {
         className="w-full sm:max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl sm:rounded-3xl p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto animate-rise"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
+          <h2 className="text-headline font-semibold">
             {existing ? "Modifica movimento" : "Nuovo movimento"}
           </h2>
           <button type="button" onClick={onClose} className="text-muted dark:text-muted-dark">
@@ -99,7 +101,7 @@ export default function TransactionModal({ onClose, existing }: Props) {
           </button>
         </div>
 
-        <div className="inline-flex bg-surface2 dark:bg-surface2-dark rounded-full p-1 text-sm self-start">
+        <div className="inline-flex bg-surface2 dark:bg-surface2-dark rounded-full p-1 text-callout self-start">
           <button
             type="button"
             onClick={() => setIsIncome(false)}
@@ -120,30 +122,30 @@ export default function TransactionModal({ onClose, existing }: Props) {
           </button>
         </div>
 
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1 text-callout">
           Nome
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60"
+            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-acc-green/60"
             placeholder="Es. Supermercato"
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1 text-callout">
           Importo (€)
           <input
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             inputMode="decimal"
-            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60"
+            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-acc-green/60"
             placeholder="0.00"
           />
         </label>
 
         {!isIncome && (
           <>
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex flex-col gap-1 text-callout">
               Categoria
               <select
                 value={categoryId}
@@ -160,7 +162,7 @@ export default function TransactionModal({ onClose, existing }: Props) {
 
             {!isAltro && (
               <>
-                <label className="flex flex-col gap-1 text-sm">
+                <label className="flex flex-col gap-1 text-callout">
                   Carta
                   <select
                     value={cardId}
@@ -176,7 +178,7 @@ export default function TransactionModal({ onClose, existing }: Props) {
                 </label>
 
                 <div className="flex gap-3">
-                  <label className="flex flex-col gap-1 text-sm flex-1">
+                  <label className="flex flex-col gap-1 text-callout flex-1">
                     Data
                     <input
                       type="date"
@@ -185,7 +187,7 @@ export default function TransactionModal({ onClose, existing }: Props) {
                       className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none"
                     />
                   </label>
-                  <label className="flex flex-col gap-1 text-sm flex-1">
+                  <label className="flex flex-col gap-1 text-callout flex-1">
                     Ora
                     <input
                       type="time"
@@ -198,19 +200,19 @@ export default function TransactionModal({ onClose, existing }: Props) {
               </>
             )}
 
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-callout">
               <input
                 type="checkbox"
                 checked={splitting}
                 onChange={(e) => setSplitting(e.target.checked)}
-                className="accent-neon-green h-4 w-4"
+                className="accent-acc-green h-4 w-4"
               />
               Spesa divisa con altre persone
             </label>
 
             {splitting && (
               <div className="flex flex-col gap-3 rounded-xl bg-surface2 dark:bg-surface2-dark p-3">
-                <div className="inline-flex bg-surface dark:bg-surface-dark rounded-full p-1 text-xs self-start">
+                <div className="inline-flex bg-surface dark:bg-surface-dark rounded-full p-1 text-footnote self-start">
                   <button
                     type="button"
                     onClick={() => setSplitMode("equal")}
@@ -236,17 +238,17 @@ export default function TransactionModal({ onClose, existing }: Props) {
                 </div>
 
                 {splitMode === "equal" ? (
-                  <label className="flex flex-col gap-1 text-sm">
+                  <label className="flex flex-col gap-1 text-callout">
                     In quante persone?
                     <input
                       value={splitCount}
                       onChange={(e) => setSplitCount(e.target.value)}
                       inputMode="numeric"
-                      className="rounded-xl bg-surface dark:bg-surface-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60"
+                      className="rounded-xl bg-surface dark:bg-surface-dark px-3 py-2 outline-none focus:ring-2 focus:ring-acc-green/60"
                       placeholder="2"
                     />
                     {amount && !isNaN(parseFloat(amount)) && !isNaN(parseInt(splitCount, 10)) && parseInt(splitCount, 10) > 0 && (
-                      <span className="text-xs text-muted dark:text-muted-dark">
+                      <span className="text-footnote text-muted dark:text-muted-dark">
                         La tua quota: €
                         {(
                           Math.round((parseFloat(amount.replace(",", ".")) / parseInt(splitCount, 10)) * 100) / 100
@@ -255,13 +257,13 @@ export default function TransactionModal({ onClose, existing }: Props) {
                     )}
                   </label>
                 ) : (
-                  <label className="flex flex-col gap-1 text-sm">
+                  <label className="flex flex-col gap-1 text-callout">
                     Di mia competenza (€)
                     <input
                       value={myShare}
                       onChange={(e) => setMyShare(e.target.value)}
                       inputMode="decimal"
-                      className="rounded-xl bg-surface dark:bg-surface-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60"
+                      className="rounded-xl bg-surface dark:bg-surface-dark px-3 py-2 outline-none focus:ring-2 focus:ring-acc-green/60"
                       placeholder="0.00"
                     />
                   </label>
@@ -271,16 +273,16 @@ export default function TransactionModal({ onClose, existing }: Props) {
           </>
         )}
 
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1 text-callout">
           Nota (opzionale)
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-neon-green/60"
+            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-acc-green/60"
           />
         </label>
 
-        {error && <p className="text-sm text-neon-pink">{error}</p>}
+        {error && <p className="text-callout text-acc-pink">{error}</p>}
 
         <button
           type="submit"

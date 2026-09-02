@@ -53,7 +53,7 @@ function HomeIcon() {
   );
 }
 
-export function Header() {
+export function Header({ scrolled = false }: { scrolled?: boolean }) {
   const { effectiveTheme, setTheme } = useApp();
   const scuro = effectiveTheme === "dark";
 
@@ -63,14 +63,27 @@ export function Header() {
   // in Impostazioni, che è il posto giusto per una preferenza e non per un
   // gesto. Partendo da "sistema" si fissa l'opposto di quel che si sta
   // vedendo, così il tocco fa sempre qualcosa di visibile.
+  //
+  // Il titolo si contrae quando il contenuto sotto scorre: `scrolled` arriva
+  // da App.tsx, che osserva una sentinella in cima a <main>.
   return (
     <header
-      className="sticky top-0 z-20 px-5 pb-2 flex items-center justify-between
-                 bg-base/80 dark:bg-base-dark/80 backdrop-blur-xl"
-      style={{ paddingTop: "max(1.5rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
+      className={`sticky top-0 z-20 px-5 pb-2 flex items-center justify-between border-b transition-all duration-300
+                 bg-base/80 dark:bg-base-dark/80 backdrop-blur-xl ${
+                   scrolled ? "border-black/5 dark:border-white/10" : "border-transparent"
+                 }`}
+      style={{
+        paddingTop: scrolled
+          ? "max(0.75rem, env(safe-area-inset-top))"
+          : "max(1.5rem, calc(env(safe-area-inset-top) + 0.5rem))",
+      }}
     >
-      <h1 className="text-2xl font-bold tracking-tight">
-        tap<span className="text-neon-green">py</span>
+      <h1
+        className={`font-bold tracking-tight transition-all duration-300 ${
+          scrolled ? "text-callout" : "text-title2"
+        }`}
+      >
+        tap<span className="text-acc-green">py</span>
       </h1>
 
       <div className="flex items-center gap-3 text-muted dark:text-muted-dark">
@@ -112,7 +125,7 @@ export function Dock({ children }: { children: ReactNode }) {
       {children}
       <div className="flex flex-col items-center gap-0.5 pt-2 pb-1 text-muted dark:text-muted-dark">
         <FruPassMark className="opacity-60" />
-        <span className="text-[10px] tabular-nums opacity-70">{__APP_VERSION__}</span>
+        <span className="text-caption tabular-nums opacity-70">{__APP_VERSION__}</span>
       </div>
     </div>
   );
