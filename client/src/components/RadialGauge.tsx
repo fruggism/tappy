@@ -16,13 +16,18 @@ interface Props {
 }
 
 const R = 84;
+const R_OVERFLOW = 96;
 const CIRC = 2 * Math.PI * R;
+const CIRC_OVERFLOW = 2 * Math.PI * R_OVERFLOW;
 
 export default function RadialGauge({ segments, budget, size = 240, centerLabel, centerSub }: Props) {
   const [mounted, setMounted] = useState(false);
   const total = segments.reduce((s, seg) => s + seg.value, 0);
   const pct = budget > 0 ? Math.min(total / budget, 1) : 0;
   const overBudget = budget > 0 && total > budget;
+  // Quanto si è andati oltre, come frazione del budget stesso (0-1, poi eventualmente >1
+  // se lo sforamento è enorme: in quel caso il secondo anello fa un giro completo).
+  const overflowFraction = overBudget ? (total - budget) / budget : 0;
   const rafRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -32,11 +37,23 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
     };
   }, []);
 
+  // Sotto budget: ogni categoria occupa la sua quota del budget (value/budget), il resto
+  // dell'anello resta neutro = quanto budget avanza. Sopra budget: le categorie occupano
+  // l'intero anello in proporzione alla spesa reale (value/total), perché non c'è più
+  // "quota disponibile" da mostrare — lo sforamento si vede nell'anello rosso esterno.
   let cursor = 0;
   const arcs = segments
     .filter((s) => s.value > 0)
     .map((seg) => {
-      const fraction = budget > 0 ? seg.value / budget : total > 0 ? seg.value / total : 0;
+      const fraction = overBudget
+        ? total > 0
+          ? seg.value / total
+          : 0
+        : budget > 0
+        ? seg.value / budget
+        : total > 0
+        ? seg.value / total
+        : 0;
       const start = cursor;
       cursor += fraction;
       return { ...seg, start, fraction };
@@ -48,7 +65,7 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <svg viewBox="0 0 200 200" width={size} height={size} className="-rotate-90">
+      <svg viewBox="0 0 200 200" width={size} height={size} className="-rotate-90 overflow-visible">
         <circle
           cx="100"
           cy="100"
@@ -69,9 +86,7 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
             strokeWidth="14"
             strokeLinecap="round"
             strokeDasharray={CIRC}
-            strokeDashoffset={
-              mounted ? CIRC * (1 - seg.fraction) : CIRC
-            }
+            strokeDashoffset={mounted ? CIRC * (1 - seg.fraction) : CIRC}
             style={{
               transform: `rotate(${seg.start * 360}deg)`,
               transformOrigin: "100px 100px",
@@ -80,6 +95,23 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
             }}
           />
         ))}
+        {overBudget && (
+          <circle
+            cx="100"
+            cy="100"
+            r={R_OVERFLOW}
+            fill="none"
+            stroke="#ff2ecb"
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeDasharray={CIRC_OVERFLOW}
+            strokeDashoffset={mounted ? CIRC_OVERFLOW * (1 - Math.min(overflowFraction, 1)) : CIRC_OVERFLOW}
+            className="gauge-overflow-pulse"
+            style={{
+              transition: "stroke-dashoffset 1.1s cubic-bezier(0.22,1,0.36,1) 0.4s",
+            }}
+          />
+        )}
       </svg>
       {mounted && !overBudget && total > 0 && (
         <div
@@ -100,6 +132,11 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
           {centerLabel}
         </span>
         <span className="text-xs text-muted dark:text-muted-dark mt-1">{centerSub}</span>
+        {overBudget && (
+          <span className="text-[10px] font-medium text-neon-pink mt-1 gauge-overflow-pulse">
+            +{Math.round(overflowFraction * 100)}% oltre budget
+          </span>
+        )}
       </div>
     </div>
   );
