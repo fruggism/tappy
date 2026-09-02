@@ -172,11 +172,11 @@ dell'app.
 | # | Task | Agent | Dipende da |
 |---|---|---|---|
 | F0 | ~~Scelta stile e host~~ — **decisi**: stile tappy, deploy Netlify + Airtable | ✅ fatto | — |
-| F1 | Client Fru Pass: `verifyFruPass()`, login/refresh, sessione `tappy_frupass` in `localStorage`, **auto-login da `#code=`**, logout | Backend & Deploy | F0 |
+| F1 ✅ | *Fatto* (`claude/app-deployment-sync-agzd2h`). Client Fru Pass: `verifyFruPass()`, login/refresh, sessione `tappy_frupass` in `localStorage`, **auto-login da `#code=`**, logout | Backend & Deploy | F0 |
 | F2 | `users.frupass_code`, rotte legate al codice invece che alla api key, api key declassata a solo-webhook | Backend & Deploy | F1 |
 | F3 | Deploy: client + Netlify Functions su Netlify, dati su Airtable, variabili `AIRTABLE_*` in Site configuration, `USE_MOCK = false` | Backend & Deploy | F2 |
-| F4 | Spec di login, header e footer **nel linguaggio visivo tappy**: dove sta il logo Fru Pass senza rompere la palette, come si veste il campo codice, come sta il toggle nell'header | UI Expert | F0 |
-| F5 | Implementazione di F4: schermata login (campo unico, placeholder `FRU-••••-••••`), header fisso (logo Fru Pass → home → toggle giorno/notte), footer fisso con versione, `viewport-fit=cover` + `env(safe-area-inset-*)` | UI Developer | F4, F1 |
+| F4 ✅ | *Fatto* (`claude/ui-expert-f4-frupass`, `design/F4-login-header-footer.md` + mockup). Spec di login, header e footer **nel linguaggio visivo tappy**: dove sta il logo Fru Pass senza rompere la palette, come si veste il campo codice, come sta il toggle nell'header | UI Expert | F0 |
+| F5 ⬅ **prossimo** | Implementazione di F4: schermata login (campo unico, placeholder `FRU-••••-••••`), header fisso (logo Fru Pass → home → toggle giorno/notte), footer fisso con versione, `viewport-fit=cover` + `env(safe-area-inset-*)` | UI Developer | F4, F1 |
 | F6 | Sezione "Apple Pay Shortcut" attiva: URL webhook + api key copiabili, ora che l'utente è identificato | Shortcuts | F2, F3 |
 | F7 | Comando Rapido reale (parsing notifica → POST al webhook) | Shortcuts | F6 |
 
