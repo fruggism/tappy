@@ -117,7 +117,31 @@ tappy crea da sé la riga in `Users`, le 4 categorie di default e una carta
    separati i due mondi: questo token non deve poter vedere la base dell'hub.
 5. Copia il token (`pat…`): **te lo mostra una volta sola**.
 
-## 3. Prova in locale
+## 3. Controlla che la base sia giusta
+
+Prima di collegare qualsiasi cosa, verifica che nomi di tabelle e campi
+corrispondano a quelli che tappy cerca. Un campo scritto anche solo con una
+maiuscola diversa non dà un errore leggibile a runtime: dà una pagina che
+non carica.
+
+```bash
+npm install
+AIRTABLE_API_KEY=pat... AIRTABLE_BASE_ID=app... npm run check-airtable
+```
+
+È **in sola lettura**: chiede un record per tabella indicando i campi attesi,
+non scrive e non cancella nulla. Ti dice esattamente cosa manca:
+
+```
+  ok         Users — 6 campi
+  ok         Categories — 7 campi
+  MANCA      Cards — la tabella non esiste (attenzione a maiuscole e plurale)
+  INCOMPLETA Transactions — campi mancanti o scritti diversamente: MyShare
+```
+
+Correggi su Airtable e rilancia finché non è tutto `ok`.
+
+## 4. Prova in locale
 
 Serve la Netlify CLI, che fa girare client e funzione insieme come in
 produzione:
@@ -164,7 +188,7 @@ posto, entri e in Airtable compaiono la riga in `Users` e le 4 categorie.
 Per vedere l'errore vero: `netlify dev` stampa in console i log della
 funzione, ed è lì che compare il messaggio di Airtable.
 
-## 4. Metti online su Netlify
+## 5. Metti online su Netlify
 
 1. [app.netlify.com](https://app.netlify.com) → **Add new site → Import an
    existing project** → GitHub → scegli il repo `tappy`.
@@ -183,19 +207,20 @@ funzione, ed è lì che compare il messaggio di Airtable.
 le aggiungi dopo, serve un **Trigger deploy → Clear cache and deploy site**,
 altrimenti la funzione gira ancora senza.
 
-## 5. Comandi utili
+## 6. Comandi utili
 
 Tutti dalla radice del repo.
 
 | Comando | Cosa fa |
 |---|---|
+| `npm run check-airtable` | verifica che tabelle e campi della base siano quelli giusti (sola lettura) |
 | `netlify dev` | client + API insieme, come in produzione (`:8888`) |
 | `npm test` | i test dell'autenticazione Fru Pass (non toccano la rete, non servono credenziali) |
 | `cd client && npm run dev` | solo il client, senza backend — utile per lavorare sulla grafica |
 | `cd client && npm run build` | verifica che compili prima di pushare |
 | `cd client && npm run lint` | controllo statico |
 
-## 6. L'automazione Apple Pay
+## 7. L'automazione Apple Pay
 
 **È un'automazione, non un comando rapido da lanciare a mano**: si crea
 nell'app Comandi Rapidi, scheda **Automazione**, e scatta da sé quando arriva
