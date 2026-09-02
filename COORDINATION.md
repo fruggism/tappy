@@ -95,7 +95,7 @@ Quello che ricevi da me per ogni idea: *cosa* si costruisce, *chi* lo fa,
 | 1 — UI su dati mock | ✅ fatta | UI Expert + UI Developer |
 | 2 — collegamento ai dati reali | ⏳ server pronto, client ancora su mock | Backend & Deploy |
 | 3 — Comando Rapido + vista di dettaglio | ❌ da fare | Shortcuts + UI Developer |
-| 4 — integrazione fru-pass | 🆕 pianificata | Backend & Deploy (guida, §6) |
+| 4 — integrazione fru-pass | 🆕 pianificata, F0 chiuso | Backend & Deploy (§6) |
 
 Ordine consigliato: **la Fase 2 sblocca tutto il resto.** Il Comando Rapido
 non ha senso finché il client legge dal `localStorage`, e la vista di
@@ -117,7 +117,7 @@ che verifica un codice `FRU-XXXX-XXXX` e restituisce un `profile`
 `profile.code`. Questo cambia tre cose in tappy — chi è l'utente, dove gira
 il backend, e come si veste l'app.
 
-### 6.1 I tre nodi da sciogliere (decisioni, non task)
+### 6.1 I tre nodi — tutti decisi
 
 **a) L'identità passa a `profile.code`.** Oggi `users.api_key` è insieme
 login e chiave del webhook. Con Fru Pass il login è il codice, e l'api key
@@ -128,46 +128,54 @@ dell'intero ecosistema, non di tappy.
 → `users` prende una colonna `frupass_code` (unica); il seed dell'utente di
 default resta solo per lo sviluppo locale.
 
-**b) Il deploy. → Risolto, vedi §7:** si va su Netlify Functions + Airtable.
-Contesto originale: l'attuale server Express+SQLite non è deployabile come richiesto.
-La guida presuppone un sito Netlify. SQLite su Netlify non persiste. Serve
-portare le rotte a Netlify Functions con uno storage gestito (Firebase o una
-base Airtable nostra, come suggerisce §5 della guida) — oppure ospitare il
-server Express altrove e mettere su Netlify solo il client. **La seconda è
-più economica** (il codice server esiste già e funziona), ma richiede un
-host con disco persistente. Decisione mia, da confermare con te: client su
-Netlify + server Express su host separato, con la migrazione a Functions
-rimandata solo se l'host dà problemi.
+**b) Il deploy. → DECISO: Netlify + Airtable.**
+La guida presuppone un sito Netlify e SQLite lì non persiste. Il backend
+diventa Netlify Functions con i dati su Airtable (la strada che la branch
+`app-deployment-sync-agzd2h` ha già imboccato, vedi §7): un solo deploy per
+client e API, niente host separato da mantenere. Il vecchio
+`server/` Express+SQLite viene ritirato. Le credenziali Airtable sono
+**nostre**, stanno nelle env var di Netlify e non entrano mai nel repo — e
+non hanno nulla a che vedere con l'Airtable dell'ecosistema Fru Pass, che
+non dobbiamo toccare.
 
-**c) Conflitto di stile, ed è il punto più delicato.** Fru Pass impone
-palette "spaziale/cyber" (`#06070f`, ciano/magenta/gold), font Orbitron +
-Space Grotesk, header e footer fissi con logo Fru Pass, card `20px`,
-bottoni `12px`. Tappy oggi è **l'opposto dichiarato**: minimale Apple, font
-di sistema, accenti fluorescenti. I due standard non si sommano da soli.
-Le opzioni sono tre e la scelta è tua, non degli agent:
-1. **Conformità piena** — tappy si riveste da app dell'ecosistema. Coerente
-   nell'hub, ma butta via l'identità visiva costruita in Fase 1.
-2. **Guscio conforme, cuore tappy** — login, header e footer esattamente
-   secondo lo standard Fru Pass; le tre schermate interne restano Apple-
-   minimali. È il compromesso che la guida stessa rende possibile ("cambiando
-   solo il contenuto centrale con la tua funzionalità"). **È la mia
-   raccomandazione.**
-3. **Deroga** — si chiede all'amministratore di accettare tappy com'è, con il
-   solo login conforme. Va negoziato fuori dal codice.
+**c) Conflitto di stile. → DECISO: si tiene lo stile tappy.**
+Fru Pass impone palette "spaziale/cyber" (`#06070f`, ciano/magenta/gold),
+font Orbitron + Space Grotesk, card `20px`, bottoni `12px`. Tappy è
+l'opposto: minimale Apple, font di sistema, accenti fluorescenti.
+**Vince tappy**: la palette `base/surface/surface2/ink/muted` e gli accenti
+`neon-*` di `tailwind.config.js` restano, i font di sistema restano, i
+grafici SVG restano. Niente Orbitron, niente `--foil`, niente `#06070f`.
 
-Il resto della sezione assume l'opzione 2. Se scegli la 1, il task UI
-diventa molto più grosso e va rifatta anche la palette in
-`tailwind.config.js`.
+Di Fru Pass si adotta **solo ciò che è funzionale**, ridisegnato nel
+linguaggio visivo di tappy:
+
+| Requisito della guida | Come lo facciamo |
+|---|---|
+| Login con un solo campo, placeholder `FRU-••••-••••` | sì, ma card `rounded-2xl bg-surface`, font di sistema, accento `neon-green` |
+| Auto-login da `#code=` | sì, identico — è logica, non stile |
+| Sessione `tappy_frupass` in `localStorage` | sì, identico |
+| Header fisso: logo Fru Pass → home → toggle giorno/notte | sì, con il logo Fru Pass come unico elemento "ospite"; resto in stile tappy |
+| Footer fisso con logo Fru Pass + versione | sì, stessa logica |
+| `viewport-fit=cover` + `env(safe-area-inset-*)` | sì — in parte già presente |
+| Palette cyber, Orbitron, `--foil`, raggi/ombre dell'ecosistema | **no** |
+| Nessuna credenziale dell'ecosistema nel repo | sì, tassativo |
+
+⚠️ **Da comunicare all'amministratore Fru Pass**: tappy entra nell'hub con
+una deroga sullo standard grafico, conforme su login, auto-login, sessione,
+header/footer e safe-area. Se la deroga venisse negata, il fallback è il
+"guscio conforme, cuore tappy" (login/header/footer in palette Fru Pass, le
+tre schermate interne invariate) — è un rifacimento del solo task F5, non
+dell'app.
 
 ### 6.2 Assegnazione dei task
 
 | # | Task | Agent | Dipende da |
 |---|---|---|---|
-| F0 | Scelta dell'opzione di stile (§6.1c) e dell'host (§6.1b) | **tu** | — |
+| F0 | ~~Scelta stile e host~~ — **decisi**: stile tappy, deploy Netlify + Airtable | ✅ fatto | — |
 | F1 | Client Fru Pass: `verifyFruPass()`, login/refresh, sessione `tappy_frupass` in `localStorage`, **auto-login da `#code=`**, logout | Backend & Deploy | F0 |
 | F2 | `users.frupass_code`, rotte legate al codice invece che alla api key, api key declassata a solo-webhook | Backend & Deploy | F1 |
-| F3 | Deploy: client su Netlify, server sull'host scelto, `VITE_API_URL`, `USE_MOCK = false` | Backend & Deploy | F2 |
-| F4 | Spec di login/header/footer in stile Fru Pass innestati su tappy: cosa resta neon-Apple e cosa diventa cyber, e come non stonano fra loro | UI Expert | F0 |
+| F3 | Deploy: client + Netlify Functions su Netlify, dati su Airtable, variabili `AIRTABLE_*` in Site configuration, `USE_MOCK = false` | Backend & Deploy | F2 |
+| F4 | Spec di login, header e footer **nel linguaggio visivo tappy**: dove sta il logo Fru Pass senza rompere la palette, come si veste il campo codice, come sta il toggle nell'header | UI Expert | F0 |
 | F5 | Implementazione di F4: schermata login (campo unico, placeholder `FRU-••••-••••`), header fisso (logo Fru Pass → home → toggle giorno/notte), footer fisso con versione, `viewport-fit=cover` + `env(safe-area-inset-*)` | UI Developer | F4, F1 |
 | F6 | Sezione "Apple Pay Shortcut" attiva: URL webhook + api key copiabili, ora che l'utente è identificato | Shortcuts | F2, F3 |
 | F7 | Comando Rapido reale (parsing notifica → POST al webhook) | Shortcuts | F6 |
