@@ -92,16 +92,12 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 2rem)" }}
       >
         <p className="text-callout">
-          Quando paghi con Apple Pay, l&apos;iPhone può mandare la spesa a tappy da solo: importo,
-          esercente, carta e — se vuoi — il luogo. Si prepara una volta, in circa dieci minuti, e
-          poi non ci pensi più.
+          Quando paghi con Apple Pay, l&apos;iPhone manda la spesa a tappy da solo. Si prepara una
+          volta, in dieci minuti.
         </p>
 
         <Passo numero={1} titolo="Tieni a portata questi due valori">
-          <p>
-            Servono nell&apos;ultimo passaggio. Puoi copiarli adesso oppure tornare qui quando ti
-            serviranno.
-          </p>
+          <p>Servono all&apos;ultimo passaggio. Puoi tornare qui a copiarli.</p>
           <div className="flex flex-col gap-2 mt-1">
             <button
               onClick={() => copia("url")}
@@ -137,8 +133,7 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
             </button>
           </div>
           <p className="text-footnote">
-            La chiave vale solo per registrare spese su tappy: non è il tuo codice Fru Pass, e non
-            va scambiata con quello.
+            La chiave non è il tuo codice Fru Pass: serve solo a registrare spese.
           </p>
         </Passo>
 
@@ -148,19 +143,20 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           immagine="./guida/1-innesco.jpg"
           didascalia="L'innesco giusto comincia con «Ricevi transazione come input»"
         >
+          <ol className="list-decimal pl-4 flex flex-col gap-1.5">
+            <li>
+              Apri <b>Comandi Rapidi</b> → scheda <b>Automazione</b> → <b>+</b>
+            </li>
+            <li>
+              Scegli l&apos;innesco dei <b>pagamenti con carta</b>
+            </li>
+            <li>
+              Metti <b>Esegui immediatamente</b> e togli la richiesta di conferma
+            </li>
+          </ol>
           <p>
-            Apri l&apos;app <b>Comandi Rapidi</b> (è già sul tuo iPhone), vai sulla scheda{" "}
-            <b>Automazione</b> in basso e tocca <b>+</b> in alto a destra.
-          </p>
-          <p>
-            Nell&apos;elenco degli inneschi cerca quello dei <b>pagamenti con carta</b>. È quello
-            giusto se, dopo averlo scelto, la prima riga dice «Ricevi transazione come input»:
-            significa che l&apos;iPhone ti passerà da solo importo ed esercente.
-          </p>
-          <p>
-            Scegli <b>Esegui immediatamente</b> e <b>disattiva</b> la richiesta di conferma.
-            Altrimenti a ogni pagamento il telefono ti chiede il permesso, e tanto valeva scrivere
-            la spesa a mano.
+            È l&apos;innesco giusto se la prima riga dice «Ricevi transazione come input»: vuol
+            dire che importo ed esercente arriveranno da soli.
           </p>
         </Passo>
 
@@ -181,8 +177,8 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
             <li>di nuovo lo stesso, scegliendo <b>Longitudine</b></li>
           </ol>
           <p>
-            Servono solo per la mappa: se non ti interessa sapere dove hai speso, salta questo
-            passo e più avanti ometti i due campi <code>lat</code> e <code>lon</code>.
+            Servono solo per la mappa. Se non ti interessa, salta questo passo e più avanti ometti{" "}
+            <code>lat</code> e <code>lon</code>.
           </p>
         </Passo>
 
@@ -193,14 +189,10 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           didascalia="L'automazione completa, prima di sostituire la nota con l'invio"
         >
           <p>
-            Cerca l&apos;azione <b>Ottieni contenuti dall&apos;URL</b> e aggiungila per ultima.
+            Aggiungi per ultima l&apos;azione <b>Ottieni contenuti dall&apos;URL</b>, poi tocca{" "}
+            <b className="text-ink dark:text-ink-dark">Mostra altro</b>: senza, gli altri campi
+            restano nascosti.
           </p>
-          <p className="text-ink dark:text-ink-dark">
-            Appena aggiunta mostra solo il campo dell&apos;indirizzo: tocca{" "}
-            <b>Mostra altro</b> per far comparire tutto il resto. È il passaggio che manda in
-            confusione, perché senza di esso metodo, intestazioni e corpo non si vedono.
-          </p>
-          <p>Poi imposta, uno alla volta:</p>
           <ul className="list-disc pl-4 flex flex-col gap-1">
             <li>
               <b>URL</b>: l&apos;indirizzo copiato al passo 1
@@ -209,12 +201,11 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
               <b>Metodo</b>: <code>POST</code>
             </li>
             <li>
-              <b>Intestazioni</b>: due righe — <code>Content-Type</code> con valore{" "}
-              <code>application/json</code>, e <code>x-api-key</code> con la chiave copiata al
-              passo 1
+              <b>Intestazioni</b>: <code>Content-Type</code> → <code>application/json</code>, e{" "}
+              <code>x-api-key</code> → la chiave del passo 1
             </li>
             <li>
-              <b>Corpo richiesta</b>: <code>JSON</code>, e dentro questi campi
+              <b>Corpo richiesta</b>: <code>JSON</code>, con questi campi
             </li>
           </ul>
           <div className="rounded-2xl bg-surface dark:bg-surface-dark p-3 mt-1 overflow-x-auto">
@@ -229,54 +220,42 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
             </table>
           </div>
           <p>
-            Ogni riga si aggiunge con <b>Aggiungi nuovo campo</b>: prima scegli il tipo (Testo o
-            Numero), poi scrivi il nome esatto della prima colonna, poi tocca il valore.
+            Ogni riga si aggiunge con <b>Aggiungi nuovo campo</b>: scegli il tipo, scrivi il nome,
+            tocca il valore.
           </p>
           <p>
-            I valori della terza colonna <b>non si scrivono</b>: si scelgono. Toccando il campo,
-            sopra la tastiera compare una barra con le variabili disponibili — <i>Importo</i>,{" "}
-            <i>Esercente</i> e le altre sono lì.
-          </p>
-          <p className="text-footnote">
-            Se stai anche scegliendo la categoria da un elenco, aggiungi un settimo campo:{" "}
-            <code>category</code>, tipo Testo, valore <i>Elemento selezionato</i>.
+            I valori <b>non si scrivono</b>: si scelgono dalla barra che compare sopra la
+            tastiera.
           </p>
         </Passo>
 
         <Passo numero={5} titolo="Provala">
           <p className="text-ink dark:text-ink-dark">
-            Eseguendola a mano, importo ed esercente arrivano <b>vuoti</b>: non c&apos;è nessun
-            pagamento da cui prenderli, e tappy rifiuta la spesa. Non è un guasto, è come deve
-            essere.
+            Eseguendola a mano importo ed esercente arrivano <b>vuoti</b>: non c&apos;è nessun
+            pagamento da cui prenderli. È normale.
           </p>
-          <p>Per provare l&apos;impianto senza aspettare un pagamento, per un attimo:</p>
+          <p>Per provare comunque, scrivi per un attimo dei valori fissi:</p>
           <ul className="list-disc pl-4 flex flex-col gap-1">
             <li>
-              in <code>amount</code> scrivi <b>1</b> al posto della variabile
+              <code>amount</code> → <b>1</b>
             </li>
             <li>
-              in <code>name</code> scrivi <b>Prova</b>
+              <code>name</code> → <b>Prova</b>
             </li>
           </ul>
           <p>
-            Esegui a mano: se in <b>Movimenti</b> compare una spesa «Prova» da 1 €, indirizzo,
-            chiave e corpo sono giusti. Poi rimetti le variabili <i>Importo</i> ed{" "}
-            <i>Esercente</i> al loro posto.
+            Se in <b>Movimenti</b> compare «Prova» da 1 €, funziona tutto: rimetti le variabili{" "}
+            <i>Importo</i> ed <i>Esercente</i>.
           </p>
-          <p>
-            L&apos;ultima prova è <b>un pagamento vero</b>, anche da un euro: è l&apos;unico modo
-            di sapere se l&apos;innesco riempie davvero i campi, e se la posizione arriva col
-            telefono in tasca.
-          </p>
+          <p>Poi fai un pagamento vero, anche da un euro.</p>
         </Passo>
 
         <section className="flex flex-col gap-2">
           <h2 className="text-headline">Se non funziona</h2>
           <div className="text-callout text-muted dark:text-muted-dark flex flex-col gap-3">
             <p>
-              Per capire cosa risponde tappy, aggiungi in fondo all&apos;automazione l&apos;azione{" "}
-              <b>Mostra notifica</b> e mettici dentro il <b>Contenuto dell&apos;URL</b>. Poi
-              rieseguila: la notifica ti dice cosa è andato storto.
+              Aggiungi in fondo l&apos;azione <b>Mostra notifica</b> con dentro il{" "}
+              <b>Contenuto dell&apos;URL</b>: ti mostra la risposta di tappy.
             </p>
             <ul className="flex flex-col gap-2">
               <li>
@@ -285,18 +264,15 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
               </li>
               <li>
                 <b className="text-ink dark:text-ink-dark">«amount and name required»</b> —
-                l&apos;importo non è arrivato come numero. Prima dell&apos;invio aggiungi
-                un&apos;azione <b>Sostituisci testo</b> che tolga il simbolo dell&apos;euro, e una
-                che cambi la virgola in punto.
+                l&apos;importo non è un numero. Aggiungi prima una <b>Sostituisci testo</b> che
+                tolga il simbolo €, e una che cambi la virgola in punto.
               </li>
               <li>
                 <b className="text-ink dark:text-ink-dark">Nessuna risposta</b> — l&apos;indirizzo
                 è sbagliato, o il telefono è senza rete.
               </li>
             </ul>
-            <p>
-              Quando funziona, togli la notifica: l&apos;automazione deve essere silenziosa.
-            </p>
+            <p>Quando funziona, togli la notifica.</p>
           </div>
         </section>
 
@@ -304,18 +280,17 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           <h2 className="text-headline">Si può passare a qualcun altro?</h2>
           <div className="text-callout text-muted dark:text-muted-dark flex flex-col gap-2">
             <p>
-              Le automazioni no: iPhone non permette di esportarle, e ognuno deve creare la propria
-              — è il passo 2, un minuto.
+              Le automazioni no: iPhone non permette di esportarle. Ognuno deve creare la propria —
+              è il passo 2, un minuto.
             </p>
             <p>
-              Le <b>azioni</b> sì. Puoi raccoglierle in un <b>comando rapido</b> a parte,
-              condividerlo con un link iCloud, e poi far creare a ciascuno un&apos;automazione con
-              dentro una sola azione: «Esegui comando rapido». Restano da fare i passi 1 e 2.
+              Le <b>azioni</b> sì: si raccolgono in un <b>comando rapido</b> a parte, condivisibile
+              con un link iCloud. Poi ciascuno crea un&apos;automazione con dentro una sola azione,
+              «Esegui comando rapido».
             </p>
             <p className="text-footnote">
-              Attenzione se lo condividi: la <b>chiave</b> resta scritta dentro, e chi ce l&apos;ha
-              può registrare spese sul tuo tappy. Prima di passarlo a qualcuno, svuota quel campo e
-              digli di metterci la sua.
+              Prima di condividerlo, svuota il campo della <b>chiave</b>: chi ce l&apos;ha può
+              registrare spese sul tuo tappy.
             </p>
           </div>
         </section>
