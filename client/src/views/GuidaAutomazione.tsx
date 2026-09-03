@@ -97,7 +97,7 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
         </p>
 
         <Passo numero={1} titolo="Tieni a portata questi due valori">
-          <p>Servono all&apos;ultimo passaggio. Puoi tornare qui a copiarli.</p>
+          <p>Servono al passo 5. Puoi tornare qui a copiarli.</p>
           <div className="flex flex-col gap-2 mt-1">
             <button
               onClick={() => copia("url")}
@@ -141,7 +141,7 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           numero={2}
           titolo="Crea l'automazione"
           immagine="./guida/1-innesco.jpg"
-          didascalia="L'innesco giusto comincia con «Ricevi transazione come input»"
+          didascalia="L'innesco giusto, e sotto le due azioni della categoria"
         >
           <ol className="list-decimal pl-4 flex flex-col gap-1.5">
             <li>
@@ -160,19 +160,34 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           </p>
         </Passo>
 
-        <Passo
-          numero={3}
-          titolo="Aggiungi le azioni"
-          immagine="./guida/2-azioni.jpg"
-          didascalia="Le azioni della posizione, se vuoi vedere dove hai speso"
-        >
-          <p>Cerca e aggiungi, in quest&apos;ordine:</p>
+        <Passo numero={3} titolo="Fatti chiedere la categoria">
+          <p>Due azioni, se vuoi scegliere la categoria al volo:</p>
           <ol className="list-decimal pl-4 flex flex-col gap-1">
             <li>
-              <b>Ottieni la posizione attuale</b>
+              <b>Elenco</b> → scrivi i nomi delle tue categorie, uno per riga
             </li>
             <li>
-              <b>Ottieni dettagli dalla posizione</b> → scegli <b>Latitudine</b>
+              <b>Scegli da Elenco</b> → <b>Titolo</b>: <code>scegli categoria</code>, selezione
+              multipla spenta
+            </li>
+          </ol>
+          <p>
+            Se salti questo passo la spesa finisce in <i>Altro</i>, e la cambi dall&apos;app.
+          </p>
+        </Passo>
+
+        <Passo
+          numero={4}
+          titolo="Prendi la posizione"
+          immagine="./guida/2-posizione.jpg"
+          didascalia="Precisione «Ottimale», poi latitudine e longitudine"
+        >
+          <ol className="list-decimal pl-4 flex flex-col gap-1">
+            <li>
+              <b>Ottieni la posizione attuale</b> → <b>Precisione</b>: <b>Ottimale</b>
+            </li>
+            <li>
+              <b>Ottieni dettagli dalla posizione</b> → <b>Latitudine</b>
             </li>
             <li>di nuovo lo stesso, scegliendo <b>Longitudine</b></li>
           </ol>
@@ -183,13 +198,13 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
         </Passo>
 
         <Passo
-          numero={4}
+          numero={5}
           titolo="Aggiungi l'invio a tappy"
           immagine="./guida/3-invio.jpg"
-          didascalia="L'automazione completa, prima di sostituire la nota con l'invio"
+          didascalia="L'azione dell'URL aperta con «Mostra altro»"
         >
           <p>
-            Aggiungi per ultima l&apos;azione <b>Ottieni contenuti dall&apos;URL</b>, poi tocca{" "}
+            Aggiungi l&apos;azione <b>Ottieni contenuti dall&apos;URL</b>, poi tocca{" "}
             <b className="text-ink dark:text-ink-dark">Mostra altro</b>: senza, gli altri campi
             restano nascosti.
           </p>
@@ -214,6 +229,7 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
                 <Campo nome="amount" tipo="Numero" valore="Importo" />
                 <Campo nome="name" tipo="Testo" valore="Esercente" />
                 <Campo nome="card" tipo="Testo" valore="Carta o biglietto" />
+                <Campo nome="category" tipo="Testo" valore="Elemento selezionato" />
                 <Campo nome="lat" tipo="Numero" valore="Latitudine" />
                 <Campo nome="lon" tipo="Numero" valore="Longitudine" />
               </tbody>
@@ -229,7 +245,28 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           </p>
         </Passo>
 
-        <Passo numero={5} titolo="Provala">
+        <Passo
+          numero={6}
+          titolo="La nota non serve"
+          immagine="./guida/4-nota.jpg"
+          didascalia="Le due azioni della nota: facoltative, si possono togliere"
+        >
+          <p className="text-ink dark:text-ink-dark">
+            Le azioni <b>Testo</b> e <b>Aggiungi a nota</b> non sono necessarie: tappy registra la
+            spesa lo stesso. Servivano solo a tenere un doppione durante le prove.
+          </p>
+          <p>
+            Se le vuoi comunque, la nota va <b>creata prima nell&apos;app Note</b> (per esempio
+            «Spese Apple Pay»): se non esiste, l&apos;azione non trova dove scrivere e
+            l&apos;automazione si ferma lì.
+          </p>
+          <p>
+            Solo in quel caso serve anche <b>Formatta data</b> (visibile al passo 4): è la data
+            che finisce nel testo della nota, non nel movimento.
+          </p>
+        </Passo>
+
+        <Passo numero={7} titolo="Provala">
           <p className="text-ink dark:text-ink-dark">
             Eseguendola a mano importo ed esercente arrivano <b>vuoti</b>: non c&apos;è nessun
             pagamento da cui prenderli. È normale.
@@ -254,8 +291,9 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           <h2 className="text-headline">Se non funziona</h2>
           <div className="text-callout text-muted dark:text-muted-dark flex flex-col gap-3">
             <p>
-              Aggiungi in fondo l&apos;azione <b>Mostra notifica</b> con dentro il{" "}
-              <b>Contenuto dell&apos;URL</b>: ti mostra la risposta di tappy.
+              Aggiungi in fondo l&apos;azione <b>Mostra notifica</b> con dentro i{" "}
+              <b>Contenuti URL</b> (è l&apos;ultima dell&apos;immagine qui sopra): ti mostra la
+              risposta di tappy.
             </p>
             <ul className="flex flex-col gap-2">
               <li>

@@ -72,7 +72,12 @@ Mentre la costruisci, tieni due cose in fondo e toglile quando funziona:
 
 - il blocco **Testo** + **Aggiungi a nota**, che ti mostra cosa è arrivato
   davvero dall'innesco — utile se tappy non riceve nulla e vuoi sapere se il
-  problema è a monte;
+  problema è a monte. **Non è necessario**: la spesa si registra lo stesso. Se
+  lo tieni, la nota di destinazione (es. «Spese Apple Pay») **va creata prima
+  nell'app Note**: se non esiste, l'azione non trova dove scrivere e
+  l'automazione si ferma lì, prima dell'invio. È l'unico motivo per cui serve
+  anche l'azione **Formatta data**, che riempie il testo della nota e non ha
+  niente a che vedere col movimento;
 - un'azione **Mostra notifica** con il *Contenuto dell'URL*, che ti mostra la
   risposta del server.
 
