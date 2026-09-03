@@ -38,10 +38,29 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Normalizza il path indipendentemente da come Netlify invoca la funzione
-// (via redirect "/api/*" o chiamata diretta "/.netlify/functions/api/*").
+// Normalizza il percorso, che cambia a seconda di come si arriva qui:
+//
+//   /api/auth/login                          sito dedicato, via redirect
+//   /tappy/api/auth/login                    dentro l'hub, via redirect
+//   /.netlify/functions/tappy-api/auth/login  chiamata diretta alla funzione
+//
+// Il nome della funzione non è fisso: dentro l'hub è rinominata per non
+// collidere con quelle delle altre app. Riconoscerne uno solo faceva
+// rispondere 404 a tutto, con l'app che sembrava a posto fino all'accesso.
+function normalizzaPercorso(url) {
+  return (
+    url
+      // qualunque nome abbia la funzione
+      .replace(/^\/\.netlify\/functions\/[^/?]+/, "")
+      // prefisso dell'app dentro l'hub: /tappy/api/...
+      .replace(/^\/[A-Za-z0-9_-]+\/api(?=\/|\?|$)/, "")
+      // sito dedicato: /api/...
+      .replace(/^\/api(?=\/|\?|$)/, "") || "/"
+  );
+}
+
 app.use((req, _res, next) => {
-  req.url = req.url.replace(/^\/\.netlify\/functions\/api/, "").replace(/^\/api/, "") || "/";
+  req.url = normalizzaPercorso(req.url);
   if (!req.url.startsWith("/")) req.url = "/" + req.url;
   next();
 });
@@ -269,3 +288,5 @@ app.use(router);
 module.exports.handler = serverless(app);
 // Esportata anche l'app nuda, così si può testare senza simulare un evento Lambda.
 module.exports.app = app;
+// Esportata per i test: è la parte che dipende da come l'app è montata.
+module.exports.normalizzaPercorso = normalizzaPercorso;
