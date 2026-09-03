@@ -71,11 +71,15 @@ async function main() {
   if (!env) {
     ko("File .env assente", "lancia: npm run setup-env");
   } else {
-    const mancanti = ["AIRTABLE_API_KEY", "AIRTABLE_BASE_ID"].filter((k) => !env[k]);
+    // Valgono sia i nomi generici sia quelli con prefisso, usati quando tappy
+    // vive nel sito condiviso dell'hub.
+    const chiave = env.TAPPY_AIRTABLE_API_KEY || env.AIRTABLE_API_KEY;
+    const base = env.TAPPY_AIRTABLE_BASE_ID || env.AIRTABLE_BASE_ID;
+    const mancanti = [!chiave && "AIRTABLE_API_KEY", !base && "AIRTABLE_BASE_ID"].filter(Boolean);
     if (mancanti.length) ko(`.env incompleto: manca ${mancanti.join(", ")}`, "rilancia: npm run setup-env");
-    else if (!env.AIRTABLE_API_KEY.startsWith("pat"))
+    else if (!chiave.startsWith("pat"))
       ko(".env: il token non sembra un token Airtable", "un Personal Access Token comincia per 'pat' — rilancia: npm run setup-env");
-    else ok("File .env", `base ${env.AIRTABLE_BASE_ID}`);
+    else ok("File .env", `base ${base}`);
 
     // Permessi: il file contiene un segreto.
     try {
@@ -85,9 +89,11 @@ async function main() {
   }
 
   // --- 5. Airtable ---------------------------------------------------------
-  if (env?.AIRTABLE_API_KEY && env?.AIRTABLE_BASE_ID) {
+  const chiaveEnv = env?.TAPPY_AIRTABLE_API_KEY || env?.AIRTABLE_API_KEY;
+  const baseEnv = env?.TAPPY_AIRTABLE_BASE_ID || env?.AIRTABLE_BASE_ID;
+  if (chiaveEnv && baseEnv) {
     const Airtable = require("airtable");
-    const base = new Airtable({ apiKey: env.AIRTABLE_API_KEY }).base(env.AIRTABLE_BASE_ID);
+    const base = new Airtable({ apiKey: chiaveEnv }).base(baseEnv);
     let problemi = 0;
 
     for (const [tabella, campi] of Object.entries(SCHEMA)) {

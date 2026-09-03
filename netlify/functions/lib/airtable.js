@@ -16,11 +16,23 @@ const crypto = require("crypto");
 const Airtable = require("airtable");
 const { canonicalCode } = require("./frupass");
 
+// Quando tappy vive dentro il sito Netlify condiviso dell'hub, tutte le app
+// dello stesso sito vedono le stesse variabili d'ambiente: quelle con
+// prefisso TAPPY_ dicono quali sono le nostre. Da sole su un sito dedicato
+// bastano invece le generiche.
+function credenziali() {
+  return {
+    apiKey: process.env.TAPPY_AIRTABLE_API_KEY || process.env.AIRTABLE_API_KEY,
+    baseId: process.env.TAPPY_AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE_ID,
+  };
+}
+
 function getBase() {
-  const apiKey = process.env.AIRTABLE_API_KEY;
-  const baseId = process.env.AIRTABLE_BASE_ID;
+  const { apiKey, baseId } = credenziali();
   if (!apiKey || !baseId) {
-    throw new Error("AIRTABLE_API_KEY e AIRTABLE_BASE_ID devono essere impostate");
+    throw new Error(
+      "Servono TAPPY_AIRTABLE_API_KEY e TAPPY_AIRTABLE_BASE_ID (o le equivalenti senza prefisso)"
+    );
   }
   return new Airtable({ apiKey }).base(baseId);
 }
@@ -322,6 +334,7 @@ async function reassignTransactionsCategory(userId, fromCategoryId, toCategoryId
 }
 
 module.exports = {
+  credenziali,
   getUserByFrupasCode,
   getUserByApiKey,
   provisionUser,
