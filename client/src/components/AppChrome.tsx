@@ -111,31 +111,34 @@ export function Header({ scrolled = false }: { scrolled?: boolean }) {
 }
 
 /**
- * Navigazione e footer, un blocco solo in fondo allo schermo.
- * Il padding di safe-area sta **qui**, sul contenitore che li racchiude
- * entrambi: la riga della versione finisce così nella fascia dell'home
- * indicator, che è lo spazio giusto per un'informazione di servizio.
- */
-/**
  * La pulsantiera, ancorata in fondo allo schermo. Sotto non c'è niente: lo
  * spazio in basso serve a quello che conta, non a un piè di pagina sempre
  * acceso. Marchio e versione stanno in coda al contenuto, e si vedono
  * scorrendo fino in fondo (vedi PieDiPagina).
+ *
+ * È `fixed`, non `absolute`: agganciata al contenitore dell'app dipendeva
+ * dall'altezza che il browser gli aveva dato, e quando quella non
+ * corrispondeva allo schermo — barra di Safari che rientra, viewport
+ * ricalcolata — la pulsantiera restava a mezz'aria con una striscia vuota
+ * sotto. `fixed` la lega al fondo della finestra e basta. La larghezza
+ * dell'app la ridà il contenitore interno, uguale a quello di App.
  */
 export function Dock({ children }: { children: ReactNode }) {
   return (
     <div
-      className="absolute bottom-0 left-0 right-0 px-4 pointer-events-none"
+      className="fixed bottom-0 left-0 right-0 z-20 pointer-events-none"
       style={{ paddingBottom: "max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))" }}
     >
       {/* Il contenuto scorre sotto la pulsantiera, che è traslucida: la
-          sfumatura lo fa svanire invece di farlo sbucare a metà. */}
+          sfumatura lo fa svanire invece di farlo sbucare a metà. Sta fuori
+          dal contenitore largo quanto l'app perché deve coprire anche la
+          fascia di safe-area, che è padding di questo elemento. */}
       <div
         className="absolute inset-x-0 bottom-0 -top-6 bg-gradient-to-t
                    from-base via-base to-transparent
                    dark:from-base-dark dark:via-base-dark"
       />
-      <div className="relative pointer-events-auto">{children}</div>
+      <div className="relative max-w-md mx-auto px-4 pointer-events-auto">{children}</div>
     </div>
   );
 }
