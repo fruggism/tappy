@@ -11,6 +11,7 @@ import InstallaApp from "../components/InstallaApp";
 // richiesta: contiene gli screenshot, e chi non la apre non li scarica.
 const GuidaAutomazione = lazy(() => import("./GuidaAutomazione"));
 import type { Category } from "../lib/types";
+import Diagnostica from "../components/Diagnostica";
 
 const PALETTE = ["#39ff88", "#00e5ff", "#ff2ecb", "#a3a3ff", "#ffcf4d", "#ff6b6b"];
 
@@ -350,6 +351,8 @@ export default function Impostazioni() {
           </div>
         </div>
       </section>
+
+      <Diagnostica />
 
       <section className="flex flex-col gap-3">
         <InstallaApp />
