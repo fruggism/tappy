@@ -10,6 +10,19 @@ html,
 body,
 #root {
   height: 100%;
+  /* Su iPhone `100%` è l'altezza della pagina, che include lo spazio coperto
+     dalla barra di Safari: il fondo dell'app — cioè la pulsantiera e la riga
+     della versione — finiva sotto la piega, visibile solo scorrendo.
+     `svh` è l'altezza davvero visibile con la barra mostrata, quindi la
+     pulsantiera resta in fondo allo schermo in ogni stato. */
+  height: 100svh;
+}
+
+/* La pagina non scorre: scorre il contenuto dentro <main>. Senza questo,
+   su iOS il "rimbalzo" trascina anche la pulsantiera. */
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* Sfondo coerente anche nell'area del notch/status bar (con viewport-fit=cover
