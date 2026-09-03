@@ -377,3 +377,47 @@ il §2 del pacchetto grafico, che introduce una variante accessibile
 dell'accento: **non va fatta due volte**, o i due lavori si scontrano su
 `tailwind.config.js` e `index.css`. Se il pacchetto non arriva, la si fa a
 parte — ma non prima di saperlo.
+
+
+---
+
+## 10. Mappa dei branch (dopo il riordino)
+
+Fotografia dopo la revisione e l'integrazione del pacchetto grafico.
+
+**Vivo:**
+
+| Branch | Cosa contiene |
+|---|---|
+| `main` | tutto: backend Netlify+Airtable, accesso Fru Pass, header e dock, mappa, dettaglio del movimento, pacchetto grafico, documentazione |
+
+Non ci sono più branch di lavoro aperti: tutto ciò che era in corso è stato
+verificato e mergiato.
+
+**Archiviati** — conservati per lo storico, non da riprendere:
+
+| Branch | Perché è archiviato |
+|---|---|
+| `archivio/ui-expert-f4-frupass` | la spec F4; i suoi file sono su `main`, il commit no |
+| `archivio/comandi-rapidi-tappy-fweyvr` | il secondo backend indipendente (Express+Postgres) di §7: modello dati incompatibile, mai integrato |
+| `archivio/sviluppa-questa-idea-9ye66e` | primo tentativo del pacchetto grafico, sulla base sbagliata; rifatto su quella giusta e integrato |
+
+**Da eliminare a mano** (le credenziali di questa sessione possono creare
+branch ma non cancellarli, e nemmeno pubblicare tag):
+
+```
+claude/app-deployment-sync-agzd2h
+claude/tappy-project-coordination-sbsfnx
+claude/ui-package-on-deployment-sync
+claude/ui-expert-f4-frupass
+claude/comandi-rapidi-tappy-fweyvr
+claude/sviluppa-questa-idea-9ye66e
+export-frupass
+```
+
+I primi quattro e `export-frupass` sono interamente dentro `main`: si
+cancellano senza perdere niente. Gli ultimi due hanno commit propri, ma sono
+già copiati sotto `archivio/`.
+
+Dal Mac: `git push origin --delete <nome>` per ognuno, oppure dalla pagina
+[Branches](https://github.com/fruggism/tappy/branches) del repository.
