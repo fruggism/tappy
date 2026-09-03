@@ -244,13 +244,29 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
         </Passo>
 
         <Passo numero={5} titolo="Provala">
+          <p className="text-ink dark:text-ink-dark">
+            Eseguendola a mano, importo ed esercente arrivano <b>vuoti</b>: non c&apos;è nessun
+            pagamento da cui prenderli, e tappy rifiuta la spesa. Non è un guasto, è come deve
+            essere.
+          </p>
+          <p>Per provare l&apos;impianto senza aspettare un pagamento, per un attimo:</p>
+          <ul className="list-disc pl-4 flex flex-col gap-1">
+            <li>
+              in <code>amount</code> scrivi <b>1</b> al posto della variabile
+            </li>
+            <li>
+              in <code>name</code> scrivi <b>Prova</b>
+            </li>
+          </ul>
           <p>
-            Salva, poi apri l&apos;automazione e toccala per eseguirla a mano. Torna in tappy, in{" "}
-            <b>Movimenti</b>: se compare una spesa con scritto «Apple Pay», hai finito.
+            Esegui a mano: se in <b>Movimenti</b> compare una spesa «Prova» da 1 €, indirizzo,
+            chiave e corpo sono giusti. Poi rimetti le variabili <i>Importo</i> ed{" "}
+            <i>Esercente</i> al loro posto.
           </p>
           <p>
-            Poi fai un pagamento vero, anche da un euro. È l&apos;unico modo di sapere se funziona
-            anche col telefono in tasca.
+            L&apos;ultima prova è <b>un pagamento vero</b>, anche da un euro: è l&apos;unico modo
+            di sapere se l&apos;innesco riempie davvero i campi, e se la posizione arriva col
+            telefono in tasca.
           </p>
         </Passo>
 

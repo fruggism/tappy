@@ -89,7 +89,11 @@ Le risposte e cosa significano:
 prima dell'invio due azioni **Sostituisci testo**, una che tolga tutto ciò che
 non è cifra o separatore, l'altra che trasformi la virgola in punto.
 
-Prova prima **lanciandola a mano**, poi con un pagamento vero. Poi apri tappy
+**Eseguendola a mano importo ed esercente arrivano vuoti**: non c'è nessuna
+transazione da cui prenderli, e il server rifiuta con `400`. Per provare
+l'impianto senza aspettare un pagamento, scrivi per un attimo valori fissi
+(`1` in `amount`, `Prova` in `name`) al posto delle variabili, esegui, e poi
+rimetti le variabili. La prova vera resta un pagamento da un euro. Poi apri tappy
 → **Movimenti**: la spesa deve esserci, con origine "Apple Pay". Se hai
 mandato la posizione, aprila e controllala — comparirà anche sulla mappa, nel
 periodo giusto.
