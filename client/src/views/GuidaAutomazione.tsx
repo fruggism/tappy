@@ -144,7 +144,7 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           numero={2}
           titolo="Crea l'automazione"
           immagine="./guida/1-innesco.jpg"
-          didascalia="L'innesco giusto, e sotto le due azioni della categoria"
+          didascalia="L'innesco giusto, e sotto la catena: prima l'invio, poi la posizione"
         >
           <ol className="list-decimal pl-4 flex flex-col gap-1.5">
             <li>
@@ -161,13 +161,17 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
             È l&apos;innesco giusto se la prima riga dice «Ricevi transazione come input»: vuol
             dire che importo ed esercente arriveranno da soli.
           </p>
+          <p>
+            L&apos;ordine che vedi nell&apos;immagine è tutto: <b>prima si manda la spesa</b>, poi
+            si aggiunge quello che si riesce a raccogliere. Ogni azione che può fermarsi sta dopo.
+          </p>
         </Passo>
 
         <Passo
           numero={3}
           titolo="Aggiungi l'invio a tappy"
           immagine="./guida/3-invio.jpg"
-          didascalia="L'azione dell'URL aperta con «Mostra altro»"
+          didascalia="L'azione aperta con «Mostra altro». Attenzione: nella foto ci sono anche lat e lon, che ora non vanno più qui"
         >
           <p>
             Aggiungi l&apos;azione <b>Ottieni contenuti dall&apos;URL</b>, poi tocca{" "}
@@ -212,7 +216,7 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           numero={4}
           titolo="Poi la posizione"
           immagine="./guida/2-posizione.jpg"
-          didascalia="Precisione «Ottimale», poi latitudine e longitudine"
+          didascalia="Dopo la longitudine: l'id preso dalla risposta, e la seconda chiamata"
         >
           <p className="text-ink dark:text-ink-dark">
             Va <b>dopo</b> l&apos;invio, non prima. Se iOS nega la posizione — e a telefono
@@ -257,6 +261,11 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           <p>
             Stesso metodo <code>POST</code>, stesse intestazioni, e tre campi nel corpo:
           </p>
+          <p className="text-ink dark:text-ink-dark">
+            L&apos;errore facile è lasciare l&apos;indirizzo della prima chiamata: questa e la
+            successiva finiscono in <code>/completa</code>. Con quello sbagliato ricevi{" "}
+            <code>400</code> e non arriva né posizione né categoria.
+          </p>
           <div className="rounded-2xl bg-surface dark:bg-surface-dark p-3 mt-1 overflow-x-auto">
             <table className="w-full text-left">
               <tbody>
@@ -272,7 +281,12 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           </p>
         </Passo>
 
-        <Passo numero={5} titolo="La categoria, per ultima">
+        <Passo
+          numero={5}
+          titolo="La categoria, per ultima"
+          immagine="./guida/5-categoria.jpg"
+          didascalia="In coda a tutto: elenco, scelta, terza chiamata"
+        >
           <p className="text-ink dark:text-ink-dark">
             Chiedere la categoria è l&apos;unica azione che <b>aspetta una risposta</b>. A telefono
             bloccato l&apos;iPhone manda una notifica e mette l&apos;automazione in pausa: se non la
@@ -288,8 +302,8 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
               multipla spenta
             </li>
             <li>
-              un terzo <b>Ottieni contenuti dall&apos;URL</b>, di nuovo il secondo indirizzo, con
-              due soli campi
+              un terzo <b>Ottieni contenuti dall&apos;URL</b>, di nuovo il secondo indirizzo —
+              quello che finisce in <code>/completa</code> — con due soli campi
             </li>
           </ol>
           <div className="rounded-2xl bg-surface dark:bg-surface-dark p-3 mt-1 overflow-x-auto">
