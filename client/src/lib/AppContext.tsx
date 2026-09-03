@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api, USE_MOCK } from "./api";
 import {
   clearSession,
@@ -55,6 +55,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTransactions(await api.transactions());
   }, []);
 
+  // Le spese non arrivano più solo da qui: l'automazione dell'iPhone le
+  // scrive mentre paghi. Quando si torna sull'app si ricaricano, altrimenti
+  // si guarda una lista vecchia senza sapere che lo è.
+  //
+  // Silenzioso di proposito: nessuno spinner, nessun salto: se la rete non
+  // c'è, resta quello che si stava già guardando.
+  useEffect(() => {
+    if (!user) return;
+
+    let ultimo = 0;
+    const aggiorna = () => {
+      if (document.visibilityState !== "visible") return;
+      // Tornare sull'app scatena a volte più eventi insieme: una volta ogni
+      // cinque secondi basta e avanza.
+      const ora = Date.now();
+      if (ora - ultimo < 5000) return;
+      ultimo = ora;
+      refreshTransactions().catch(() => {
+        /* offline o server giù: si tiene la lista che c'è */
+      });
+    };
+
+    document.addEventListener("visibilitychange", aggiorna);
+    window.addEventListener("focus", aggiorna);
+    return () => {
+      document.removeEventListener("visibilitychange", aggiorna);
+      window.removeEventListener("focus", aggiorna);
+    };
+  }, [user, refreshTransactions]);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
@@ -86,8 +116,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   //    ri-controllo del codice presso l'ecosistema parte in background e non
   //    blocca nulla — invalida la sessione solo se il codice è stato revocato.
   // 3. Se non c'è né l'uno né l'altra, si mostra il login.
+  // L'avvio decide chi è l'utente **una volta sola per caricamento di pagina**.
+  // Non è un dettaglio: React monta i componenti due volte in sviluppo, e la
+  // prima cosa che facciamo è togliere il codice dall'URL. Se il secondo
+  // montaggio ricominciasse da capo troverebbe l'hash già consumato e la
+  // sessione non ancora scritta, e mostrerebbe la schermata di accesso a chi
+  // è appena arrivato dall'hub con un codice valido.
+  const avviato = useRef(false);
   useEffect(() => {
-    let annullato = false;
+    if (avviato.current) return;
+    avviato.current = true;
 
     // Con i dati finti non esiste identità da verificare: la schermata di
     // accesso resterebbe un muro invalicabile durante lo sviluppo della UI.
@@ -102,7 +140,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (codeFromHub) {
         try {
           const p = await verifyFruPass(codeFromHub);
-          if (annullato) return;
           saveSession(p);
           setProfile(p);
           await refresh();
@@ -115,10 +152,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const salvata = readSession();
       if (!salvata) {
-        if (!annullato) {
-          setNeedsLogin(true);
-          setLoading(false);
-        }
+        setNeedsLogin(true);
+        setLoading(false);
         return;
       }
 
@@ -129,15 +164,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // fuori l'utente, solo un codice davvero revocato.
       refreshFruPass(salvata.code)
         .then((p) => {
-          if (!annullato) {
-            saveSession(p);
-            setProfile(p);
-          }
+          saveSession(p);
+          setProfile(p);
         })
         .catch((err) => {
-          // Solo un codice davvero revocato invalida la sessione: un
-          // FruPassUnreachable (rete giù, ecosistema in manutenzione) si ignora.
-          if (annullato) return;
           if (err instanceof Error && err.message === "Codice non riconosciuto") {
             clearSession();
             setProfile(null);
@@ -146,10 +176,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         });
     })();
-
-    return () => {
-      annullato = true;
-    };
   }, [refresh]);
 
   // Se l'hub riapre tappy in una scheda già aperta, cambia solo l'hash e la
