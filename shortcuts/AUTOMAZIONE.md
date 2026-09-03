@@ -35,13 +35,17 @@ l'automatismo non serve più a niente.
 
 ## 3. Le azioni, nell'ordine
 
+L'ordine non è estetico: **l'invio della spesa viene prima della
+posizione**. Su iPhone «Ottieni la posizione attuale» può fallire (iOS che
+nega la localizzazione a un'automazione in background) e quando fallisce
+l'automazione si interrompe lì. Con la posizione prima dell'invio, un GPS
+negato fa perdere la spesa; con la posizione dopo, il peggio che può
+succedere è una spesa senza luogo. Vedi §6.
+
 1. **Elenco** — `Leisure`, `Spesa`, `Macchina`, `Altro`. Sono le stesse
    categorie che tappy ha già, quindi combaciano da sole.
 2. **Scegli da Elenco** → produce *Elemento selezionato*.
-3. **Ottieni la posizione attuale**.
-4. **Ottieni Latitudine da Posizione attuale**.
-5. **Ottieni Longitudine da Posizione attuale**.
-6. **Ottieni contenuti dall'URL** — è l'azione che fa tutto:
+3. **Ottieni contenuti dall'URL** — è l'azione che registra la spesa:
 
    - **URL**: quello copiato da Impostazioni
    - **Metodo**: `POST`
@@ -56,8 +60,23 @@ l'automatismo non serve più a niente.
      | `name` | Testo | **Esercente** |
      | `card` | Testo | **Carta o biglietto** |
      | `category` | Testo | **Elemento selezionato** |
+
+4. **Ottieni valore da dizionario** — `id` da *Contenuti URL*: è l'id della
+   spesa appena creata, e serve alla seconda chiamata.
+5. **Ottieni la posizione attuale** (Precisione: *Ottimale*).
+6. **Ottieni Latitudine da Posizione attuale**.
+7. **Ottieni Longitudine da Posizione attuale**.
+8. **Ottieni contenuti dall'URL**, il secondo — stesso metodo e stesse
+   intestazioni, indirizzo `.../api/webhook/applepay/posizione`, corpo:
+
+     | Campo | Tipo | Variabile |
+     |---|---|---|
+     | `id` | Testo | **Valore del dizionario** |
      | `lat` | Numero | **Latitudine** |
      | `lon` | Numero | **Longitudine** |
+
+   Le azioni 4-8 sono tutte facoltative: senza, l'automazione finisce alla 3
+   e le spese si registrano senza luogo.
 
 Per inserire una variabile, tocca il campo e scegli dal suggerimento sopra la
 tastiera.
@@ -133,11 +152,10 @@ ferma, e i due casi vanno tenuti distinti.
   registra senza luogo e semplicemente non compare sulla mappa. (Fino al
   2026-09-03 `Number("")` faceva `0` e la spesa finiva a 0°,0°, in mezzo al
   golfo di Guinea: corretto, con prova in `tests/multiutente.test.mjs`.)
-- **L'azione della posizione che fallisce sul telefono**: qui sì. Se iOS nega
-  la localizzazione, «Ottieni la posizione attuale» va in errore e
-  l'automazione si interrompe **lì**, prima dell'invio: non arriva niente, e
-  la spesa non viene registrata affatto. Non è il server a decidere, è
-  Shortcuts.
+- **L'azione della posizione che fallisce sul telefono**: l'automazione si
+  interrompe davvero lì. Ma da quando l'invio è in due tempi (§3) quel punto
+  viene *dopo* che la spesa è già registrata: si perde il luogo, non la
+  spesa. È l'unico motivo per cui l'ordine delle azioni è quello.
 
 **Una verifica ancora aperta** è proprio questa: a telefono bloccato in
 tasca, iOS concede la posizione a un'automazione in background? Lanciandola a
@@ -184,6 +202,19 @@ altro.
 
 Risposta attesa: **201** con la spesa creata. **401** = chiave sbagliata,
 **400** = mancano `amount` o `name`.
+
+E la seconda chiamata, quella della posizione:
+
+`POST` a `.../api/webhook/applepay/posizione`, stesse intestazioni, corpo:
+
+```json
+{ "id": "recXXXXXXXX", "lat": 44.788466, "lon": 10.260754 }
+```
+
+`id` è quello che la prima risposta ha restituito. Risponde **200** con la
+spesa aggiornata; **200** senza modifiche se `lat`/`lon` arrivano vuoti (non
+è un errore: il telefono non aveva la posizione); **404** se la spesa non è
+di chi manda la chiave.
 
 ## Se l'app si sposta dentro l'hub Fru Pass
 

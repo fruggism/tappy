@@ -148,6 +148,35 @@ const rigaVirgola = creazioni.find((c) => c.tabella === "Transactions");
 t("coordinate con la virgola decimale: lette",
   conVirgola.stato === 201 && rigaVirgola.Lat === 44.7 && rigaVirgola.Lon === 10.3, rigaVirgola);
 
+// --- 1-ter. l'invio in due tempi -----------------------------------------
+// Prima la spesa, poi la posizione: se il GPS fallisce sul telefono, la
+// spesa è già salva.
+creazioni = [];
+const primaChiamata = await chiama("POST", "/api/webhook/applepay", {
+  corpo: { amount: 3, name: "Due tempi" }, chiave: "chiaveDiAnnaChiaveDiAnna",
+});
+const idSpesa = primaChiamata.corpo.id;
+t("prima chiamata: spesa registrata senza posizione",
+  primaChiamata.stato === 201 && primaChiamata.corpo.lat === null, primaChiamata);
+
+const seconda = await chiama("POST", "/api/webhook/applepay/posizione", {
+  corpo: { id: idSpesa, lat: 44.78, lon: 10.26 }, chiave: "chiaveDiAnnaChiaveDiAnna",
+});
+t("seconda chiamata: la posizione si attacca alla spesa",
+  seconda.stato === 200 && seconda.corpo.lat === 44.78 && seconda.corpo.lon === 10.26, seconda);
+
+const senzaCoord = await chiama("POST", "/api/webhook/applepay/posizione", {
+  corpo: { id: idSpesa, lat: "", lon: "" }, chiave: "chiaveDiAnnaChiaveDiAnna",
+});
+t("seconda chiamata senza coordinate: non è un errore, la spesa resta",
+  senzaCoord.stato === 200 && senzaCoord.corpo.id === idSpesa, senzaCoord);
+
+const spesaAltrui = await chiama("POST", "/api/webhook/applepay/posizione", {
+  corpo: { id: idSpesa, lat: 1, lon: 1 }, chiave: "chiaveDiBrunoChiaveDiBrun",
+});
+t("la posizione non si può attaccare alla spesa di un altro utente",
+  spesaAltrui.stato === 404, spesaAltrui);
+
 // --- 2. gli id di un altro utente non passano ----------------------------
 for (const [nome, corpo] of [
   ["categoria", { amount: 5, name: "Spesa", category_id: "catB" }],

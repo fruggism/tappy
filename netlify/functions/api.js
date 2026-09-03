@@ -317,6 +317,38 @@ router.post("/webhook/applepay", async (req, res) => {
   }
 });
 
+// Seconda parte del webhook: la posizione, mandata **dopo** che la spesa è
+// già registrata.
+//
+// Serve perché su iPhone «Ottieni la posizione attuale» può fallire (iOS che
+// nega la localizzazione a un'automazione in background), e quando fallisce
+// l'automazione si interrompe lì. Se la posizione sta prima dell'invio, un
+// GPS negato fa perdere la spesa: mettendola dopo, il peggio che succede è
+// una spesa senza luogo. L'`id` viene dalla risposta della prima chiamata.
+router.post("/webhook/applepay/posizione", async (req, res) => {
+  try {
+    const user = await db.getUserByApiKey(req.header("x-api-key"));
+    if (!user) return res.status(401).json({ error: "invalid api key" });
+
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: "id required" });
+
+    const tx = await db.getTransaction(id, user.code);
+    if (!tx) return res.status(404).json({ error: "not found" });
+
+    const lat = coordinata(req.body.lat);
+    const lon = coordinata(req.body.lon);
+    // Coordinate assenti non sono un errore: l'automazione ha fatto il suo,
+    // semplicemente il telefono non aveva la posizione. La spesa resta.
+    if (lat === undefined || lon === undefined) return res.json(tx);
+
+    res.json(await db.updateTransaction(tx.id, { lat, lon }));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "internal error" });
+  }
+});
+
 app.use(router);
 
 module.exports.handler = serverless(app);

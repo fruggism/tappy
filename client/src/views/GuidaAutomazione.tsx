@@ -59,12 +59,15 @@ function Campo({ nome, tipo, valore }: { nome: string; tipo: string; valore: str
 
 export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void }) {
   const { user } = useApp();
-  const [copiato, setCopiato] = useState<"url" | "chiave" | null>(null);
+  const [copiato, setCopiato] = useState<"url" | "chiave" | "posizione" | null>(null);
 
   const webhookUrl = `${window.location.origin}${API_BASE}/api/webhook/applepay`;
+  const posizioneUrl = `${webhookUrl}/posizione`;
 
-  async function copia(cosa: "url" | "chiave") {
-    await navigator.clipboard.writeText(cosa === "url" ? webhookUrl : user?.api_key ?? "");
+  async function copia(cosa: "url" | "chiave" | "posizione") {
+    const testo =
+      cosa === "url" ? webhookUrl : cosa === "posizione" ? posizioneUrl : user?.api_key ?? "";
+    await navigator.clipboard.writeText(testo);
     setCopiato(cosa);
     setTimeout(() => setCopiato(null), 1500);
   }
@@ -97,7 +100,7 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
         </p>
 
         <Passo numero={1} titolo="Tieni a portata questi due valori">
-          <p>Servono al passo 5. Puoi tornare qui a copiarli.</p>
+          <p>Servono al passo 4. Puoi tornare qui a copiarli.</p>
           <div className="flex flex-col gap-2 mt-1">
             <button
               onClick={() => copia("url")}
@@ -178,37 +181,6 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
 
         <Passo
           numero={4}
-          titolo="Prendi la posizione"
-          immagine="./guida/2-posizione.jpg"
-          didascalia="Precisione «Ottimale», poi latitudine e longitudine"
-        >
-          <ol className="list-decimal pl-4 flex flex-col gap-1">
-            <li>
-              <b>Ottieni la posizione attuale</b> → <b>Precisione</b>: <b>Ottimale</b>
-            </li>
-            <li>
-              <b>Ottieni dettagli dalla posizione</b> → <b>Latitudine</b>
-            </li>
-            <li>di nuovo lo stesso, scegliendo <b>Longitudine</b></li>
-          </ol>
-          <p>
-            Servono solo per la mappa. Se non ti interessa, salta questo passo e più avanti ometti{" "}
-            <code>lat</code> e <code>lon</code>.
-          </p>
-          <p className="text-ink dark:text-ink-dark">
-            Se il telefono non riesce a leggere la posizione, la spesa si registra lo stesso: arriva
-            senza luogo e non compare sulla mappa.
-          </p>
-          <p>
-            L&apos;unico caso in cui si perde è se iOS <b>nega</b> la posizione: allora l&apos;azione
-            va in errore e l&apos;automazione si ferma prima di mandare qualcosa. Se dopo un
-            pagamento vero non vedi la spesa, è quasi sempre questo: togli queste tre azioni e i due
-            campi, e l&apos;invio non può più fallire per la posizione.
-          </p>
-        </Passo>
-
-        <Passo
-          numero={5}
           titolo="Aggiungi l'invio a tappy"
           immagine="./guida/3-invio.jpg"
           didascalia="L'azione dell'URL aperta con «Mostra altro»"
@@ -240,9 +212,7 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
                 <Campo nome="name" tipo="Testo" valore="Esercente" />
                 <Campo nome="card" tipo="Testo" valore="Carta o biglietto" />
                 <Campo nome="category" tipo="Testo" valore="Elemento selezionato" />
-                <Campo nome="lat" tipo="Numero" valore="Latitudine" />
-                <Campo nome="lon" tipo="Numero" valore="Longitudine" />
-              </tbody>
+                </tbody>
             </table>
           </div>
           <p>
@@ -252,6 +222,70 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           <p>
             I valori <b>non si scrivono</b>: si scelgono dalla barra che compare sopra la
             tastiera.
+          </p>
+        </Passo>
+
+        <Passo
+          numero={5}
+          titolo="La posizione, per ultima"
+          immagine="./guida/2-posizione.jpg"
+          didascalia="Precisione «Ottimale», poi latitudine e longitudine"
+        >
+          <p className="text-ink dark:text-ink-dark">
+            Va <b>dopo</b> l&apos;invio, non prima. Se iOS nega la posizione — e a telefono
+            bloccato può farlo — l&apos;azione va in errore e l&apos;automazione si ferma lì: messa
+            prima ti farebbe perdere la spesa, messa dopo la spesa è già registrata e perdi solo il
+            luogo.
+          </p>
+          <p>Aggiungi, in quest&apos;ordine:</p>
+          <ol className="list-decimal pl-4 flex flex-col gap-1">
+            <li>
+              <b>Ottieni valore da dizionario</b> → <b>Ottieni</b> <code>id</code> da{" "}
+              <b>Contenuti URL</b> (è la risposta del passo 4)
+            </li>
+            <li>
+              <b>Ottieni la posizione attuale</b> → <b>Precisione</b>: <b>Ottimale</b>
+            </li>
+            <li>
+              <b>Ottieni dettagli dalla posizione</b> → <b>Latitudine</b>
+            </li>
+            <li>di nuovo lo stesso, scegliendo <b>Longitudine</b></li>
+            <li>
+              un secondo <b>Ottieni contenuti dall&apos;URL</b>, uguale al primo ma con
+              l&apos;indirizzo qui sotto
+            </li>
+          </ol>
+          <button
+            onClick={() => copia("posizione")}
+            className="rounded-xl bg-surface dark:bg-surface-dark px-3 py-2.5 text-left flex items-center gap-3 mt-1"
+          >
+            <span className="flex-1 min-w-0">
+              <span className="block text-caption uppercase tracking-wide text-muted dark:text-muted-dark">
+                Indirizzo della posizione
+              </span>
+              <span className="block text-footnote break-all text-ink dark:text-ink-dark">
+                {posizioneUrl}
+              </span>
+            </span>
+            <span className="text-footnote text-acc-green shrink-0">
+              {copiato === "posizione" ? "Copiato" : "Copia"}
+            </span>
+          </button>
+          <p>
+            Stesso metodo <code>POST</code>, stesse intestazioni, e tre campi nel corpo:
+          </p>
+          <div className="rounded-2xl bg-surface dark:bg-surface-dark p-3 mt-1 overflow-x-auto">
+            <table className="w-full text-left">
+              <tbody>
+                <Campo nome="id" tipo="Testo" valore="il valore del dizionario" />
+                <Campo nome="lat" tipo="Numero" valore="Latitudine" />
+                <Campo nome="lon" tipo="Numero" valore="Longitudine" />
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Se la mappa non ti interessa, salta tutto il passo: l&apos;automazione finisce al 4 ed è
+            più corta.
           </p>
         </Passo>
 
