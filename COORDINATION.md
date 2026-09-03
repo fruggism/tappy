@@ -480,15 +480,22 @@ gente:
 - **Il primo accesso costa 6 scritture** (utente, 4 categorie, carta), in
   sequenza. Va bene per un'iscrizione ogni tanto, non per un'ondata.
 
-## 12. Screenshot della guida — stato al 2026-09-03
+## 12. Screenshot della guida
 
-Rifatti con l'automazione a tre chiamate: `1-innesco.jpg` (la testa: input,
-invio, posizione), `2-posizione.jpg` (id dal dizionario e seconda chiamata),
-`5-categoria.jpg` (elenco, scelta, terza chiamata). `4-nota.jpg` resta valido
-perché mostra azioni che la guida dichiara facoltative.
+Rifatti il 2026-09-03 sull'automazione a tre chiamate, che è quella
+definitiva: `1-innesco`, `2-invio`, `3-posizione`, `4-seconda-chiamata`,
+`5-categoria`, `6-terza-chiamata`. Le due chiamate finali mostrano
+l'indirizzo con `/completa`, che è l'errore più facile da fare.
 
-**Resta da rifare `3-invio.jpg`**: mostra il corpo della prima chiamata con
-`lat` e `lon` dentro, che ora non ci vanno più. La didascalia lo avverte, ma
-è una toppa: va risostituito con uno scatto del corpo attuale (`amount`,
-`name`, `card`). Nel rifarlo, mascherare la `x-api-key` — iOS ne mostra i
-primi caratteri e queste immagini stanno in un repo pubblico.
+`Passo` accetta ora una o due figure: per l'invio e per le due chiamate
+servono sia lo scatto dell'azione nella lista sia quello del pannello
+aperto, e in una sola immagine non ci stanno.
+
+Nelle tre immagini che mostrano le intestazioni la `x-api-key` è mascherata
+con un rettangolo bianco: iOS ne stampa i primi caratteri e queste immagini
+stanno in un repo pubblico. Se se ne rifà una, rifare anche la maschera —
+lo script sta nella cronologia di questa sessione, ma è due minuti di
+Chromium e canvas.
+
+Non c'è più uno scatto per il passo sulla nota: quelle azioni sono state
+tolte dall'automazione, e la guida le descrive soltanto.

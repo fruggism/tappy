@@ -2,22 +2,23 @@
 // fatto. Vive dentro l'app e non in un file del repository perché il momento
 // in cui serve è questo: hai l'URL e la chiave sotto gli occhi, e il telefono
 // in mano.
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useApp } from "../lib/AppContext";
 import { API_BASE } from "../lib/realApi";
 
+// Un passo della guida. Le immagini sono una o due: spesso servono sia lo
+// scatto dell'azione nella lista, sia quello del suo pannello aperto — in
+// una sola non ci stanno, e chi segue la guida deve riconoscere entrambe.
 function Passo({
   numero,
   titolo,
   children,
-  immagine,
-  didascalia,
+  figure,
 }: {
   numero: number;
   titolo: string;
-  children: React.ReactNode;
-  immagine?: string;
-  didascalia?: string;
+  children: ReactNode;
+  figure?: { src: string; didascalia: string }[];
 }) {
   return (
     <section className="flex flex-col gap-2">
@@ -28,21 +29,19 @@ function Passo({
       <div className="text-callout text-muted dark:text-muted-dark flex flex-col gap-2">
         {children}
       </div>
-      {immagine && (
-        <figure className="flex flex-col gap-1.5 mt-1">
+      {figure?.map((f) => (
+        <figure key={f.src} className="flex flex-col gap-1.5 mt-1">
           <img
-            src={immagine}
-            alt={didascalia ?? ""}
+            src={f.src}
+            alt={f.didascalia}
             loading="lazy"
             className="w-full rounded-2xl border border-black/5 dark:border-white/10"
           />
-          {didascalia && (
-            <figcaption className="text-caption text-muted dark:text-muted-dark text-center">
-              {didascalia}
-            </figcaption>
-          )}
+          <figcaption className="text-caption text-muted dark:text-muted-dark text-center">
+            {f.didascalia}
+          </figcaption>
         </figure>
-      )}
+      ))}
     </section>
   );
 }
@@ -143,8 +142,12 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
         <Passo
           numero={2}
           titolo="Crea l'automazione"
-          immagine="./guida/1-innesco.jpg"
-          didascalia="L'innesco giusto, e sotto la catena: prima l'invio, poi la posizione"
+          figure={[
+            {
+              src: "./guida/1-innesco.jpg",
+              didascalia: "La prima riga dev'essere «Ricevi transazione come input»",
+            },
+          ]}
         >
           <ol className="list-decimal pl-4 flex flex-col gap-1.5">
             <li>
@@ -170,8 +173,12 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
         <Passo
           numero={3}
           titolo="Aggiungi l'invio a tappy"
-          immagine="./guida/3-invio.jpg"
-          didascalia="L'azione aperta con «Mostra altro». Attenzione: nella foto ci sono anche lat e lon, che ora non vanno più qui"
+          figure={[
+            {
+              src: "./guida/2-invio.jpg",
+              didascalia: "L'azione aperta con «Mostra altro»: metodo, intestazioni e i tre campi",
+            },
+          ]}
         >
           <p>
             Aggiungi l&apos;azione <b>Ottieni contenuti dall&apos;URL</b>, poi tocca{" "}
@@ -215,8 +222,16 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
         <Passo
           numero={4}
           titolo="Poi la posizione"
-          immagine="./guida/2-posizione.jpg"
-          didascalia="Dopo la longitudine: l'id preso dalla risposta, e la seconda chiamata"
+          figure={[
+            {
+              src: "./guida/3-posizione.jpg",
+              didascalia: "Precisione «Ottimale», poi latitudine, longitudine e l'id dalla risposta",
+            },
+            {
+              src: "./guida/4-seconda-chiamata.jpg",
+              didascalia: "La seconda chiamata: l'indirizzo finisce in /completa",
+            },
+          ]}
         >
           <p className="text-ink dark:text-ink-dark">
             Va <b>dopo</b> l&apos;invio, non prima. Se iOS nega la posizione — e a telefono
@@ -284,8 +299,16 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
         <Passo
           numero={5}
           titolo="La categoria, per ultima"
-          immagine="./guida/5-categoria.jpg"
-          didascalia="In coda a tutto: elenco, scelta, terza chiamata"
+          figure={[
+            {
+              src: "./guida/5-categoria.jpg",
+              didascalia: "In coda a tutto: l'elenco e la scelta",
+            },
+            {
+              src: "./guida/6-terza-chiamata.jpg",
+              didascalia: "La terza chiamata: stesso indirizzo della seconda, due soli campi",
+            },
+          ]}
         >
           <p className="text-ink dark:text-ink-dark">
             Chiedere la categoria è l&apos;unica azione che <b>aspetta una risposta</b>. A telefono
@@ -320,12 +343,7 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           </p>
         </Passo>
 
-        <Passo
-          numero={6}
-          titolo="La nota non serve"
-          immagine="./guida/4-nota.jpg"
-          didascalia="Le due azioni della nota: facoltative, si possono togliere"
-        >
+        <Passo numero={6} titolo="La nota non serve">
           <p className="text-ink dark:text-ink-dark">
             Le azioni <b>Testo</b> e <b>Aggiungi a nota</b> non sono necessarie: tappy registra la
             spesa lo stesso. Servivano solo a tenere un doppione durante le prove.
@@ -336,8 +354,8 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
             l&apos;automazione si ferma lì.
           </p>
           <p>
-            Solo in quel caso serve anche <b>Formatta data</b> (visibile al passo 4): è la data
-            che finisce nel testo della nota, non nel movimento.
+            Solo in quel caso serve anche <b>Formatta data</b>: è la data che finisce nel testo
+            della nota, non nel movimento. Se la nota non c&apos;è, togli anche quella.
           </p>
         </Passo>
 
