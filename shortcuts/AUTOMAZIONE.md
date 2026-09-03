@@ -139,19 +139,33 @@ nessun punto della catena.
 Per togliere il luogo da una spesa già registrata: aprila in Movimenti e usa
 **Rimuovi la posizione**.
 
-## Due cose ancora da verificare sull'iPhone
+## L'innesco giusto
 
-Non sono dettagli: da queste dipende quanto lavoro resta.
+Quello dei pagamenti con carta, che comincia con **«Ricevi transazione come
+input»**: passa da sé *Importo*, *Esercente* e *Carta o biglietto* come
+variabili. Non serve estrarre niente dal testo della notifica — verificato
+sull'iPhone.
 
-1. **La posizione arriva anche quando l'automazione scatta da sola?**
-   Lanciandola a mano dall'app funziona — è verificato. Ma il caso vero è a
-   telefono bloccato in tasca, ed è lì che iOS può negare la localizzazione a
-   un'automazione in background. Da provare con un pagamento vero.
-2. **Importo, esercente e carta si riempiono da soli?** Dipende dall'innesco
-   scelto. Se il trigger passa i dettagli della transazione, l'automazione è
-   quasi finita. Se non li passa, vanno estratti dal testo della notifica —
-   lavoro diverso e più fragile, da affrontare solo dopo aver visto cosa
-   arriva davvero.
+## Azioni che in background non si possono usare
+
+Un'automazione impostata su «Esegui immediatamente» gira **senza nessuno
+davanti allo schermo**. Quindi ogni azione che chiede qualcosa all'utente la
+blocca: in particolare **«Scegli da elenco»**, comodo per scegliere la
+categoria al momento, non può stare qui.
+
+La categoria si sistema in un altro modo: non mandarla affatto — il server
+mette "Altro" — e cambiarla dopo in tappy, che costa un tocco. Oppure
+dedurla dall'esercente con delle azioni **Se** (`Esercente contiene "Eni"` →
+`Macchina`), che restano automatiche.
+
+## Una verifica ancora aperta
+
+**La posizione arriva anche quando l'automazione scatta da sola?** Lanciandola
+a mano funziona — è verificato. Ma il caso vero è a telefono bloccato in
+tasca, ed è lì che iOS può negare la localizzazione a un'automazione in
+background. Si scopre col primo pagamento vero: se `lat`/`lon` arrivano
+vuoti, la spesa si registra lo stesso e semplicemente non compare sulla
+mappa.
 
 Un controllo utile: **Impostazioni → Privacy → Localizzazione → Comandi
 Rapidi** deve avere **«Posizione esatta»** attiva. Con la posizione
