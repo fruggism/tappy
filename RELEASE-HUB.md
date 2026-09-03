@@ -58,7 +58,10 @@ cui tappy si discosta dallo standard. Nel dettaglio:
 | Footer con logo centrale e versione sotto | ✅ conforme come **riga sotto la nav**, non come barra fissa a sé: due barre fisse in basso su iPhone sono insostenibili |
 | `viewport-fit=cover` + `env(safe-area-inset-*)` | ✅ conforme |
 | Toggle giorno/notte manuale | ✅ conforme, **più** la terza posizione "sistema" in Impostazioni (sovrainsieme del requisito) |
-| Nessuna credenziale dell'ecosistema nel codice | ✅ conforme, verificato |
+| Nessuna credenziale dell'ecosistema nel codice | ✅ conforme, verificato dallo script di export |
+| Percorsi relativi, `index.html` alla radice della cartella | ✅ conforme, provato da un sottopercorso |
+| `manifest.json` + icone 192/512/180 | ✅ conforme |
+| Pulsante "Installa app" con le istruzioni | ✅ conforme (iOS e Android hanno istruzioni diverse: si mostra quella giusta) |
 | Palette `#06070f` + ciano/magenta/gold | ❌ **deroga**: resta la palette tappy |
 | Font Orbitron / Space Grotesk / Space Mono | ❌ **deroga**: restano i font di sistema |
 | Card `20px`, bottoni `12px`, ombre `0 8px 22px rgba(0,0,0,.45)` | ❌ **deroga**: restano `16px` e ombre leggere |
@@ -86,8 +89,79 @@ lettera.
       codice, e nessun riferimento alla base dell'hub
 - [ ] Il token Airtable di tappy è abilitato **solo** sulla base `tappy`
       (vedi `SETUP.md` §2)
+- [ ] `npm run esporta` passa tutti i controlli
+- [ ] La cartella è su GitHub, sul branch `export-frupass`
+- [ ] Pulsante "Installa app", `manifest.json` e icone presenti (fatto)
 
-## 4. Cosa mandare
+## 4. Preparare la consegna per l'hub
+
+L'hub vuole una cartella statica. Tappy però ha anche un **backend**, ed è il
+motivo per cui esiste: al pagamento un'automazione dell'iPhone manda la spesa
+a un endpoint, e un file statico non può riceverla.
+
+Il sito dell'hub **è un sito Netlify**, quindi può ospitare anche quella
+funzione: non serve un secondo deploy. È la strada consigliata — un dominio
+solo, nessuna chiamata cross-origin, e l'automazione punta allo stesso posto
+dell'app.
+
+```bash
+npm run esporta
+```
+
+Produce tre cose in `export/`:
+
+| | Dove va |
+|---|---|
+| `tappy/` | `frupass-hub/tappy/` — il frontend, non richiede altro |
+| `hub/netlify/functions/` | nelle funzioni del sito dell'hub (`tappy-api.js` è già rinominata, così non collide con le altre app) |
+| `ISTRUZIONI-HUB.md` | per l'amministratore: le quattro aggiunte al progetto dell'hub |
+
+Le quattro aggiunte sono: la funzione, tre dipendenze nel `package.json` del
+sito, due redirect nel `netlify.toml`, e due variabili d'ambiente
+`TAPPY_AIRTABLE_*`. Nessuna tocca le altre app.
+
+### Se l'amministratore non vuole toccare il progetto dell'hub
+
+Allora il backend va su un sito Netlify separato di tappy, e nell'hub entra
+solo il frontend, che lo chiama da un'altra origine:
+
+```bash
+TAPPY_API_URL=https://<tuo-sito>.netlify.app npm run esporta
+```
+
+Funziona (CORS e preflight verificati), ma costa un secondo deploy da
+mantenere e un dominio in più nell'automazione. Da usare solo se la prima
+strada è preclusa.
+
+### Consegna
+
+```bash
+git checkout -b export-frupass
+git add -f export
+git commit -m "Export di tappy per l'hub"
+git push -u origin export-frupass
+```
+
+All'amministratore basta: repository `fruggism/tappy`, branch
+`export-frupass`, cartella `export/`.
+
+⚠️ **Con backend separato, non esportare prima del deploy**: senza il dominio
+vero l'app cercherebbe l'API dove non c'è. In modalità hub il problema non si
+pone, perché l'indirizzo è relativo.
+
+### Verificato
+
+Entrambe le sistemazioni sono state provate montando un finto sito dell'hub
+con i due redirect veri:
+
+- l'app parte da `/tappy/`, senza risorse mancanti;
+- l'API è chiamata su `/tappy/api`, **sullo stesso dominio**;
+- l'accesso riesce passando dalla funzione;
+- l'arrivo dalla tile con `#code=` entra senza mostrare il login;
+- il webhook risponde su `/tappy/api/webhook/applepay`, che è l'indirizzo che
+  finirà nell'automazione.
+
+## 5. Cosa mandare
 
 All'amministratore serve:
 
@@ -101,7 +175,7 @@ All'amministratore serve:
 L'inserimento nel catalogo e l'abilitazione sui profili utente **li fa
 l'amministratore**, dal pannello admin: non c'è nulla da fare lato codice.
 
-## 5. Dopo la pubblicazione
+## 6. Dopo la pubblicazione
 
 Da controllare la prima volta che apri tappy **dalla tile dell'hub**, non dal
 link diretto: è l'unico modo di provare davvero l'auto-login con un codice

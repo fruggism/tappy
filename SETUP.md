@@ -91,10 +91,14 @@ non danno errore, ma sporcano.
 | `IsIncome` | Checkbox |
 | `Note` | Single line text |
 | `CreatedAt` | Single line text |
+| `Lat` | Number (6 decimali) |
+| `Lon` | Number (6 decimali) |
 
 **Sui campi `Number`**: Airtable chiede la precisione. Metti **2 decimali**
 per `MonthlyBudget`, `Amount`, `MyShare` e `Budget`; **intero** per
-`SortOrder`. Con 0 decimali gli importi verrebbero arrotondati in silenzio.
+`SortOrder`; **6 decimali** per `Lat` e `Lon` (dove è avvenuta la spesa, riempiti dall'automazione e sempre
+facoltativi) — con meno, la posizione di una
+spesa si sposta di centinaia di metri e la mappa perde senso. Con 0 decimali gli importi verrebbero arrotondati in silenzio.
 
 **Non creare utenti a mano.** Al primo accesso con un codice Fru Pass valido,
 tappy crea da sé la riga in `Users`, le 4 categorie di default e una carta
@@ -117,37 +121,75 @@ tappy crea da sé la riga in `Users`, le 4 categorie di default e una carta
    separati i due mondi: questo token non deve poter vedere la base dell'hub.
 5. Copia il token (`pat…`): **te lo mostra una volta sola**.
 
-## 3. Prova in locale
+## 3. Controlla che la base sia giusta
 
-Serve la Netlify CLI, che fa girare client e funzione insieme come in
-produzione:
+Prima di collegare qualsiasi cosa, verifica che nomi di tabelle e campi
+corrispondano a quelli che tappy cerca. Un campo scritto anche solo con una
+maiuscola diversa non dà un errore leggibile a runtime: dà una pagina che
+non carica.
 
 ```bash
-npm install -g netlify-cli        # una volta sola
+npm install
+AIRTABLE_API_KEY=pat... AIRTABLE_BASE_ID=app... npm run check-airtable
 ```
 
-Poi, dalla radice del repo:
+È **in sola lettura**: chiede un record per tabella indicando i campi attesi,
+non scrive e non cancella nulla. Ti dice esattamente cosa manca:
+
+```
+  ok         Users — 6 campi
+  ok         Categories — 7 campi
+  MANCA      Cards — la tabella non esiste (attenzione a maiuscole e plurale)
+  INCOMPLETA Transactions — campi mancanti o scritti diversamente: MyShare
+```
+
+Correggi su Airtable e rilancia finché non è tutto `ok`.
+
+## 4. Verifica che sia tutto a posto
+
+```bash
+npm run doctor
+```
+
+Controlla in un colpo solo tutto ciò che è verificabile da riga di comando —
+versione di Node, dipendenze, `.env`, schema Airtable,
+raggiungibilità dell'ecosistema Fru Pass, e che il client compili — e per
+ogni cosa che manca dice il comando per rimediare.
+
+Restano due verifiche che solo tu puoi fare, dopo aver avviato l'app: che
+si entri con il proprio codice Fru Pass, e che su Airtable compaiano la riga
+in `Users`, le 4 categorie e la carta.
+
+## 5. Prova in locale
+
+Dalla radice del repo:
 
 ```bash
 npm install                       # dipendenze della funzione
 cd client && npm install && cd ..  # dipendenze del client
 ```
 
-Crea il file `.env` nella radice (è già in `.gitignore`, non finisce su
-GitHub):
+Crea il file `.env`:
 
 ```bash
-cat > .env <<'FINE'
-AIRTABLE_API_KEY=pat...la_tua_chiave...
-AIRTABLE_BASE_ID=app...il_tuo_base_id...
-FINE
+npm run setup-env
 ```
+
+Chiede solo il token — il base id è già noto e non è un segreto — e scrive
+un `.env` leggibile solo dal tuo utente. È in `.gitignore`, non finisce su
+GitHub. In alternativa puoi copiare `.env.example` in `.env` e riempirlo a
+mano.
 
 Avvia:
 
 ```bash
-netlify dev
+npm run dev
 ```
+
+Fa girare client e funzione insieme, come in produzione, usando la Netlify
+CLI tramite `npx`: non serve installarla globalmente (su macOS l'installazione
+globale spesso fallisce per i permessi di `/usr/local`, ed è una battaglia
+inutile). La prima volta ci mette un po' perché la scarica.
 
 Apri `http://localhost:8888` e inserisci il tuo codice Fru Pass. Se tutto è a
 posto, entri e in Airtable compaiono la riga in `Users` e le 4 categorie.
@@ -161,10 +203,14 @@ posto, entri e in Airtable compaiono la riga in `Users` e le 4 categorie.
 | Errore 500 / pagina che resta a caricare | manca una delle due variabili, o un nome di campo Airtable è scritto diversamente |
 | Entri ma non vedi le categorie | tabella `Categories` con un nome o un campo diverso da quelli sopra |
 
-Per vedere l'errore vero: `netlify dev` stampa in console i log della
+Per vedere l'errore vero: `npm run dev` stampa in console i log della
 funzione, ed è lì che compare il messaggio di Airtable.
 
-## 4. Metti online su Netlify
+## 6. Metti online su Netlify
+
+Due strade, a seconda di dove vive tappy.
+
+### A. Sito Netlify dedicato (il più semplice)
 
 1. [app.netlify.com](https://app.netlify.com) → **Add new site → Import an
    existing project** → GitHub → scegli il repo `tappy`.
@@ -183,19 +229,81 @@ funzione, ed è lì che compare il messaggio di Airtable.
 le aggiungi dopo, serve un **Trigger deploy → Clear cache and deploy site**,
 altrimenti la funzione gira ancora senza.
 
-## 5. Comandi utili
+### B. Dentro il sito condiviso dell'hub Fru Pass
+
+Se tappy sta nella stessa cartella delle altre app dell'ecosistema, servono
+quattro accorgimenti — il codice li supporta già, non va modificato.
+
+**1. La build del client va fatta per una sottocartella.** Altrimenti la
+pagina cerca i suoi file nella radice del sito e resta bianca:
+
+```bash
+VITE_BASE_PATH=/tappy/ VITE_API_URL=/tappy npm run build
+```
+
+`VITE_BASE_PATH` sistema i percorsi di script e fogli di stile,
+`VITE_API_URL` fa sì che il client chiami `/tappy/api/...` invece di
+`/api/...`. Il risultato (`client/dist`) va copiato nella cartella `tappy/`
+del sito condiviso.
+
+**2. La funzione deve avere un nome unico.** Nel sito condiviso convivono le
+funzioni di tutte le app: copia `netlify/functions/api.js` e la cartella
+`netlify/functions/lib/` nelle funzioni del sito, rinominando il file in
+`tappy-api.js`. Le dipendenze (`airtable`, `express`, `serverless-http`)
+devono comparire nel `package.json` del sito condiviso.
+
+**3. I redirect, nel `netlify.toml` del sito condiviso.** L'ordine conta: la
+regola dell'API va **prima** di quella che serve la pagina, o le chiamate
+finirebbero nell'HTML.
+
+```toml
+[[redirects]]
+  from = "/tappy/api/*"
+  to = "/.netlify/functions/tappy-api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/tappy/*"
+  to = "/tappy/index.html"
+  status = 200
+```
+
+**4. Le variabili d'ambiente, con il prefisso dell'app.** Nel sito condiviso
+tutte le funzioni vedono tutte le variabili, quindi ognuna deve avere le sue:
+
+```
+TAPPY_AIRTABLE_API_KEY=pat...
+TAPPY_AIRTABLE_BASE_ID=app...
+```
+
+Il backend legge prima queste e poi, se assenti, quelle senza prefisso — così
+lo stesso codice funziona sia qui sia su un sito dedicato.
+
+⚠️ **Un token per app, abilitato solo sulla sua base.** Nel sito condiviso le
+funzioni girano nello stesso ambiente e vedono le variabili di tutte: se il
+token di tappy avesse accesso anche alla base dell'hub, un errore in tappy
+potrebbe scrivere lì. La separazione la fa il token, non la cartella.
+
+Nel catalogo dell'hub, la tile di tappy punterà a
+`https://<sito-condiviso>/tappy/`, e l'auto-login arriverà come
+`https://<sito-condiviso>/tappy/#code=FRU-XXXX-XXXX`.
+
+## 7. Comandi utili
 
 Tutti dalla radice del repo.
 
 | Comando | Cosa fa |
 |---|---|
-| `netlify dev` | client + API insieme, come in produzione (`:8888`) |
+| `npm run doctor` | controlla tutto l'ambiente e dice cosa manca |
+| `npm run setup-env` | crea il `.env` con le credenziali per lo sviluppo in locale |
+| `npm run check-airtable` | verifica che tabelle e campi della base siano quelli giusti (sola lettura) |
+| `npm run dev` | client + API insieme, come in produzione (`:8888`) |
 | `npm test` | i test dell'autenticazione Fru Pass (non toccano la rete, non servono credenziali) |
 | `cd client && npm run dev` | solo il client, senza backend — utile per lavorare sulla grafica |
 | `cd client && npm run build` | verifica che compili prima di pushare |
 | `cd client && npm run lint` | controllo statico |
 
-## 6. L'automazione Apple Pay
+## 8. L'automazione Apple Pay
 
 **È un'automazione, non un comando rapido da lanciare a mano**: si crea
 nell'app Comandi Rapidi, scheda **Automazione**, e scatta da sé quando arriva

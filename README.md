@@ -50,10 +50,10 @@ funzione serverless) sono nello stesso deploy. I dati sono su **Airtable**
 3. **Non serve creare utenti a mano.** Al primo accesso con un codice Fru
    Pass valido, tappy crea da sé l'utente su Airtable con le 4 categorie di
    default. Il codice te lo dà l'amministratore dell'ecosistema.
-4. **In locale** (richiede la [Netlify CLI](https://docs.netlify.com/cli/get-started/), `npm install -g netlify-cli`):
+4. **In locale** (`npm run dev` usa la [Netlify CLI](https://docs.netlify.com/cli/get-started/) via `npx`, senza installarla):
    ```bash
    cd client && npm install && cd ..
-   AIRTABLE_API_KEY=... AIRTABLE_BASE_ID=... netlify dev
+   npm run dev
    ```
    Apri l'URL stampato (di solito `http://localhost:8888`) e inserisci il
    tuo codice Fru Pass.

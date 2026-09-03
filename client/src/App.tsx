@@ -85,7 +85,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-full flex flex-col max-w-md mx-auto relative">
+    <div className="h-full flex flex-col max-w-md mx-auto relative bg-base dark:bg-base-dark">
       <Header scrolled={scrolled} />
 
       {/* pb generoso: sotto ci sono nav e riga della versione, e l'ultima card

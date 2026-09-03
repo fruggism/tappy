@@ -1,0 +1,15 @@
+<!-- Icona di tappy: l'anello segmentato del gauge, che è il segno più
+     riconoscibile dell'app, con il punto luminoso che ne percorre l'arco.
+     Da qui si generano i PNG del manifest (scripts/genera-icone.mjs). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="114" fill="#000000"/>
+  <g fill="none" stroke-width="34" stroke-linecap="round" transform="rotate(-90 256 256)">
+    <circle cx="256" cy="256" r="150" stroke="#1c1c1f"/>
+    <!-- tre segmenti come le categorie nel gauge: verde, ciano, rosa -->
+    <path d="M256 106 A150 150 0 0 1 362 150" stroke="#39ff88"/>
+    <path d="M368 156 A150 150 0 0 1 400 220" stroke="#00e5ff"/>
+    <path d="M404 236 A150 150 0 0 1 396 300" stroke="#ff2ecb"/>
+  </g>
+  <!-- il punto luminoso in fondo all'arco consumato -->
+  <circle cx="378" cy="330" r="23" fill="#ffffff"/>
+</svg>

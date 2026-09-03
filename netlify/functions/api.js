@@ -20,10 +20,47 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Normalizza il path indipendentemente da come Netlify invoca la funzione
-// (via redirect "/api/*" o chiamata diretta "/.netlify/functions/api/*").
+// Attraverso serverless-http il corpo della richiesta arriva come Buffer, che
+// express.json lascia intatto: senza questo, ogni rotta riceve un Buffer al
+// posto dell'oggetto e risponde "campo mancante". Non si nota provando
+// l'app Express direttamente — solo passando dal gestore, cioe' come gira
+// davvero su Netlify.
 app.use((req, _res, next) => {
-  req.url = req.url.replace(/^\/\.netlify\/functions\/api/, "").replace(/^\/api/, "") || "/";
+  if (Buffer.isBuffer(req.body) || typeof req.body === "string") {
+    const grezzo = req.body.toString("utf8").trim();
+    try {
+      req.body = grezzo ? JSON.parse(grezzo) : {};
+    } catch {
+      req.body = {};
+    }
+  }
+  if (!req.body) req.body = {};
+  next();
+});
+
+// Normalizza il percorso, che cambia a seconda di come si arriva qui:
+//
+//   /api/auth/login                          sito dedicato, via redirect
+//   /tappy/api/auth/login                    dentro l'hub, via redirect
+//   /.netlify/functions/tappy-api/auth/login  chiamata diretta alla funzione
+//
+// Il nome della funzione non è fisso: dentro l'hub è rinominata per non
+// collidere con quelle delle altre app. Riconoscerne uno solo faceva
+// rispondere 404 a tutto, con l'app che sembrava a posto fino all'accesso.
+function normalizzaPercorso(url) {
+  return (
+    url
+      // qualunque nome abbia la funzione
+      .replace(/^\/\.netlify\/functions\/[^/?]+/, "")
+      // prefisso dell'app dentro l'hub: /tappy/api/...
+      .replace(/^\/[A-Za-z0-9_-]+\/api(?=\/|\?|$)/, "")
+      // sito dedicato: /api/...
+      .replace(/^\/api(?=\/|\?|$)/, "") || "/"
+  );
+}
+
+app.use((req, _res, next) => {
+  req.url = normalizzaPercorso(req.url);
   if (!req.url.startsWith("/")) req.url = "/" + req.url;
   next();
 });
@@ -203,7 +240,7 @@ router.post("/webhook/applepay", async (req, res) => {
     const user = await db.getUserByApiKey(req.header("x-api-key"));
     if (!user) return res.status(401).json({ error: "invalid api key" });
 
-    const { amount, name, card, category, date, time, note } = req.body;
+    const { amount, name, card, category, date, time, note, lat, lon } = req.body;
     if (amount === undefined || !name) {
       return res.status(400).json({ error: "amount and name required" });
     }
@@ -234,6 +271,10 @@ router.post("/webhook/applepay", async (req, res) => {
       note,
       date,
       time,
+      // L'automazione le manda solo se è riuscita a leggere la posizione e se
+      // l'utente non l'ha disattivata: qui non sono mai obbligatorie.
+      lat: Number(lat),
+      lon: Number(lon),
     });
     res.status(201).json(tx);
   } catch (err) {
@@ -247,3 +288,5 @@ app.use(router);
 module.exports.handler = serverless(app);
 // Esportata anche l'app nuda, così si può testare senza simulare un evento Lambda.
 module.exports.app = app;
+// Esportata per i test: è la parte che dipende da come l'app è montata.
+module.exports.normalizzaPercorso = normalizzaPercorso;

@@ -2,6 +2,10 @@ import { useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { api } from "../lib/api";
 import { accent } from "../lib/accent";
+// Il prefisso vero del backend, non quello finto del mock: l'URL del webhook
+// deve restare valido anche mentre si sviluppa con i dati finti.
+import { API_BASE } from "../lib/realApi";
+import InstallaApp from "../components/InstallaApp";
 import type { Category } from "../lib/types";
 
 const PALETTE = ["#39ff88", "#00e5ff", "#ff2ecb", "#a3a3ff", "#ffcf4d", "#ff6b6b"];
@@ -79,8 +83,17 @@ export default function Impostazioni() {
   const [newCatName, setNewCatName] = useState("");
   const [newCatColor, setNewCatColor] = useState(PALETTE[0]);
   const [copied, setCopied] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
-  const webhookUrl = `${window.location.origin}/api/webhook/applepay`;
+  // Deve tenere conto del prefisso: dentro il sito condiviso dell'hub l'app
+  // vive in una sottocartella e l'API sta sotto /tappy/api.
+  const webhookUrl = `${window.location.origin}${API_BASE}/api/webhook/applepay`;
+
+  async function copyWebhookUrl() {
+    await navigator.clipboard.writeText(webhookUrl);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 1500);
+  }
 
   async function copyApiKey() {
     if (!user?.api_key) return;
@@ -279,9 +292,17 @@ export default function Impostazioni() {
             <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">
               URL webhook
             </span>
-            <code className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-footnote break-all">
-              {webhookUrl}
-            </code>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-footnote break-all">
+                {webhookUrl}
+              </code>
+              <button
+                onClick={copyWebhookUrl}
+                className="text-footnote rounded-lg bg-ink dark:bg-white text-white dark:text-black px-3 py-2 shrink-0"
+              >
+                {copiedUrl ? "Copiato!" : "Copia"}
+              </button>
+            </div>
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">
@@ -303,6 +324,7 @@ export default function Impostazioni() {
       </section>
 
       <section className="flex flex-col gap-3">
+        <InstallaApp />
         <button
           onClick={logout}
           className="rounded-xl bg-surface dark:bg-surface-dark text-muted dark:text-muted-dark text-callout py-2.5"

@@ -10,6 +10,28 @@ html,
 body,
 #root {
   height: 100%;
+  /* Su iPhone `100%` è l'altezza della pagina, che include lo spazio coperto
+     dalla barra di Safari: il fondo dell'app — cioè la pulsantiera e la riga
+     della versione — finiva sotto la piega, visibile solo scorrendo.
+     `svh` è l'altezza davvero visibile con la barra mostrata, quindi la
+     pulsantiera resta in fondo allo schermo in ogni stato. */
+  height: 100svh;
+}
+
+/* La pagina non scorre: scorre il contenuto dentro <main>. Senza questo,
+   su iOS il "rimbalzo" trascina anche la pulsantiera. */
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Sfondo coerente anche nell'area del notch/status bar (con viewport-fit=cover
+   il body non copre quella striscia, quindi va colorata anche a livello di html). */
+html {
+  background-color: #f5f5f7;
+}
+html.dark {
+  background-color: #000000;
 }
 
 /* Sfondo coerente anche nell'area del notch/status bar (con viewport-fit=cover
@@ -25,11 +47,14 @@ html.dark {
    4.5:1 su #f5f5f7 (i fluo puri non passano il contrasto su fondo chiaro), in
    scuro i fluo originali. Vedi tailwind.config.js -> colors.acc. */
 :root {
-  --acc-green: #00b25a;
-  --acc-pink: #d1008f;
-  --acc-cyan: #0087a8;
-  --acc-violet: #6b6bd8;
-  --acc-amber: #a86e00;
+  /* Verificati a 4.5:1 su #f5f5f7: i valori proposti nel pacchetto
+     stavano fra 2.5:1 e 3.9:1, sotto la soglia che il pacchetto stesso
+     dichiarava. Stessa tinta, solo abbassati finche' il contrasto regge. */
+  --acc-green: #008241;
+  --acc-pink: #d6008f;
+  --acc-cyan: #007b94;
+  --acc-violet: #5e5eeb;
+  --acc-amber: #996600;
 }
 html.dark {
   --acc-green: #39ff88;
@@ -64,6 +89,24 @@ body {
   animation: rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Sforamento budget: l'anello rosso "extra giro" respira per segnalare l'allarme
+   senza essere frenetico — non un lampeggio, un battito lento e continuo. */
+@keyframes overflowPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    filter: drop-shadow(0 0 3px #ff2ecb99);
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 10px #ff2ecbee);
+  }
+}
+
+.gauge-overflow-pulse {
+  animation: overflowPulse 1.8s ease-in-out infinite;
+}
+
 /* Codice rifiutato al login: una scossa breve, non un lampeggio. */
 @keyframes shake {
   0%,
@@ -83,6 +126,11 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .gauge-overflow-pulse {
+    animation: none;
+    opacity: 1;
+  }
+
   .animate-shake {
     animation: none;
   }
@@ -125,4 +173,31 @@ body {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Tema scuro della mappa: le tessere di OpenStreetMap sono solo chiare, e si
+   invertono. Il filtro è sul pane delle tessere, non sul contenitore: la
+   heatmap e i controlli devono restare con i loro colori. */
+.mappa-scura .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+}
+
+/* Attribuzione e controlli restano fuori dal filtro, quindi sul tema scuro
+   sarebbero due rettangoli bianchi: si vestono a mano. L'attribuzione resta
+   leggibile — è la condizione d'uso delle tessere, non un dettaglio da
+   sbiadire. */
+.mappa-scura .leaflet-control-attribution {
+  background: rgba(17, 17, 19, 0.85);
+  color: #9a9aa2;
+}
+.mappa-scura .leaflet-control-attribution a {
+  color: #c8c8d0;
+}
+.mappa-scura .leaflet-bar a {
+  background: #111113;
+  color: #f5f5f7;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+.mappa-scura .leaflet-bar a:hover {
+  background: #1c1c1f;
 }

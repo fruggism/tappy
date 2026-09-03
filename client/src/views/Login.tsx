@@ -28,15 +28,12 @@ export default function Login() {
     try {
       await login(codice);
     } catch (err) {
+      // Il messaggio arriva già scritto da callAuth: distingue "Fru Pass è
+      // giù" da "il nostro backend ha un problema", che sono cose diverse e
+      // si risolvono in posti diversi.
       const irraggiungibile = err instanceof FruPassUnreachable;
       setColpaNostra(!irraggiungibile);
-      setErrore(
-        irraggiungibile
-          ? "Fru Pass non risponde, riprova tra poco"
-          : err instanceof Error
-            ? err.message
-            : "Accesso non riuscito"
-      );
+      setErrore(err instanceof Error ? err.message : "Accesso non riuscito");
       // Il testo NON si cancella: chi ha sbagliato un carattere lo corregge.
       if (!irraggiungibile) {
         setScuote(true);

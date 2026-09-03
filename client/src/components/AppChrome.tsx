@@ -119,13 +119,24 @@ export function Header({ scrolled = false }: { scrolled?: boolean }) {
 export function Dock({ children }: { children: ReactNode }) {
   return (
     <div
-      className="absolute bottom-0 left-0 right-0 px-4"
+      className="absolute bottom-0 left-0 right-0 px-4 pointer-events-none"
       style={{ paddingBottom: "max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))" }}
     >
-      {children}
-      <div className="flex flex-col items-center gap-0.5 pt-2 pb-1 text-muted dark:text-muted-dark">
-        <FruPassMark className="opacity-60" />
-        <span className="text-caption tabular-nums opacity-70">{__APP_VERSION__}</span>
+      {/* Il contenuto scorre sotto la pulsantiera — che è traslucida, ed è
+          voluto — ma la riga della versione non ha uno sfondo suo e ci si
+          sovrapporrebbe. Questa sfumatura lo fa sparire appena prima. */}
+      <div
+        className="absolute inset-x-0 bottom-0 -top-6 bg-gradient-to-t
+                   from-base via-base to-transparent
+                   dark:from-base-dark dark:via-base-dark"
+      />
+
+      <div className="relative pointer-events-auto">
+        {children}
+        <div className="flex flex-col items-center gap-0.5 pt-2 pb-1 text-muted dark:text-muted-dark">
+          <FruPassMark className="opacity-60" />
+          <span className="text-caption tabular-nums opacity-70">{__APP_VERSION__}</span>
+        </div>
       </div>
     </div>
   );

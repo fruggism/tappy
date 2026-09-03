@@ -36,10 +36,13 @@ function formatRangeShort(period: Period, r: { from: string; to: string }) {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
+// Etichette corte: con "Giornaliero"/"Settimanale" la riga non ci sta su un
+// iPhone stretto e spinge fuori dalla card l'icona della macchina del tempo.
+// Sono anche le stesse parole della vista mappa.
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
-  { value: "day", label: "Giornaliero" },
-  { value: "week", label: "Settimanale" },
-  { value: "month", label: "Mensile" },
+  { value: "day", label: "Giorno" },
+  { value: "week", label: "Settimana" },
+  { value: "month", label: "Mese" },
 ];
 
 // Calcola l'intervallo di un periodo (giorno/settimana/mese) ancorato a una data
@@ -616,8 +619,15 @@ function HeroCard({
   return (
     <div className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col items-center gap-4">
       <div className="w-full flex items-center justify-between gap-2">
-        <SegmentedControl options={PERIOD_OPTIONS} value={period} onChange={onPeriodChange} />
-        <TimeTravelMenu travelDate={travelDate} today={now} onPick={onTravelDateChange} />
+        <SegmentedControl
+          options={PERIOD_OPTIONS}
+          value={period}
+          onChange={onPeriodChange}
+          className="min-w-0"
+        />
+        <div className="shrink-0">
+          <TimeTravelMenu travelDate={travelDate} today={now} onPick={onTravelDateChange} />
+        </div>
       </div>
 
       <div className="w-full flex items-center justify-center gap-3">

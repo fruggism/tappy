@@ -74,11 +74,29 @@ async function callAuth(code: string, action: "login" | "refresh"): Promise<FruP
       body: JSON.stringify({ code: canonicalCode(code) }),
     });
   } catch {
-    throw new FruPassUnreachable("Fru Pass non raggiungibile");
+    // Nemmeno la nostra API risponde: backend spento, o nessuna rete.
+    throw new FruPassUnreachable("Impossibile contattare il server");
   }
 
   if (res.status === 401) throw new Error("Codice non riconosciuto");
-  if (!res.ok) throw new FruPassUnreachable("Fru Pass non raggiungibile, riprova");
+
+  if (!res.ok) {
+    // I due casi vanno distinti, o si passa il tempo a cercare un guasto
+    // dell'ecosistema che non c'è: 503 è l'unico che il nostro backend
+    // restituisce quando è davvero Fru Pass a non rispondere. Tutto il
+    // resto è un problema nostro — funzione che non parte, rotta non
+    // instradata, errore interno — e va detto com'è.
+    if (res.status === 503) {
+      throw new FruPassUnreachable("Fru Pass non risponde, riprova tra poco");
+    }
+    const dettaglio = await res
+      .json()
+      .then((d) => d?.error)
+      .catch(() => null);
+    throw new FruPassUnreachable(
+      dettaglio ? `Errore del server: ${dettaglio}` : `Errore del server (${res.status})`
+    );
+  }
 
   const data = await res.json();
   return data.profile as FruPassProfile;
