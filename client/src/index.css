@@ -92,3 +92,30 @@ body {
     animation: none;
   }
 }
+
+/* Tema scuro della mappa: le tessere di OpenStreetMap sono solo chiare, e si
+   invertono. Il filtro è sul pane delle tessere, non sul contenitore: la
+   heatmap e i controlli devono restare con i loro colori. */
+.mappa-scura .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+}
+
+/* Attribuzione e controlli restano fuori dal filtro, quindi sul tema scuro
+   sarebbero due rettangoli bianchi: si vestono a mano. L'attribuzione resta
+   leggibile — è la condizione d'uso delle tessere, non un dettaglio da
+   sbiadire. */
+.mappa-scura .leaflet-control-attribution {
+  background: rgba(17, 17, 19, 0.85);
+  color: #9a9aa2;
+}
+.mappa-scura .leaflet-control-attribution a {
+  color: #c8c8d0;
+}
+.mappa-scura .leaflet-bar a {
+  background: #111113;
+  color: #f5f5f7;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+.mappa-scura .leaflet-bar a:hover {
+  background: #1c1c1f;
+}
