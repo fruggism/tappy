@@ -16,11 +16,23 @@ const crypto = require("crypto");
 const Airtable = require("airtable");
 const { canonicalCode } = require("./frupass");
 
+// Quando tappy vive dentro il sito Netlify condiviso dell'hub, tutte le app
+// dello stesso sito vedono le stesse variabili d'ambiente: quelle con
+// prefisso TAPPY_ dicono quali sono le nostre. Da sole su un sito dedicato
+// bastano invece le generiche.
+function credenziali() {
+  return {
+    apiKey: process.env.TAPPY_AIRTABLE_API_KEY || process.env.AIRTABLE_API_KEY,
+    baseId: process.env.TAPPY_AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE_ID,
+  };
+}
+
 function getBase() {
-  const apiKey = process.env.AIRTABLE_API_KEY;
-  const baseId = process.env.AIRTABLE_BASE_ID;
+  const { apiKey, baseId } = credenziali();
   if (!apiKey || !baseId) {
-    throw new Error("AIRTABLE_API_KEY e AIRTABLE_BASE_ID devono essere impostate");
+    throw new Error(
+      "Servono TAPPY_AIRTABLE_API_KEY e TAPPY_AIRTABLE_BASE_ID (o le equivalenti senza prefisso)"
+    );
   }
   return new Airtable({ apiKey }).base(baseId);
 }
@@ -79,6 +91,8 @@ function transactionFromRecord(r) {
     card_id: r.get("CardId") || null,
     category_id: r.get("CategoryId"),
     source: r.get("Source") || "manual",
+    lat: r.get("Lat") ?? null,
+    lon: r.get("Lon") ?? null,
     is_income: r.get("IsIncome") ? 1 : 0,
     note: r.get("Note") || null,
     created_at: r.get("CreatedAt") || null,
@@ -284,12 +298,23 @@ async function createTransaction(userId, data) {
   };
   if (data.card_id) fields.CardId = data.card_id;
   if (data.note) fields.Note = data.note;
+  // Le coordinate sono facoltative: si scrivono solo se arrivano davvero,
+  // così una spesa senza posizione resta con i campi vuoti invece che a 0,0
+  // (che è un punto reale, nel golfo di Guinea).
+  if (Number.isFinite(data.lat) && Number.isFinite(data.lon)) {
+    fields.Lat = data.lat;
+    fields.Lon = data.lon;
+  }
   const r = await table("Transactions").create(fields);
   return transactionFromRecord(r);
 }
 
 async function updateTransaction(id, data) {
   const patch = {};
+  // null cancella la posizione: dal dettaglio di un movimento si deve poter
+  // togliere il luogo senza toccare il resto.
+  if (data.lat !== undefined) patch.Lat = data.lat === null ? null : data.lat;
+  if (data.lon !== undefined) patch.Lon = data.lon === null ? null : data.lon;
   if (data.amount !== undefined) patch.Amount = data.amount;
   if (data.my_share !== undefined) patch.MyShare = data.my_share;
   if (data.name !== undefined) patch.Name = data.name;
@@ -322,6 +347,7 @@ async function reassignTransactionsCategory(userId, fromCategoryId, toCategoryId
 }
 
 module.exports = {
+  credenziali,
   getUserByFrupasCode,
   getUserByApiKey,
   provisionUser,

@@ -22,7 +22,12 @@ const stubDb = {
   listCards: async () => [], findCardByName: async () => null,
   createCard: async (u, n) => ({ id: "cd1", name: n }),
   findOrCreateCategory: async () => ({ id: "c1", name: "Altro" }),
-  createTransaction: async (userId, d) => ({ id: "tx1", user_id: userId, ...d }),
+  createTransaction: async (userId, d) => {
+    // Riproduce la regola vera: le coordinate si scrivono solo se valide.
+    const riga = { id: "tx1", user_id: userId, ...d };
+    if (!Number.isFinite(d.lat) || !Number.isFinite(d.lon)) { riga.lat = null; riga.lon = null; }
+    return riga;
+  },
   listTransactions: async () => [],
 };
 
@@ -91,6 +96,18 @@ r = await chiama("POST", "/webhook/applepay", {
   body: { amount: 12.5, name: "Bar Roma" },
 });
 t("il webhook legge il corpo dell'automazione", r.status === 201 && r.body.amount === 12.5 && r.body.source === "applepay", r);
+
+r = await chiama("POST", "/webhook/applepay", {
+  headers: { "x-api-key": apiKey },
+  body: { amount: 3, name: "Bar", lat: 45.4642, lon: 9.19 },
+});
+t("il webhook registra la posizione quando arriva", r.body.lat === 45.4642 && r.body.lon === 9.19, r);
+
+r = await chiama("POST", "/webhook/applepay", {
+  headers: { "x-api-key": apiKey },
+  body: { amount: 3, name: "Bar" },
+});
+t("senza posizione la spesa passa lo stesso, con coordinate vuote", r.status === 201 && r.body.lat === null, r);
 
 console.log(`\n${ok} ok, ${ko} falliti`);
 process.exit(ko ? 1 : 0);

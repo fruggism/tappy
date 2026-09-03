@@ -21,6 +21,7 @@ const SCHEMA = {
   Transactions: [
     "UserId", "Date", "Time", "Amount", "MyShare", "Name",
     "CardId", "CategoryId", "Source", "IsIncome", "Note", "CreatedAt",
+    "Lat", "Lon",
   ],
 };
 
@@ -62,11 +63,12 @@ async function controlla(base, tabella, campi) {
 }
 
 async function main() {
-  const apiKey = process.env.AIRTABLE_API_KEY;
-  const baseId = process.env.AIRTABLE_BASE_ID;
+  // Nel sito condiviso dell'hub ogni app ha le sue variabili col prefisso.
+  const apiKey = process.env.TAPPY_AIRTABLE_API_KEY || process.env.AIRTABLE_API_KEY;
+  const baseId = process.env.TAPPY_AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE_ID;
 
   if (!apiKey || !baseId) {
-    console.error("Servono AIRTABLE_API_KEY e AIRTABLE_BASE_ID nell'ambiente.");
+    console.error("Servono AIRTABLE_API_KEY e AIRTABLE_BASE_ID nell'ambiente (o le TAPPY_*).");
     console.error("Esempio: AIRTABLE_API_KEY=pat... AIRTABLE_BASE_ID=app... npm run check-airtable");
     process.exit(1);
   }

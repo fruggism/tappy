@@ -34,6 +34,29 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// Poli di frequentazione finti (Milano), con una dispersione di qualche
+// centinaio di metri: una heatmap sviluppata su punti sparsi a caso non
+// somiglierebbe per niente a quella vera, dove le spese si addensano intorno
+// a casa, ufficio e due o tre posti abituali.
+const POLI = [
+  { lat: 45.4642, lon: 9.19 },    // centro
+  { lat: 45.4785, lon: 9.2272 },  // zona nord-est
+  { lat: 45.4508, lon: 9.1712 },  // zona sud-ovest
+  { lat: 45.4869, lon: 9.1905 },  // stazione
+];
+
+function posizioneFinta() {
+  // Una spesa su cinque resta senza posizione: succede anche nella realtà
+  // (automazione disattivata, GPS che non aggancia), e la UI deve reggerlo.
+  if (Math.random() < 0.2) return { lat: null, lon: null };
+  const polo = POLI[Math.floor(Math.random() * POLI.length)];
+  const scarto = () => (Math.random() - 0.5) * 0.012;
+  return {
+    lat: Math.round((polo.lat + scarto()) * 1e6) / 1e6,
+    lon: Math.round((polo.lon + scarto()) * 1e6) / 1e6,
+  };
+}
+
 function seed(): Db {
   const userId = uid();
   const user: User = {
@@ -83,6 +106,7 @@ function seed(): Db {
         category_id: cat.id,
         source: Math.random() < 0.7 ? "applepay" : "manual",
         is_income: 0,
+        ...posizioneFinta(),
         note: null,
         created_at: d.toISOString(),
       });
@@ -104,6 +128,8 @@ function seed(): Db {
       category_id: categories[0].id,
       source: "manual",
       is_income: 1,
+      lat: null,
+      lon: null,
       note: null,
       created_at: d.toISOString(),
     });
@@ -216,6 +242,8 @@ export const mockApi = {
       category_id: data.category_id ?? altro.id,
       source: data.source ?? "manual",
       is_income: data.is_income ?? 0,
+      lat: data.lat ?? null,
+      lon: data.lon ?? null,
       note: data.note ?? null,
       created_at: now.toISOString(),
     };

@@ -91,10 +91,14 @@ non danno errore, ma sporcano.
 | `IsIncome` | Checkbox |
 | `Note` | Single line text |
 | `CreatedAt` | Single line text |
+| `Lat` | Number (6 decimali) |
+| `Lon` | Number (6 decimali) |
 
 **Sui campi `Number`**: Airtable chiede la precisione. Metti **2 decimali**
 per `MonthlyBudget`, `Amount`, `MyShare` e `Budget`; **intero** per
-`SortOrder`. Con 0 decimali gli importi verrebbero arrotondati in silenzio.
+`SortOrder`; **6 decimali** per `Lat` e `Lon` (dove è avvenuta la spesa, riempiti dall'automazione e sempre
+facoltativi) — con meno, la posizione di una
+spesa si sposta di centinaia di metri e la mappa perde senso. Con 0 decimali gli importi verrebbero arrotondati in silenzio.
 
 **Non creare utenti a mano.** Al primo accesso con un codice Fru Pass valido,
 tappy crea da sé la riga in `Users`, le 4 categorie di default e una carta
@@ -204,6 +208,10 @@ funzione, ed è lì che compare il messaggio di Airtable.
 
 ## 6. Metti online su Netlify
 
+Due strade, a seconda di dove vive tappy.
+
+### A. Sito Netlify dedicato (il più semplice)
+
 1. [app.netlify.com](https://app.netlify.com) → **Add new site → Import an
    existing project** → GitHub → scegli il repo `tappy`.
 2. Branch da pubblicare: quello che decidiamo di mergiare su `main`.
@@ -220,6 +228,65 @@ funzione, ed è lì che compare il messaggio di Airtable.
 ⚠️ Le variabili d'ambiente vanno messe **prima** del primo deploy utile: se
 le aggiungi dopo, serve un **Trigger deploy → Clear cache and deploy site**,
 altrimenti la funzione gira ancora senza.
+
+### B. Dentro il sito condiviso dell'hub Fru Pass
+
+Se tappy sta nella stessa cartella delle altre app dell'ecosistema, servono
+quattro accorgimenti — il codice li supporta già, non va modificato.
+
+**1. La build del client va fatta per una sottocartella.** Altrimenti la
+pagina cerca i suoi file nella radice del sito e resta bianca:
+
+```bash
+VITE_BASE_PATH=/tappy/ VITE_API_URL=/tappy npm run build
+```
+
+`VITE_BASE_PATH` sistema i percorsi di script e fogli di stile,
+`VITE_API_URL` fa sì che il client chiami `/tappy/api/...` invece di
+`/api/...`. Il risultato (`client/dist`) va copiato nella cartella `tappy/`
+del sito condiviso.
+
+**2. La funzione deve avere un nome unico.** Nel sito condiviso convivono le
+funzioni di tutte le app: copia `netlify/functions/api.js` e la cartella
+`netlify/functions/lib/` nelle funzioni del sito, rinominando il file in
+`tappy-api.js`. Le dipendenze (`airtable`, `express`, `serverless-http`)
+devono comparire nel `package.json` del sito condiviso.
+
+**3. I redirect, nel `netlify.toml` del sito condiviso.** L'ordine conta: la
+regola dell'API va **prima** di quella che serve la pagina, o le chiamate
+finirebbero nell'HTML.
+
+```toml
+[[redirects]]
+  from = "/tappy/api/*"
+  to = "/.netlify/functions/tappy-api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/tappy/*"
+  to = "/tappy/index.html"
+  status = 200
+```
+
+**4. Le variabili d'ambiente, con il prefisso dell'app.** Nel sito condiviso
+tutte le funzioni vedono tutte le variabili, quindi ognuna deve avere le sue:
+
+```
+TAPPY_AIRTABLE_API_KEY=pat...
+TAPPY_AIRTABLE_BASE_ID=app...
+```
+
+Il backend legge prima queste e poi, se assenti, quelle senza prefisso — così
+lo stesso codice funziona sia qui sia su un sito dedicato.
+
+⚠️ **Un token per app, abilitato solo sulla sua base.** Nel sito condiviso le
+funzioni girano nello stesso ambiente e vedono le variabili di tutte: se il
+token di tappy avesse accesso anche alla base dell'hub, un errore in tappy
+potrebbe scrivere lì. La separazione la fa il token, non la cartella.
+
+Nel catalogo dell'hub, la tile di tappy punterà a
+`https://<sito-condiviso>/tappy/`, e l'auto-login arriverà come
+`https://<sito-condiviso>/tappy/#code=FRU-XXXX-XXXX`.
 
 ## 7. Comandi utili
 

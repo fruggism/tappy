@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { api } from "../lib/api";
+// Il prefisso vero del backend, non quello finto del mock: l'URL del webhook
+// deve restare valido anche mentre si sviluppa con i dati finti.
+import { API_BASE } from "../lib/realApi";
 import type { Category } from "../lib/types";
 
 const PALETTE = ["#39ff88", "#00e5ff", "#ff2ecb", "#a3a3ff", "#ffcf4d", "#ff6b6b"];
@@ -79,7 +82,10 @@ export default function Impostazioni() {
   const [newCatColor, setNewCatColor] = useState(PALETTE[0]);
   const [copied, setCopied] = useState(false);
 
-  const webhookUrl = `${window.location.origin}/api/webhook/applepay`;
+  // Deve tenere conto del prefisso: dentro il sito condiviso dell'hub l'app
+  // vive in una sottocartella e l'API sta sotto /tappy/api. Con l'origin
+  // secco, l'URL copiato nell'automazione punterebbe a una rotta inesistente.
+  const webhookUrl = `${window.location.origin}${API_BASE}/api/webhook/applepay`;
 
   async function copyApiKey() {
     if (!user?.api_key) return;
