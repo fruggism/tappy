@@ -16,7 +16,12 @@
     <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- NON rimettere "black-translucent": con quello iOS accorcia il viewport
+         dell'altezza della status bar (793 invece di 852 su iPhone 15) ma
+         continua a disegnarlo da y=0, e i 59px avanzati restano in fondo,
+         irraggiungibili. La pulsantiera, ancorata al fondo del viewport,
+         galleggiava lì sopra: misurato sul dispositivo il 2026-09-03. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="mobile-web-app-capable" content="yes" />
     <title>tappy</title>
   </head>

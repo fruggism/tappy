@@ -10,7 +10,6 @@
 //   iPhone mangiano un quarto dello schermo e competono per la stessa area
 //   del pollice. La riga con marchio e versione sta sotto la nav, nella
 //   fascia dell'home indicator.
-import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useApp } from "../lib/AppContext";
 import { FRUPASS_HUB_URL, FruPassMark } from "./FruPass";
@@ -112,42 +111,6 @@ export function Header({ scrolled = false }: { scrolled?: boolean }) {
 }
 
 /**
- * Quanto, in fondo alla finestra, è coperto da qualcosa che il CSS non
- * dichiara: su iPhone la barra di Safari, che entra ed esce, e in generale
- * ogni differenza fra la finestra e l'area davvero visibile.
- *
- * `position: fixed` si ancora al fondo della *finestra*, che non è sempre il
- * fondo di ciò che si vede: è per questo che la pulsantiera restava a
- * mezz'aria con una striscia vuota sotto, e né `svh`, né `dvh`, né `fixed` da
- * soli bastavano. `visualViewport` è l'unica misura che dice davvero quanto
- * spazio è visibile, e la si legge invece di dedurla.
- *
- * La tastiera aperta ritaglia la stessa misura, ma lì il comportamento
- * giusto è l'opposto: la pulsantiera deve restare in basso e farsi coprire,
- * non salire a galla sopra la tastiera. Sopra i 150px si assume che sia
- * quello e si lascia stare.
- */
-function useFondoNascosto() {
-  const [fondo, setFondo] = useState(0);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const aggiorna = () => {
-      const coperto = window.innerHeight - vv.height - vv.offsetTop;
-      setFondo(coperto > 0 && coperto < 150 ? Math.round(coperto) : 0);
-    };
-    aggiorna();
-    vv.addEventListener("resize", aggiorna);
-    vv.addEventListener("scroll", aggiorna);
-    return () => {
-      vv.removeEventListener("resize", aggiorna);
-      vv.removeEventListener("scroll", aggiorna);
-    };
-  }, []);
-  return fondo;
-}
-
-/**
  * La pulsantiera, ancorata in fondo allo schermo. Sotto non c'è niente: lo
  * spazio in basso serve a quello che conta, non a un piè di pagina sempre
  * acceso. Marchio e versione stanno in coda al contenuto, e si vedono
@@ -161,14 +124,10 @@ function useFondoNascosto() {
  * dell'app la ridà il contenitore interno, uguale a quello di App.
  */
 export function Dock({ children }: { children: ReactNode }) {
-  const fondoNascosto = useFondoNascosto();
   return (
     <div
-      className="fixed left-0 right-0 z-20 pointer-events-none"
-      style={{
-        bottom: fondoNascosto,
-        paddingBottom: "max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))",
-      }}
+      className="fixed bottom-0 left-0 right-0 z-20 pointer-events-none"
+      style={{ paddingBottom: "max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))" }}
     >
       {/* Il contenuto scorre sotto la pulsantiera, che è traslucida: la
           sfumatura lo fa svanire invece di farlo sbucare a metà. Sta fuori
