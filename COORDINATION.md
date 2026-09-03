@@ -98,7 +98,7 @@ Quello che ricevi da me per ogni idea: *cosa* si costruisce, *chi* lo fa,
 |---|---|---|
 | 1 — UI su dati mock | ✅ fatta | UI Expert + UI Developer |
 | 2 — collegamento ai dati reali | ✅ funzionante in locale: accesso Fru Pass verificato con un codice vero, dati su Airtable | Backend & Deploy |
-| 3 — Comando Rapido + vista di dettaglio | ❌ da fare | Shortcuts + UI Developer |
+| 3 — automazione + vista di dettaglio | ⏳ dettaglio fatto; l'automazione aspetta il deploy | Automazioni + UI Developer |
 | 4 — integrazione fru-pass | 🆕 pianificata, F0 chiuso | Backend & Deploy (§6) |
 
 Ordine consigliato: **la Fase 2 sblocca tutto il resto.** Il Comando Rapido
@@ -331,11 +331,11 @@ resta senza dati e avremmo costruito una vista vuota.
 | # | Task | Agent | Dipende da |
 |---|---|---|---|
 | G0 ✅ | ~~Scelta sulla libreria~~ — **decisa: Leaflet + strato heat**, eccezione registrata in §4 | fatto | — |
-| G1 ⬅ **prossimo, e tocca a te** | **Verifica sull'iPhone**: l'automazione riesce a leggere la posizione quando scatta da sé? Solo questo, prima di tutto il resto | Automazioni | — |
+| G1 ⏳ **a metà, tocca a te** | Lanciata a mano la posizione arriva; resta da provare con un pagamento vero, a telefono bloccato — | **Verifica sull'iPhone**: l'automazione riesce a leggere la posizione quando scatta da sé? Solo questo, prima di tutto il resto | Automazioni | — |
 | G2 ✅ | *Fatto.* `lat`/`lon` in `types.ts`, nella tabella `Transactions`, nel webhook, in `mockApi` e negli script di verifica dello schema | Backend & Deploy | G1 |
 | G3 | L'automazione manda `lat`/`lon` al webhook, con l'opzione di non mandarli | Automazioni | G1, G2 |
-| G4 | Spec della vista mappa: come si entra da Movimenti, il selettore di periodo (giorno/mese/anno), la resa della heatmap nei due temi, lo stato vuoto («nessun movimento con posizione in questo periodo»), l'attribuzione OSM, e come si cancella una posizione | UI Expert | G0 |
-| G5 | Implementazione della vista mappa | UI Developer | G4, G2 |
+| G4 ✅ | *Fatto* (`design/G4-mappa.md`). Spec della vista mappa: come si entra da Movimenti, il selettore di periodo (giorno/mese/anno), la resa della heatmap nei due temi, lo stato vuoto («nessun movimento con posizione in questo periodo»), l'attribuzione OSM, e come si cancella una posizione | UI Expert | G0 |
+| G5 ✅ | *Fatto.* Implementazione della vista mappa, con Leaflet caricato solo all'apertura | UI Developer | G4, G2 |
 
 **Attenzione a una collisione**: il pacchetto grafico in lavorazione riscrive
 buona parte di `Movimenti.tsx` (controlli, chip, raggruppamento per giorno).
@@ -346,3 +346,34 @@ intreccio. Chi implementa G5 lo rispetti, o i due lavori si scontrano.
 **G1 prima di tutto**: è l'unico punto che può far cadere l'intera idea, e
 costa mezz'ora. Costruire mappa e schema prima di sapere se l'iPhone
 collabora sarebbe il modo più caro di scoprirlo.
+
+
+---
+
+## 9. Cosa resta prima di passare all'hub
+
+Fotografia al momento del deploy su un sito Netlify dedicato.
+
+**Fatto e verificato:**
+
+- accesso Fru Pass con codice reale, dati su Airtable, auto-login dall'hub;
+- header, dock e schermata di accesso (F5);
+- vista di dettaglio del movimento, con rimozione della posizione;
+- mappa "Dove ho speso" con heatmap, filtrabile per giorno/mese/anno;
+- strumenti di verifica dell'ambiente (`doctor`, `check-airtable`, `setup-env`).
+
+**Resta, e dipende da altri:**
+
+| Cosa | Da chi | Note |
+|---|---|---|
+| L'automazione vera (F7 + G3) | tu, dopo il deploy | contratto e istruzioni in `shortcuts/AUTOMAZIONE.md`; restano due verifiche sull'iPhone |
+| Il pacchetto grafico (token tipografici, contrasto, `SpendingClock`, controlli di Movimenti) | il developer grafico | vedi `ERRATA-implementazione-UI.md` |
+| Logo Fru Pass e URL dell'hub | l'amministratore | `RELEASE-HUB.md` §1 |
+
+**Un difetto noto e non ancora corretto**: `#39ff88` su fondo chiaro sta a
+1.4:1, sotto ogni soglia di leggibilità, e compare anche nel codice di F5
+(il `py` del wordmark, l'anello di focus del campo codice). La correzione è
+il §2 del pacchetto grafico, che introduce una variante accessibile
+dell'accento: **non va fatta due volte**, o i due lavori si scontrano su
+`tailwind.config.js` e `index.css`. Se il pacchetto non arriva, la si fa a
+parte — ma non prima di saperlo.
