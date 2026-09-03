@@ -36,6 +36,17 @@ textarea:not([hidden]) {
   font-size: 16px;
 }
 
+/* Niente zoom col doppio tocco, e niente attesa di 300ms sui tocchi: sono
+   due facce dello stesso comportamento da pagina web. La mappa è esclusa —
+   `touch-action: none` lascia a Leaflet il controllo completo dei gesti,
+   pinch compreso. */
+body {
+  touch-action: manipulation;
+}
+.leaflet-container {
+  touch-action: none;
+}
+
 /* La pagina non scorre: scorre il contenuto dentro <main>. Senza questo,
    su iOS il "rimbalzo" trascina anche la pulsantiera. */
 body {
