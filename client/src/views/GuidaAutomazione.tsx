@@ -194,8 +194,13 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
         >
           <p>
             Cerca l&apos;azione <b>Ottieni contenuti dall&apos;URL</b> e aggiungila per ultima.
-            Toccala per aprirla e imposta:
           </p>
+          <p className="text-ink dark:text-ink-dark">
+            Appena aggiunta mostra solo il campo dell&apos;indirizzo: tocca{" "}
+            <b>Mostra altro</b> per far comparire tutto il resto. È il passaggio che manda in
+            confusione, perché senza di esso metodo, intestazioni e corpo non si vedono.
+          </p>
+          <p>Poi imposta, uno alla volta:</p>
           <ul className="list-disc pl-4 flex flex-col gap-1">
             <li>
               <b>URL</b>: l&apos;indirizzo copiato al passo 1
@@ -224,8 +229,17 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
             </table>
           </div>
           <p>
-            I valori della terza colonna non si scrivono: si scelgono. Tocca il campo e prendili
-            dai suggerimenti che compaiono sopra la tastiera.
+            Ogni riga si aggiunge con <b>Aggiungi nuovo campo</b>: prima scegli il tipo (Testo o
+            Numero), poi scrivi il nome esatto della prima colonna, poi tocca il valore.
+          </p>
+          <p>
+            I valori della terza colonna <b>non si scrivono</b>: si scelgono. Toccando il campo,
+            sopra la tastiera compare una barra con le variabili disponibili — <i>Importo</i>,{" "}
+            <i>Esercente</i> e le altre sono lì.
+          </p>
+          <p className="text-footnote">
+            Se stai anche scegliendo la categoria da un elenco, aggiungi un settimo campo:{" "}
+            <code>category</code>, tipo Testo, valore <i>Elemento selezionato</i>.
           </p>
         </Passo>
 
