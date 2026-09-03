@@ -89,71 +89,77 @@ lettera.
       codice, e nessun riferimento alla base dell'hub
 - [ ] Il token Airtable di tappy è abilitato **solo** sulla base `tappy`
       (vedi `SETUP.md` §2)
-- [ ] `npm run esporta` passa tutti i controlli, col dominio vero
+- [ ] `npm run esporta` passa tutti i controlli
 - [ ] La cartella è su GitHub, sul branch `export-frupass`
 - [ ] Pulsante "Installa app", `manifest.json` e icone presenti (fatto)
 
-## 4. Preparare la cartella per l'hub
+## 4. Preparare la consegna per l'hub
 
-L'hub vuole una cartella **statica e autosufficiente**, da copiare in
-`frupass-hub/tappy/`. Tappy però ha un backend — è il motivo per cui esiste,
-visto che l'automazione deve poter scrivere una spesa. La guida
-dell'ecosistema lo prevede: l'identità arriva dall'hub, i dati stanno «su un
-tuo backend separato».
+L'hub vuole una cartella statica. Tappy però ha anche un **backend**, ed è il
+motivo per cui esiste: al pagamento un'automazione dell'iPhone manda la spesa
+a un endpoint, e un file statico non può riceverla.
 
-Quindi la sistemazione è questa:
+Il sito dell'hub **è un sito Netlify**, quindi può ospitare anche quella
+funzione: non serve un secondo deploy. È la strada consigliata — un dominio
+solo, nessuna chiamata cross-origin, e l'automazione punta allo stesso posto
+dell'app.
 
-- **Nell'hub** va solo il frontend, statico, con percorsi relativi.
-- **Il backend resta sul sito Netlify di tappy** e viene chiamato da un altro
-  dominio. Il webhook dell'automazione continua a puntare lì, e non cambia
-  quando l'app entra nell'hub.
+```bash
+npm run esporta
+```
 
-Serve quindi il dominio del sito Netlify di tappy, e va passato all'export:
+Produce tre cose in `export/`:
+
+| | Dove va |
+|---|---|
+| `tappy/` | `frupass-hub/tappy/` — il frontend, non richiede altro |
+| `hub/netlify/functions/` | nelle funzioni del sito dell'hub (`tappy-api.js` è già rinominata, così non collide con le altre app) |
+| `ISTRUZIONI-HUB.md` | per l'amministratore: le quattro aggiunte al progetto dell'hub |
+
+Le quattro aggiunte sono: la funzione, tre dipendenze nel `package.json` del
+sito, due redirect nel `netlify.toml`, e due variabili d'ambiente
+`TAPPY_AIRTABLE_*`. Nessuna tocca le altre app.
+
+### Se l'amministratore non vuole toccare il progetto dell'hub
+
+Allora il backend va su un sito Netlify separato di tappy, e nell'hub entra
+solo il frontend, che lo chiama da un'altra origine:
 
 ```bash
 TAPPY_API_URL=https://<tuo-sito>.netlify.app npm run esporta
 ```
 
-Lo script compila il client con i percorsi relativi e l'API puntata al
-backend, copia tutto in `export/tappy/`, e **si rifiuta di consegnare** se
-trova un riferimento assoluto, un `localhost`, un'icona mancante o una
-credenziale finita nel pacchetto. Sono gli errori che altrimenti si scoprono
-solo online.
+Funziona (CORS e preflight verificati), ma costa un secondo deploy da
+mantenere e un dominio in più nell'automazione. Da usare solo se la prima
+strada è preclusa.
 
-Poi:
+### Consegna
 
 ```bash
 git checkout -b export-frupass
-git add -f export/tappy
-git commit -m "Export statico di tappy per l'hub"
+git add -f export
+git commit -m "Export di tappy per l'hub"
 git push -u origin export-frupass
 ```
 
-E all'amministratore basta dire: repository `fruggism/tappy`, branch
-`export-frupass`, cartella `export/tappy/`.
+All'amministratore basta: repository `fruggism/tappy`, branch
+`export-frupass`, cartella `export/`.
 
-⚠️ **Non esportare prima del deploy**: senza il dominio vero l'app cercherebbe
-l'API dove non c'è. E se un giorno cambi il dominio del backend, va rifatto
-l'export — è l'unico punto in cui quell'indirizzo resta scritto.
-
-### Cosa contiene la cartella
-
-```
-tappy/
-  index.html
-  assets/            (js e css, con percorsi relativi)
-  manifest.json
-  icons/icon-192.png, icon-512.png, icon-180.png
-  icona.svg
-```
+⚠️ **Con backend separato, non esportare prima del deploy**: senza il dominio
+vero l'app cercherebbe l'API dove non c'è. In modalità hub il problema non si
+pone, perché l'indirizzo è relativo.
 
 ### Verificato
 
-Il pacchetto è stato provato servito **da un sottopercorso** (`/tappy/`), che
-è il test che la guida indica come più importante: l'app parte, nessuna
-risorsa manca, il manifest e le icone si raggiungono, l'API viene cercata sul
-backend esterno e non sull'hub, e l'arrivo dalla tile con `#code=` entra senza
-mostrare il login.
+Entrambe le sistemazioni sono state provate montando un finto sito dell'hub
+con i due redirect veri:
+
+- l'app parte da `/tappy/`, senza risorse mancanti;
+- l'API è chiamata su `/tappy/api`, **sullo stesso dominio**;
+- l'accesso riesce passando dalla funzione;
+- l'arrivo dalla tile con `#code=` entra senza mostrare il login;
+- il webhook risponde su `/tappy/api/webhook/applepay`, che è l'indirizzo che
+  finirà nell'automazione.
 
 ## 5. Cosa mandare
 
