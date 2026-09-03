@@ -59,14 +59,14 @@ function Campo({ nome, tipo, valore }: { nome: string; tipo: string; valore: str
 
 export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void }) {
   const { user } = useApp();
-  const [copiato, setCopiato] = useState<"url" | "chiave" | "posizione" | null>(null);
+  const [copiato, setCopiato] = useState<"url" | "chiave" | "completa" | null>(null);
 
   const webhookUrl = `${window.location.origin}${API_BASE}/api/webhook/applepay`;
-  const posizioneUrl = `${webhookUrl}/posizione`;
+  const completaUrl = `${webhookUrl}/completa`;
 
-  async function copia(cosa: "url" | "chiave" | "posizione") {
+  async function copia(cosa: "url" | "chiave" | "completa") {
     const testo =
-      cosa === "url" ? webhookUrl : cosa === "posizione" ? posizioneUrl : user?.api_key ?? "";
+      cosa === "url" ? webhookUrl : cosa === "completa" ? completaUrl : user?.api_key ?? "";
     await navigator.clipboard.writeText(testo);
     setCopiato(cosa);
     setTimeout(() => setCopiato(null), 1500);
@@ -100,7 +100,7 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
         </p>
 
         <Passo numero={1} titolo="Tieni a portata questi due valori">
-          <p>Servono al passo 4. Puoi tornare qui a copiarli.</p>
+          <p>Servono al passo 3. Puoi tornare qui a copiarli.</p>
           <div className="flex flex-col gap-2 mt-1">
             <button
               onClick={() => copia("url")}
@@ -163,24 +163,8 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           </p>
         </Passo>
 
-        <Passo numero={3} titolo="Fatti chiedere la categoria">
-          <p>Due azioni, se vuoi scegliere la categoria al volo:</p>
-          <ol className="list-decimal pl-4 flex flex-col gap-1">
-            <li>
-              <b>Elenco</b> → scrivi i nomi delle tue categorie, uno per riga
-            </li>
-            <li>
-              <b>Scegli da Elenco</b> → <b>Titolo</b>: <code>scegli categoria</code>, selezione
-              multipla spenta
-            </li>
-          </ol>
-          <p>
-            Se salti questo passo la spesa finisce in <i>Altro</i>, e la cambi dall&apos;app.
-          </p>
-        </Passo>
-
         <Passo
-          numero={4}
+          numero={3}
           titolo="Aggiungi l'invio a tappy"
           immagine="./guida/3-invio.jpg"
           didascalia="L'azione dell'URL aperta con «Mostra altro»"
@@ -211,8 +195,7 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
                 <Campo nome="amount" tipo="Numero" valore="Importo" />
                 <Campo nome="name" tipo="Testo" valore="Esercente" />
                 <Campo nome="card" tipo="Testo" valore="Carta o biglietto" />
-                <Campo nome="category" tipo="Testo" valore="Elemento selezionato" />
-                </tbody>
+              </tbody>
             </table>
           </div>
           <p>
@@ -226,8 +209,8 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
         </Passo>
 
         <Passo
-          numero={5}
-          titolo="La posizione, per ultima"
+          numero={4}
+          titolo="Poi la posizione"
           immagine="./guida/2-posizione.jpg"
           didascalia="Precisione «Ottimale», poi latitudine e longitudine"
         >
@@ -256,19 +239,19 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
             </li>
           </ol>
           <button
-            onClick={() => copia("posizione")}
+            onClick={() => copia("completa")}
             className="rounded-xl bg-surface dark:bg-surface-dark px-3 py-2.5 text-left flex items-center gap-3 mt-1"
           >
             <span className="flex-1 min-w-0">
               <span className="block text-caption uppercase tracking-wide text-muted dark:text-muted-dark">
-                Indirizzo della posizione
+                Secondo indirizzo
               </span>
               <span className="block text-footnote break-all text-ink dark:text-ink-dark">
-                {posizioneUrl}
+                {completaUrl}
               </span>
             </span>
             <span className="text-footnote text-acc-green shrink-0">
-              {copiato === "posizione" ? "Copiato" : "Copia"}
+              {copiato === "completa" ? "Copiato" : "Copia"}
             </span>
           </button>
           <p>
@@ -286,6 +269,40 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
           <p>
             Se la mappa non ti interessa, salta tutto il passo: l&apos;automazione finisce al 4 ed è
             più corta.
+          </p>
+        </Passo>
+
+        <Passo numero={5} titolo="La categoria, per ultima">
+          <p className="text-ink dark:text-ink-dark">
+            Chiedere la categoria è l&apos;unica azione che <b>aspetta una risposta</b>. A telefono
+            bloccato l&apos;iPhone manda una notifica e mette l&apos;automazione in pausa: se non la
+            tocchi entro poco, scade e tutto quello che viene dopo non viene eseguito. Per questo
+            sta in fondo — se la salti resta <i>Altro</i>, ma la spesa è già registrata.
+          </p>
+          <ol className="list-decimal pl-4 flex flex-col gap-1">
+            <li>
+              <b>Elenco</b> → i nomi delle tue categorie, uno per riga
+            </li>
+            <li>
+              <b>Scegli da Elenco</b> → <b>Titolo</b>: <code>scegli categoria</code>, selezione
+              multipla spenta
+            </li>
+            <li>
+              un terzo <b>Ottieni contenuti dall&apos;URL</b>, di nuovo il secondo indirizzo, con
+              due soli campi
+            </li>
+          </ol>
+          <div className="rounded-2xl bg-surface dark:bg-surface-dark p-3 mt-1 overflow-x-auto">
+            <table className="w-full text-left">
+              <tbody>
+                <Campo nome="id" tipo="Testo" valore="il valore del dizionario" />
+                <Campo nome="category" tipo="Testo" valore="Elemento selezionato" />
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Se preferisci non essere interrotto, salta tutto il passo e categorizza in tappy quando
+            ti pare: costa un tocco nel dettaglio del movimento.
           </p>
         </Passo>
 

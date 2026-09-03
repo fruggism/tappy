@@ -171,6 +171,18 @@ const senzaCoord = await chiama("POST", "/api/webhook/applepay/posizione", {
 t("seconda chiamata senza coordinate: non è un errore, la spesa resta",
   senzaCoord.stato === 200 && senzaCoord.corpo.id === idSpesa, senzaCoord);
 
+const conCategoria = await chiama("POST", "/api/webhook/applepay/completa", {
+  corpo: { id: idSpesa, category: "Altro" }, chiave: "chiaveDiAnnaChiaveDiAnna",
+});
+t("la categoria si può mandare dopo, da sola",
+  conCategoria.stato === 200 && conCategoria.corpo.category_id === "catA", conCategoria);
+
+const senzaNiente = await chiama("POST", "/api/webhook/applepay/completa", {
+  corpo: { id: idSpesa }, chiave: "chiaveDiAnnaChiaveDiAnna",
+});
+t("chiamata senza niente da aggiornare: non è un errore",
+  senzaNiente.stato === 200 && senzaNiente.corpo.id === idSpesa, senzaNiente);
+
 const spesaAltrui = await chiama("POST", "/api/webhook/applepay/posizione", {
   corpo: { id: idSpesa, lat: 1, lon: 1 }, chiave: "chiaveDiBrunoChiaveDiBrun",
 });

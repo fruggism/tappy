@@ -317,37 +317,57 @@ router.post("/webhook/applepay", async (req, res) => {
   }
 });
 
-// Seconda parte del webhook: la posizione, mandata **dopo** che la spesa è
-// già registrata.
+// Seconda parte del webhook: quello che si sa **dopo** che la spesa è già
+// registrata — la posizione e la categoria.
 //
-// Serve perché su iPhone «Ottieni la posizione attuale» può fallire (iOS che
-// nega la localizzazione a un'automazione in background), e quando fallisce
-// l'automazione si interrompe lì. Se la posizione sta prima dell'invio, un
-// GPS negato fa perdere la spesa: mettendola dopo, il peggio che succede è
-// una spesa senza luogo. L'`id` viene dalla risposta della prima chiamata.
-router.post("/webhook/applepay/posizione", async (req, res) => {
+// Esiste perché sull'iPhone due azioni possono interrompere l'automazione:
+// «Ottieni la posizione attuale», se iOS nega la localizzazione in
+// background, e «Scegli da Elenco», che a telefono bloccato aspetta una
+// risposta e scade. Finché stanno prima dell'invio, un loro inciampo fa
+// perdere la spesa — è successo davvero, al primo pagamento vero. Messe
+// dopo, il peggio che si perde è il dettaglio che stavano portando.
+//
+// L'`id` viene dalla risposta della prima chiamata. Ogni campo è
+// facoltativo: mandare solo la posizione, solo la categoria o entrambe sono
+// tutti casi legittimi, e una chiamata senza niente di utile non è un errore.
+async function completaSpesa(req, res) {
   try {
     const user = await db.getUserByApiKey(req.header("x-api-key"));
     if (!user) return res.status(401).json({ error: "invalid api key" });
 
-    const { id } = req.body;
+    const { id, category } = req.body;
     if (!id) return res.status(400).json({ error: "id required" });
 
     const tx = await db.getTransaction(id, user.code);
     if (!tx) return res.status(404).json({ error: "not found" });
 
+    const patch = {};
     const lat = coordinata(req.body.lat);
     const lon = coordinata(req.body.lon);
-    // Coordinate assenti non sono un errore: l'automazione ha fatto il suo,
-    // semplicemente il telefono non aveva la posizione. La spesa resta.
-    if (lat === undefined || lon === undefined) return res.json(tx);
+    if (lat !== undefined && lon !== undefined) {
+      patch.lat = lat;
+      patch.lon = lon;
+    }
+    if (category) {
+      const cat = await db.findOrCreateCategory(user.code, String(category));
+      if (cat) patch.category_id = cat.id;
+    }
 
-    res.json(await db.updateTransaction(tx.id, { lat, lon }));
+    // Niente da aggiornare non è un errore: il telefono non aveva la
+    // posizione, o nessuno ha risposto alla domanda sulla categoria.
+    if (!Object.keys(patch).length) return res.json(tx);
+
+    res.json(await db.updateTransaction(tx.id, patch));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "internal error" });
   }
-});
+}
+
+router.post("/webhook/applepay/completa", completaSpesa);
+// Il nome originale, quando serviva solo per la posizione: resta valido per
+// non costringere a rimettere le mani nelle automazioni già configurate.
+router.post("/webhook/applepay/posizione", completaSpesa);
 
 app.use(router);
 

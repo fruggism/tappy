@@ -35,17 +35,25 @@ l'automatismo non serve più a niente.
 
 ## 3. Le azioni, nell'ordine
 
-L'ordine non è estetico: **l'invio della spesa viene prima della
-posizione**. Su iPhone «Ottieni la posizione attuale» può fallire (iOS che
-nega la localizzazione a un'automazione in background) e quando fallisce
-l'automazione si interrompe lì. Con la posizione prima dell'invio, un GPS
-negato fa perdere la spesa; con la posizione dopo, il peggio che può
-succedere è una spesa senza luogo. Vedi §6.
+L'ordine non è estetico: **l'invio della spesa viene per primo**, e tutto
+ciò che può inciampare sta dopo. Due azioni possono interrompere
+l'automazione:
+
+- «Ottieni la posizione attuale», se iOS nega la localizzazione a
+  un'automazione in background;
+- «Scegli da Elenco», che a telefono bloccato mette l'automazione in pausa
+  in attesa di una risposta e **scade** se la notifica non viene toccata
+  subito. Al primo pagamento vero è successo esattamente questo: notifica
+  ignorata per qualche minuto, automazione morta lì, nessuna spesa
+  registrata e nemmeno la nota di collaudo scritta.
+
+Finché stanno prima dell'invio, un loro inciampo fa perdere la spesa. Messe
+dopo, si perde solo il dettaglio che stavano portando.
 
 1. **Elenco** — `Leisure`, `Spesa`, `Macchina`, `Altro`. Sono le stesse
    categorie che tappy ha già, quindi combaciano da sole.
 2. **Scegli da Elenco** → produce *Elemento selezionato*.
-3. **Ottieni contenuti dall'URL** — è l'azione che registra la spesa:
+1. **Ottieni contenuti dall'URL** — è l'azione che registra la spesa:
 
    - **URL**: quello copiato da Impostazioni
    - **Metodo**: `POST`
@@ -59,15 +67,14 @@ succedere è una spesa senza luogo. Vedi §6.
      | `amount` | Numero | **Importo** |
      | `name` | Testo | **Esercente** |
      | `card` | Testo | **Carta o biglietto** |
-     | `category` | Testo | **Elemento selezionato** |
 
-4. **Ottieni valore da dizionario** — `id` da *Contenuti URL*: è l'id della
-   spesa appena creata, e serve alla seconda chiamata.
-5. **Ottieni la posizione attuale** (Precisione: *Ottimale*).
-6. **Ottieni Latitudine da Posizione attuale**.
-7. **Ottieni Longitudine da Posizione attuale**.
-8. **Ottieni contenuti dall'URL**, il secondo — stesso metodo e stesse
-   intestazioni, indirizzo `.../api/webhook/applepay/posizione`, corpo:
+2. **Ottieni valore dal dizionario** — `id` da *Contenuti URL*: è l'id della
+   spesa appena creata, e serve a tutte le chiamate successive.
+3. **Ottieni la posizione attuale** (Precisione: *Ottimale*).
+4. **Ottieni Latitudine da Posizione attuale**.
+5. **Ottieni Longitudine da Posizione attuale**.
+6. **Ottieni contenuti dall'URL**, il secondo — stesso metodo e stesse
+   intestazioni, indirizzo `.../api/webhook/applepay/completa`, corpo:
 
      | Campo | Tipo | Variabile |
      |---|---|---|
@@ -75,8 +82,19 @@ succedere è una spesa senza luogo. Vedi §6.
      | `lat` | Numero | **Latitudine** |
      | `lon` | Numero | **Longitudine** |
 
-   Le azioni 4-8 sono tutte facoltative: senza, l'automazione finisce alla 3
-   e le spese si registrano senza luogo.
+7. **Elenco** — i nomi delle categorie, uno per riga.
+8. **Scegli da Elenco** → produce *Elemento selezionato*.
+9. **Ottieni contenuti dall'URL**, il terzo — stesso indirizzo del secondo,
+   corpo:
+
+     | Campo | Tipo | Variabile |
+     |---|---|---|
+     | `id` | Testo | **Valore del dizionario** |
+     | `category` | Testo | **Elemento selezionato** |
+
+   I punti 3-6 (posizione) e 7-9 (categoria) sono blocchi indipendenti e
+   facoltativi: si può tenerne uno, entrambi o nessuno. Senza, l'automazione
+   finisce al punto 2 ed è una sola chiamata che non può fermarsi.
 
 Per inserire una variabile, tocca il campo e scegli dal suggerimento sopra la
 tastiera.
@@ -122,20 +140,22 @@ rimetti le variabili. La prova vera resta un pagamento da un euro. Poi apri tapp
 mandato la posizione, aprila e controllala — comparirà anche sulla mappa, nel
 periodo giusto.
 
-## 5. La categoria: un tocco, e il suo compromesso
+## 5. La categoria, e perché sta in fondo
 
-Scegliere la categoria al momento del pagamento è una scelta deliberata: un
-tocco in più, ma la spesa nasce già categorizzata.
+Scegliere la categoria al momento del pagamento costa un tocco e fa nascere
+la spesa già categorizzata. Ma è l'unica azione dell'automazione che
+**aspetta una risposta**, e un'automazione «Esegui immediatamente» gira anche
+a telefono in tasca: iOS manda una notifica, mette in pausa, e se nessuno
+risponde entro poco l'esecuzione scade.
 
-Il compromesso: un'automazione «Esegui immediatamente» gira anche a telefono
-in tasca, e un'azione che chiede qualcosa **sospende tutto finché non si
-risponde**. Se la richiesta passa inosservata, non si perde solo la categoria
-— **non parte nemmeno l'invio**, e la spesa non viene registrata.
+Finché la domanda stava prima dell'invio, questo faceva perdere la spesa
+intera. Ora sta dopo: se non rispondi la spesa resta in *Altro* e la
+sistemi in tappy con un tocco nella vista di dettaglio.
 
-Se dovesse capitare troppo spesso, due alternative: dedurre la categoria
+Chi non vuole essere interrotto affatto toglie i punti 7-9 e categorizza
+sempre dall'app. Un'alternativa senza interazione è dedurre la categoria
 dall'esercente con azioni **Se** (`Esercente contiene "Eni"` → `Macchina`),
-oppure mandare la spesa senza categoria e sistemarla dopo in tappy, che costa
-un tocco nella vista di dettaglio.
+da mantenere a mano man mano che compaiono negozi nuovi.
 
 ## 6. La posizione
 
@@ -203,18 +223,23 @@ altro.
 Risposta attesa: **201** con la spesa creata. **401** = chiave sbagliata,
 **400** = mancano `amount` o `name`.
 
-E la seconda chiamata, quella della posizione:
+E le chiamate che completano la spesa:
 
-`POST` a `.../api/webhook/applepay/posizione`, stesse intestazioni, corpo:
+`POST` a `.../api/webhook/applepay/completa`, stesse intestazioni, corpo:
 
 ```json
-{ "id": "recXXXXXXXX", "lat": 44.788466, "lon": 10.260754 }
+{ "id": "recXXXXXXXX", "lat": 44.788466, "lon": 10.260754, "category": "Spesa" }
 ```
 
-`id` è quello che la prima risposta ha restituito. Risponde **200** con la
-spesa aggiornata; **200** senza modifiche se `lat`/`lon` arrivano vuoti (non
-è un errore: il telefono non aveva la posizione); **404** se la spesa non è
-di chi manda la chiave.
+`id` è quello che la prima risposta ha restituito; tutto il resto è
+facoltativo, e si può chiamare più volte per la stessa spesa (una per la
+posizione, una per la categoria). Risponde **200** con la spesa aggiornata;
+**200** senza modifiche se non c'è niente di utile da scrivere — non è un
+errore: il telefono non aveva la posizione, o nessuno ha risposto alla
+domanda; **404** se la spesa non è di chi manda la chiave.
+
+`.../applepay/posizione` è il vecchio nome della stessa rotta e continua a
+funzionare.
 
 ## Se l'app si sposta dentro l'hub Fru Pass
 
