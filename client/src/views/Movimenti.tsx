@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { api } from "../lib/api";
 import TransactionModal from "../components/TransactionModal";
+// Leaflet pesa quanto mezza app: si carica quando si apre la mappa, non
+// all'avvio di chi non la aprirà mai.
+const Mappa = lazy(() => import("./Mappa"));
 import type { Transaction } from "../lib/types";
 
 type Sort = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
@@ -73,6 +76,7 @@ function RowMenu({
 export default function Movimenti() {
   const { transactions, categories, cards, refreshTransactions } = useApp();
   const [showModal, setShowModal] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [sort, setSort] = useState<Sort>("date_desc");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -106,17 +110,47 @@ export default function Movimenti() {
     await refreshTransactions();
   }
 
+  if (showMap) {
+    return (
+      <Suspense
+        fallback={
+          <div className="fixed inset-0 z-30 flex items-center justify-center bg-base dark:bg-base-dark">
+            <div className="h-8 w-8 rounded-full border-2 border-neon-green/30 border-t-neon-green animate-spin" />
+          </div>
+        }
+      >
+        <Mappa onChiudi={() => setShowMap(false)} />
+      </Suspense>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4 animate-rise">
-      <button
-        onClick={() => {
-          setEditing(null);
-          setShowModal(true);
-        }}
-        className="w-full rounded-2xl bg-ink dark:bg-white text-white dark:text-black font-medium py-3 flex items-center justify-center gap-2 shadow-lg shadow-black/10"
-      >
-        <span className="text-lg leading-none">+</span> Registra spesa
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            setEditing(null);
+            setShowModal(true);
+          }}
+          className="flex-1 rounded-2xl bg-ink dark:bg-white text-white dark:text-black font-medium py-3 flex items-center justify-center gap-2 shadow-lg shadow-black/10"
+        >
+          <span className="text-lg leading-none">+</span> Registra spesa
+        </button>
+        <button
+          onClick={() => setShowMap(true)}
+          aria-label="Dove ho speso"
+          className="h-[3.25rem] w-[3.25rem] shrink-0 rounded-2xl bg-surface dark:bg-surface-dark flex items-center justify-center text-muted dark:text-muted-dark active:scale-95 transition-transform"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.7}
+              d="M9 20l-5.5 2.2V6.2L9 4m0 16l6-2.4M9 20V4m6 13.6L20.5 20V4L15 6.4m0 11.2V6.4M9 4l6 2.4"
+            />
+          </svg>
+        </button>
+      </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         <select
