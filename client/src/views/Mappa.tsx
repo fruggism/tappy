@@ -47,6 +47,15 @@ const maiuscola = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+// L'inquadratura di partenza è il paese, non una città: senza punti da
+// mostrare — la prima volta, o in un periodo senza spese — aprirsi su una
+// città sola sembra un errore, e costringe a rimpicciolire per capire dove
+// si è. Sono i limiti dell'Italia continentale più isole.
+const ITALIA = L.latLngBounds([
+  [36.5, 6.5],
+  [47.2, 18.6],
+]);
+
 export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
   const { transactions, effectiveTheme } = useApp();
   const [periodo, setPeriodo] = useState<Periodo>("mese");
@@ -88,7 +97,8 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
     const m = L.map(contenitore.current, {
       zoomControl: false,
       attributionControl: true,
-    }).setView([45.4642, 9.19], 12);
+    });
+    m.fitBounds(ITALIA, { padding: [12, 12], animate: false });
 
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -117,7 +127,13 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
     const m = mappa.current;
     if (!m || !strato.current) return;
     strato.current.setPunti(punti);
-    if (punti.length === 0) return;
+    // Cambiando periodo si può finire su uno senza spese: si torna a
+    // inquadrare il paese invece di restare fermi dov'era il periodo prima,
+    // che darebbe l'impressione di una mappa bloccata.
+    if (punti.length === 0) {
+      m.fitBounds(ITALIA, { padding: [12, 12], animate: false });
+      return;
+    }
     const limiti = L.latLngBounds(punti.map((p) => [p.lat, p.lon] as [number, number]));
     m.fitBounds(limiti, { padding: [48, 48], maxZoom: 15, animate: false });
   }, [punti]);

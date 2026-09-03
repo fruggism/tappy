@@ -50,6 +50,16 @@ Conseguenze operative, valide per tutti:
 
 ---
 
+## 2-bis. Regola di lavoro: il push lo autorizza Riccardo
+
+Dal 2026-09-03: **niente push su `main` senza il suo ok esplicito**. Si
+lavora, si committa in locale, si chiede. Vale anche per le modifiche
+piccole e per la documentazione.
+
+Attenzione: il container di lavoro è effimero, quindi un commit non pushato
+si perde se la sessione muore. Quando ce ne sono in attesa vale la pena
+ricordarglielo — una riga, senza insistere.
+
 ## 3. Come io instrado un'idea
 
 Quando mi proponi un'idea la classifico così, e questo determina l'agent:
