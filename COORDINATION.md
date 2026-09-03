@@ -421,3 +421,61 @@ già copiati sotto `archivio/`.
 
 Dal Mac: `git push origin --delete <nome>` per ognuno, oppure dalla pagina
 [Branches](https://github.com/fruggism/tappy/branches) del repository.
+
+## 11. Più utenti sulla stessa base (verifica del 2026-09-03)
+
+Finché l'utente è uno solo, ogni riga della base è sua e i difetti di
+isolamento non si vedono. Sono stati cercati apposta, prima che gli utenti
+diventino due. Le prove stanno in `tests/multiutente.test.mjs` (13 controlli,
+ognuno verificato: rimettendo il difetto, il test torna rosso).
+
+### Corretto
+
+1. **Iniezione di formula nella ricerca per api key** — *era il problema
+   grosso*. `esc()` scappava gli apostrofi ma non i backslash, e in
+   `filterByFormula` `'\\'` è una stringa chiusa che contiene un backslash:
+   una chiave come `\' OR TRUE() OR '` rendeva la formula vera per ogni riga,
+   e `maxRecords: 1` restituiva il primo utente della tabella. Chiunque
+   conoscesse l'URL del webhook poteva scrivere spese sul conto di un altro
+   **senza sapere nessuna chiave**. Ora `esc()` scappa prima i backslash, e
+   la chiave passa da una guardia di forma (`base64url`, 16–128 caratteri)
+   prima ancora di entrare in una formula.
+2. **Id di un altro utente accettati su una spesa** — `POST`/`PATCH
+   /transactions` prendevano `category_id` e `card_id` dal client senza
+   verificarne il proprietario: si poteva appendere una propria spesa alla
+   categoria di un altro. Ora `idAltrui()` li riporta all'utente della
+   richiesta e risponde `400 unknown category_id` / `unknown card_id`.
+3. **Doppio utente al primo accesso simultaneo** — Airtable non ha vincoli di
+   unicità: due schede aperte insieme creavano due righe `Users` con lo
+   stesso codice, con api key diverse e la lettura che ne pescava una a caso.
+   Ora dopo la creazione si rilegge, e chi non è il record più vecchio
+   cancella la propria riga (non ha ancora niente collegato) e prosegue con
+   quella buona.
+
+### Già a posto, confermato dalle prove
+
+- Categorie, carte e movimenti sono sempre filtrati per `UserId`, che è il
+  codice Fru Pass: nessuna rotta di lettura torna righe altrui.
+- `PATCH`/`DELETE` su categoria e movimento controllano il proprietario e
+  rispondono `404`, non `403`: chi prova non scopre nemmeno che l'id esiste.
+- Le api key sono 24 byte casuali (`base64url`): collisione non praticabile.
+- Il webhook risolve la categoria **per nome** e dentro l'utente, quindi due
+  utenti con una categoria omonima restano separati.
+
+### Limiti che restano, e sono di Airtable non del codice
+
+Non sono difetti da correggere, sono tetti da conoscere prima di far entrare
+gente:
+
+- **Record per base.** Tutte le spese di tutti gli utenti stanno nella stessa
+  tabella. Il piano gratuito si ferma a 1.000 record per base: con cinque
+  persone che registrano un centinaio di spese al mese, si satura in due
+  mesi. Il piano a pagamento alza il tetto; è la prima cosa che cede.
+- **5 richieste al secondo per base**, condivise fra tutti. La libreria
+  ritenta da sé sul 429, quindi si traduce in lentezza, non in errori. Ma
+  l'apertura dell'app carica *tutti* i movimenti dell'utente (100 per
+  richiesta): con molte spese e più persone insieme il tetto si avvicina. Se
+  si arrivasse lì, la mossa è caricare i movimenti per periodo invece che
+  tutti (`listTransactions` accetta già `from`/`to`).
+- **Il primo accesso costa 6 scritture** (utente, 4 categorie, carta), in
+  sequenza. Va bene per un'iscrizione ogni tanto, non per un'ondata.

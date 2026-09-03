@@ -46,8 +46,12 @@ function base() {
 const table = (name) => base()(name);
 
 // Airtable non permette apostrofi non escapati dentro filterByFormula.
+// Il backslash va escapato **per primo**: scappando solo gli apostrofi, un
+// valore che finisce per `\` chiude comunque la stringa (`'\\'` è un
+// backslash, non un apostrofo escapato) e da lì si inietta formula — con un
+// `OR TRUE()` la ricerca per api key restituiva il primo utente qualunque.
 function esc(value) {
-  return String(value).replace(/'/g, "\\'");
+  return String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
 function userFromRecord(r) {
@@ -115,9 +119,14 @@ function generateApiKey() {
   return crypto.randomBytes(24).toString("base64url");
 }
 
+// Le chiavi generate qui sono base64url (vedi generateApiKey): tutto ciò che
+// non ha quella forma non può essere una chiave valida e non vale la pena
+// mandarlo ad Airtable dentro una formula.
+const FORMA_API_KEY = /^[A-Za-z0-9_-]{16,128}$/;
+
 async function getUserByApiKey(apiKey) {
   const key = String(apiKey || "").trim();
-  if (!key) return null;
+  if (!FORMA_API_KEY.test(key)) return null;
   const records = await table("Users")
     .select({ filterByFormula: `{ApiKey} = '${esc(key)}'`, maxRecords: 1 })
     .firstPage();
@@ -157,6 +166,24 @@ async function provisionUser(profile) {
     MonthlyBudget: 800,
     CreatedAt: new Date().toISOString(),
   });
+
+  // Airtable non ha vincoli di unicità: due accessi simultanei dello stesso
+  // utente (due schede, telefono e computer) passano entrambi dal controllo
+  // qui sopra e creano due righe. Rileggiamo: se non siamo noi il record più
+  // vecchio, la riga appena creata è il duplicato e va tolta — non ha ancora
+  // niente collegato, le categorie si creano solo dopo.
+  const gemelli = await table("Users")
+    .select({ filterByFormula: `{FrupasCode} = '${esc(code)}'` })
+    .all();
+  if (gemelli.length > 1) {
+    const vincitore = gemelli
+      .slice()
+      .sort((a, b) => String(a.get("CreatedAt")).localeCompare(String(b.get("CreatedAt"))) || a.id.localeCompare(b.id))[0];
+    if (vincitore.id !== record.id) {
+      await table("Users").destroy(record.id);
+      return userFromRecord(vincitore);
+    }
+  }
 
   for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
     const c = DEFAULT_CATEGORIES[i];

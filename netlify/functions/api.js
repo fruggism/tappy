@@ -185,6 +185,22 @@ router.post(
   })
 );
 
+// Categoria e carta arrivano dal client come id Airtable: vanno riportati
+// all'utente che li manda, o si finisce per appendere una spesa alla
+// categoria di qualcun altro. Restituisce l'id se è suo, `undefined` se non
+// è stato mandato, e solleva se non gli appartiene.
+async function idAltrui(user, categoryId, cardId) {
+  if (categoryId) {
+    const categorie = await db.listCategories(user.code);
+    if (!categorie.some((c) => c.id === categoryId)) return "category_id";
+  }
+  if (cardId) {
+    const carte = await db.listCards(user.code);
+    if (!carte.some((c) => c.id === cardId)) return "card_id";
+  }
+  return null;
+}
+
 // ---------- transactions ----------
 router.get(
   "/transactions",
@@ -201,6 +217,9 @@ router.post(
     if (amount === undefined || !name) {
       return res.status(400).json({ error: "amount and name required" });
     }
+    const estraneo = await idAltrui(user, req.body.category_id, req.body.card_id);
+    if (estraneo) return res.status(400).json({ error: `unknown ${estraneo}` });
+
     let categoryId = req.body.category_id;
     if (!categoryId) {
       const categories = await db.listCategories(user.code);
@@ -216,6 +235,8 @@ router.patch(
   withUser(async (req, res, user) => {
     const tx = await db.getTransaction(req.params.id, user.code);
     if (!tx) return res.status(404).json({ error: "not found" });
+    const estraneo = await idAltrui(user, req.body.category_id, req.body.card_id);
+    if (estraneo) return res.status(400).json({ error: `unknown ${estraneo}` });
     res.json(await db.updateTransaction(tx.id, req.body));
   })
 );
