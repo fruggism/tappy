@@ -1,7 +1,16 @@
 [build]
-  command = "cd client && npm install && npm run build"
+  # `npm install` anche nella radice: le dipendenze della funzione (airtable,
+  # express, serverless-http) stanno lì, e senza questo il bundle della
+  # funzione parte senza di esse e ogni chiamata all'API risponde 500.
+  command = "npm install && cd client && npm install && npm run build"
   publish = "client/dist"
   functions = "netlify/functions"
+
+[build.environment]
+  # Il backend usa fetch globale (Node 18+). Fissare la versione evita che un
+  # cambio di default di Netlify rompa il deploy mesi dopo, senza che nulla
+  # sia cambiato nel codice.
+  NODE_VERSION = "20"
 
 [functions]
   node_bundler = "esbuild"
