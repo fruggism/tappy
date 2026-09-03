@@ -138,8 +138,8 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
           </svg>
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-semibold leading-tight">Dove ho speso</h1>
-          <p className="text-xs text-muted dark:text-muted-dark">
+          <h1 className="text-headline font-semibold leading-tight">Dove ho speso</h1>
+          <p className="text-footnote text-muted dark:text-muted-dark">
             {punti.length === 0
               ? "nessun luogo in questo periodo"
               : `${punti.length} ${punti.length === 1 ? "spesa" : "spese"} · €${Math.round(totale)}`}
@@ -148,7 +148,7 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
       </header>
 
       <div className="px-4 pb-3 flex items-center gap-2">
-        <div className="inline-flex bg-surface2 dark:bg-surface2-dark rounded-full p-1 text-xs">
+        <div className="inline-flex bg-surface2 dark:bg-surface2-dark rounded-full p-1 text-footnote">
           {(Object.keys(ETICHETTE) as Periodo[]).map((p) => (
             <button
               key={p}
@@ -175,7 +175,7 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-          <span className="text-xs font-medium min-w-[7rem] text-center">{titolo}</span>
+          <span className="text-footnote font-medium min-w-[7rem] text-center">{titolo}</span>
           <button
             onClick={() => setScarto((s) => Math.min(0, s + 1))}
             disabled={scarto >= 0}
@@ -202,7 +202,7 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
 
         {punti.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-8">
-            <p className="text-sm text-muted dark:text-muted-dark text-center bg-surface/90 dark:bg-surface-dark/90 rounded-2xl px-4 py-3">
+            <p className="text-callout text-muted dark:text-muted-dark text-center bg-surface/90 dark:bg-surface-dark/90 rounded-2xl px-4 py-3">
               Nessun movimento con posizione in questo periodo.
             </p>
           </div>
@@ -211,7 +211,7 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
 
       {senzaPosizione > 0 && (
         <p
-          className="px-4 py-2 text-[11px] text-muted dark:text-muted-dark text-center"
+          className="px-4 py-2 text-caption text-muted dark:text-muted-dark text-center"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.5rem)" }}
         >
           {senzaPosizione} {senzaPosizione === 1 ? "spesa" : "spese"} di questo periodo

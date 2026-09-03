@@ -9,8 +9,8 @@ import type { Transaction } from "../lib/types";
 function Riga({ etichetta, children }: { etichetta: string; children: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-2.5 border-b border-black/5 dark:border-white/10 last:border-0">
-      <span className="text-xs text-muted dark:text-muted-dark shrink-0">{etichetta}</span>
-      <span className="text-sm text-right min-w-0 break-words">{children}</span>
+      <span className="text-footnote text-muted dark:text-muted-dark shrink-0">{etichetta}</span>
+      <span className="text-callout text-right min-w-0 break-words">{children}</span>
     </div>
   );
 }
@@ -63,16 +63,16 @@ export default function DettaglioMovimento({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <h1 className="text-lg font-semibold truncate">{t.name}</h1>
+        <h1 className="text-headline font-semibold truncate">{t.name}</h1>
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 pb-6 flex flex-col gap-4">
         <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 text-center">
-          <div className={`text-3xl font-bold tabular-nums ${t.is_income ? "text-neon-green" : ""}`}>
+          <div className={`text-largeTitle font-bold tabular-nums ${t.is_income ? "text-acc-green" : ""}`}>
             {t.is_income ? "+" : "-"}€{t.my_share.toFixed(2)}
           </div>
           {diviso && (
-            <p className="text-xs text-muted dark:text-muted-dark mt-1">
+            <p className="text-footnote text-muted dark:text-muted-dark mt-1">
               la tua quota di €{t.amount.toFixed(2)}
             </p>
           )}
@@ -117,26 +117,26 @@ export default function DettaglioMovimento({
             {!conferma ? (
               <button
                 onClick={() => setConferma(true)}
-                className="text-sm text-muted dark:text-muted-dark rounded-xl bg-surface dark:bg-surface-dark py-2.5"
+                className="text-callout text-muted dark:text-muted-dark rounded-xl bg-surface dark:bg-surface-dark py-2.5"
               >
                 Rimuovi la posizione
               </button>
             ) : (
               <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3">
-                <p className="text-sm">
+                <p className="text-callout">
                   Il movimento resta, ma sparisce dalla mappa. Non si può annullare.
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setConferma(false)}
-                    className="flex-1 text-sm rounded-xl bg-surface2 dark:bg-surface2-dark py-2"
+                    className="flex-1 text-callout rounded-xl bg-surface2 dark:bg-surface2-dark py-2"
                   >
                     Annulla
                   </button>
                   <button
                     onClick={rimuoviPosizione}
                     disabled={rimuovendo}
-                    className="flex-1 text-sm rounded-xl bg-neon-pink/15 text-neon-pink py-2 disabled:opacity-50"
+                    className="flex-1 text-callout rounded-xl bg-acc-pink/10 text-acc-pink py-2 disabled:opacity-50"
                   >
                     {rimuovendo ? "Rimuovo…" : "Rimuovi"}
                   </button>
@@ -148,7 +148,7 @@ export default function DettaglioMovimento({
 
         <button
           onClick={onModifica}
-          className="rounded-xl bg-ink dark:bg-white text-white dark:text-black text-sm font-medium py-2.5"
+          className="rounded-xl bg-ink dark:bg-white text-white dark:text-black text-callout font-medium py-2.5"
         >
           Modifica
         </button>

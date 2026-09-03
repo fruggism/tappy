@@ -55,7 +55,7 @@ export default function InstallaApp() {
     <>
       <button
         onClick={() => (invito ? installa() : setAperto(true))}
-        className="rounded-xl bg-surface dark:bg-surface-dark text-sm py-2.5 w-full"
+        className="rounded-xl bg-surface dark:bg-surface-dark text-callout py-2.5 w-full"
       >
         Installa app
       </button>
@@ -70,10 +70,10 @@ export default function InstallaApp() {
             style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-semibold">Aggiungi tappy alla Home</h2>
+            <h2 className="text-headline font-semibold">Aggiungi tappy alla Home</h2>
 
             {isIOS() ? (
-              <ol className="text-sm text-muted dark:text-muted-dark flex flex-col gap-2 list-decimal pl-4">
+              <ol className="text-callout text-muted dark:text-muted-dark flex flex-col gap-2 list-decimal pl-4">
                 <li>
                   Tocca il pulsante <b>Condividi</b> nella barra di Safari — il quadrato con la
                   freccia verso l&apos;alto.
@@ -87,7 +87,7 @@ export default function InstallaApp() {
                 </li>
               </ol>
             ) : (
-              <ol className="text-sm text-muted dark:text-muted-dark flex flex-col gap-2 list-decimal pl-4">
+              <ol className="text-callout text-muted dark:text-muted-dark flex flex-col gap-2 list-decimal pl-4">
                 <li>
                   Apri il menu del browser — i tre puntini in alto a destra.
                 </li>
@@ -98,14 +98,14 @@ export default function InstallaApp() {
               </ol>
             )}
 
-            <p className="text-xs text-muted dark:text-muted-dark">
+            <p className="text-footnote text-muted dark:text-muted-dark">
               Funziona solo da Safari su iPhone: se stai leggendo in un altro browser, apri prima
               questo indirizzo lì.
             </p>
 
             <button
               onClick={() => setAperto(false)}
-              className="mt-1 rounded-xl bg-ink dark:bg-white text-white dark:text-black text-sm font-medium py-2.5"
+              className="mt-1 rounded-xl bg-ink dark:bg-white text-white dark:text-black text-callout font-medium py-2.5"
             >
               Ho capito
             </button>

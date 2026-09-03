@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { accent } from "../lib/accent";
 
 export interface GaugeSegment {
   id: string;
@@ -28,6 +29,7 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
   // Quanto si è andati oltre, come frazione del budget stesso (0-1, poi eventualmente >1
   // se lo sforamento è enorme: in quel caso il secondo anello fa un giro completo).
   const overflowFraction = overBudget ? (total - budget) / budget : 0;
+  const pink = accent("pink", "#ff2ecb");
   const rafRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -101,7 +103,7 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
             cy="100"
             r={R_OVERFLOW}
             fill="none"
-            stroke="#ff2ecb"
+            stroke={pink}
             strokeWidth="7"
             strokeLinecap="round"
             strokeDasharray={CIRC_OVERFLOW}
@@ -125,16 +127,21 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
       )}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
-          className={`text-3xl font-semibold tracking-tight tabular-nums ${
-            overBudget ? "text-neon-pink" : ""
+          className={`text-largeTitle font-semibold tracking-tight tabular-nums ${
+            overBudget ? "text-acc-pink" : ""
           }`}
         >
           {centerLabel}
         </span>
-        <span className="text-xs text-muted dark:text-muted-dark mt-1">{centerSub}</span>
+        <span className="text-footnote text-muted dark:text-muted-dark mt-1">{centerSub}</span>
         {overBudget && (
-          <span className="text-[10px] font-medium text-neon-pink mt-1 gauge-overflow-pulse">
+          <span className="text-caption font-medium text-acc-pink mt-1 gauge-overflow-pulse">
             oltre €{Math.round(total - budget)}
+          </span>
+        )}
+        {!overBudget && budget > 0 && (
+          <span className="text-caption font-medium text-muted dark:text-muted-dark mt-1">
+            ancora €{Math.round(budget - total)}
           </span>
         )}
       </div>

@@ -34,6 +34,36 @@ html.dark {
   background-color: #000000;
 }
 
+/* Sfondo coerente anche nell'area del notch/status bar (con viewport-fit=cover
+   il body non copre quella striscia, quindi va colorata anche a livello di html). */
+html {
+  background-color: #f5f5f7;
+}
+html.dark {
+  background-color: #000000;
+}
+
+/* Due varianti di accento per i due temi: in chiaro versioni scurite ad almeno
+   4.5:1 su #f5f5f7 (i fluo puri non passano il contrasto su fondo chiaro), in
+   scuro i fluo originali. Vedi tailwind.config.js -> colors.acc. */
+:root {
+  /* Verificati a 4.5:1 su #f5f5f7: i valori proposti nel pacchetto
+     stavano fra 2.5:1 e 3.9:1, sotto la soglia che il pacchetto stesso
+     dichiarava. Stessa tinta, solo abbassati finche' il contrasto regge. */
+  --acc-green: #008241;
+  --acc-pink: #d6008f;
+  --acc-cyan: #007b94;
+  --acc-violet: #5e5eeb;
+  --acc-amber: #996600;
+}
+html.dark {
+  --acc-green: #39ff88;
+  --acc-pink: #ff2ecb;
+  --acc-cyan: #00e5ff;
+  --acc-violet: #a3a3ff;
+  --acc-amber: #ffcf4d;
+}
+
 body {
   @apply bg-base dark:bg-base-dark text-ink dark:text-ink-dark antialiased;
   font-feature-settings: "ss01";
@@ -103,6 +133,45 @@ body {
 
   .animate-shake {
     animation: none;
+  }
+}
+
+/* Sforamento budget: l'anello rosso "extra giro" respira per segnalare l'allarme
+   senza essere frenetico — non un lampeggio, un battito lento e continuo. */
+@keyframes overflowPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    filter: drop-shadow(0 0 3px #ff2ecb99);
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 10px #ff2ecbee);
+  }
+}
+
+.gauge-overflow-pulse {
+  animation: overflowPulse 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gauge-overflow-pulse {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Rete di sicurezza: ogni transizione/animazione CSS introdotta (anelli, sparkline,
+   quadrante, header che si contrae, ecc.) diventa istantanea quando l'utente ha
+   chiesto meno movimento — non solo quelle già gestite sopra caso per caso. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

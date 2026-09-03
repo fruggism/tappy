@@ -53,21 +53,21 @@ export default function Login() {
       }}
     >
       <div className="w-full max-w-sm flex flex-col gap-4">
-        <h1 className="text-3xl font-bold tracking-tight text-center">
-          tap<span className="text-neon-green">py</span>
+        <h1 className="text-largeTitle font-bold tracking-tight text-center">
+          tap<span className="text-acc-green">py</span>
         </h1>
-        <p className="text-sm text-muted dark:text-muted-dark text-center">
+        <p className="text-callout text-muted dark:text-muted-dark text-center">
           Accedi con il tuo codice Fru Pass, lo stesso che usi nelle altre app.
         </p>
 
         <div
           className={`flex items-center justify-center gap-0.5 rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-3
-            transition-shadow focus-within:ring-2 focus-within:ring-neon-green/60
-            ${errore && colpaNostra ? "ring-1 ring-neon-pink/50" : ""}
+            transition-shadow focus-within:ring-2 focus-within:ring-acc-green/60
+            ${errore && colpaNostra ? "ring-1 ring-acc-pink/50" : ""}
             ${scuote ? "animate-shake" : ""}
             ${inCorso ? "pointer-events-none opacity-60" : ""}`}
         >
-          <span className="text-lg font-medium tracking-[0.2em] text-muted dark:text-muted-dark">
+          <span className="text-headline font-medium tracking-[0.2em] text-muted dark:text-muted-dark">
             FRU-
           </span>
           <input
@@ -83,14 +83,14 @@ export default function Login() {
             autoCorrect="off"
             spellCheck={false}
             aria-label="Codice Fru Pass"
-            className="w-[11.5ch] bg-transparent outline-none text-lg font-medium tracking-[0.2em]"
+            className="w-[11.5ch] bg-transparent outline-none text-headline font-medium tracking-[0.2em]"
           />
         </div>
 
         {/* Altezza riservata: il bottone non salta quando compare l'errore. */}
-        <div className="min-h-[1.25rem] text-xs text-center">
+        <div className="min-h-[1.25rem] text-footnote text-center">
           {errore && (
-            <span className={colpaNostra ? "text-neon-pink" : "text-muted dark:text-muted-dark"}>
+            <span className={colpaNostra ? "text-acc-pink" : "text-muted dark:text-muted-dark"}>
               {errore}
             </span>
           )}
@@ -99,14 +99,14 @@ export default function Login() {
         <button
           onClick={accedi}
           disabled={inCorso || !completo}
-          className="rounded-xl bg-ink dark:bg-white text-white dark:text-black text-sm font-medium
+          className="rounded-xl bg-ink dark:bg-white text-white dark:text-black text-callout font-medium
                      py-2.5 disabled:opacity-50"
         >
           {inCorso ? "Verifica…" : "Accedi"}
         </button>
 
         <div className="mt-6 flex flex-col items-center gap-1 text-muted dark:text-muted-dark">
-          <span className="text-[9px] uppercase tracking-[0.12em] opacity-80">
+          <span className="text-caption uppercase tracking-[0.12em] opacity-80">
             parte dell&apos;ecosistema
           </span>
           <FruPassMark className="opacity-60" />

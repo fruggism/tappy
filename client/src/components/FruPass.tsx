@@ -23,7 +23,7 @@ export function FruPassMark({ className = "" }: { className?: string }) {
       aria-label="Fru Pass"
       className={
         "inline-flex items-center rounded-md border border-current/30 px-1 py-0.5 " +
-        "text-[10px] font-semibold leading-none tracking-[0.15em] " +
+        "text-caption font-semibold leading-none tracking-[0.15em] " +
         className
       }
     >
