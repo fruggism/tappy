@@ -22,6 +22,20 @@ body,
   height: 100dvh;
 }
 
+/* iOS ingrandisce la pagina quando prende il fuoco un campo il cui testo è
+   sotto i 16px: la schermata sottostante si allarga, si sposta, e resta così
+   anche dopo aver chiuso la tastiera. È il comportamento di Safari, non delle
+   app, e in una web app installata sembra un difetto. Non lo si disattiva con
+   `maximum-scale`, che togliendo lo zoom manuale peggiora le cose per chi ha
+   bisogno di ingrandire: si evita dando ai campi almeno 16px.
+   Un campo che deve essere più grande usa una classe, che vince su questa
+   regola; uno più piccolo riporterebbe il problema, quindi non si fa. */
+input:not([type="checkbox"]):not([type="radio"]),
+select:not([hidden]),
+textarea:not([hidden]) {
+  font-size: 16px;
+}
+
 /* La pagina non scorre: scorre il contenuto dentro <main>. Senza questo,
    su iOS il "rimbalzo" trascina anche la pulsantiera. */
 body {

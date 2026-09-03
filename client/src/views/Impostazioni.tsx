@@ -64,7 +64,7 @@ function CategoryRow({
           onBlur={handleBlur}
           inputMode="decimal"
           placeholder="opzionale"
-          className="w-20 rounded-lg bg-surface2 dark:bg-surface2-dark px-2 py-1 text-footnote text-right outline-none focus:ring-2 focus:ring-acc-green/60 placeholder:text-caption"
+          className="w-20 rounded-lg bg-surface2 dark:bg-surface2-dark px-2 py-1 text-right outline-none focus:ring-2 focus:ring-acc-green/60"
         />
         <span className="text-caption text-muted dark:text-muted-dark">/mese</span>
       </div>
@@ -250,7 +250,7 @@ export default function Impostazioni() {
             value={newCatName}
             onChange={(e) => setNewCatName(e.target.value)}
             placeholder="Nuova categoria"
-            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-acc-green/60 text-callout"
+            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-acc-green/60"
           />
           <div className="flex gap-2">
             {PALETTE.map((color) => (

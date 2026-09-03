@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import RadialGauge from "../components/RadialGauge";
 import SegmentedControl from "../components/SegmentedControl";
@@ -231,7 +231,7 @@ function TimeTravelMenu({
             defaultValue={toISODate(travelDate)}
             max={toISODate(today)}
             onChange={handleChange}
-            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-callout outline-none focus:ring-2 focus:ring-acc-cyan/60"
+            className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 outline-none focus:ring-2 focus:ring-acc-cyan/60"
           />
           <p className="text-footnote text-muted dark:text-muted-dark leading-snug">
             Scegli un giorno per rivedere i tuoi dati come se fossi lì: giornaliero, settimanale e
@@ -463,6 +463,23 @@ function SparklineContent({
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const green = accent("green", "#39ff88");
+  const barre = useRef<HTMLDivElement>(null);
+  const etichetta = useRef<HTMLDivElement>(null);
+  const [sinistra, setSinistra] = useState(0);
+
+  // L'etichetta era centrata sulla barra: sulle prime e sulle ultime finiva
+  // metà fuori dal grafico, a fluttuare nel vuoto a destra dello schermo.
+  // Qui si misura quanto è larga davvero — dipende dall'importo, «€6 · 3 set»
+  // e «€1.234 · 12 set» non occupano lo stesso spazio — e la si trattiene
+  // entro i bordi del grafico. Il calcolo sta in un layout effect così
+  // avviene prima che il browser dipinga: nessuno la vede saltare.
+  useLayoutEffect(() => {
+    if (hover === null || !barre.current || !etichetta.current) return;
+    const larghezza = barre.current.clientWidth;
+    const w = etichetta.current.offsetWidth;
+    const centroBarra = ((hover + 0.5) / data.length) * larghezza;
+    setSinistra(Math.max(0, Math.min(larghezza - w, centroBarra - w / 2)));
+  }, [hover, data.length]);
   const max = Math.max(1, ...data.map((d) => d.total));
   const today = toISODate(new Date());
 
@@ -476,7 +493,16 @@ function SparklineContent({
           picco €{max === 1 ? 0 : max.toFixed(0)}
         </span>
       </div>
-      <div className="flex items-end gap-1.5 h-20">
+      <div ref={barre} className="relative flex items-end gap-1.5 h-20">
+        {hover !== null && (
+          <div
+            ref={etichetta}
+            className="absolute -top-8 whitespace-nowrap rounded-lg bg-ink dark:bg-white text-white dark:text-black text-caption font-medium px-2 py-1 shadow-lg z-10 animate-rise pointer-events-none"
+            style={{ left: sinistra }}
+          >
+            €{data[hover].total.toFixed(0)} · {formatShortDate(data[hover].date)}
+          </div>
+        )}
         {data.map((d, i) => {
           const isToday = d.date === today;
           const h = visible ? Math.max(3, (d.total / max) * 100) : 0;
@@ -489,11 +515,6 @@ function SparklineContent({
               onMouseLeave={() => setHover(null)}
               onTouchStart={() => setHover(i)}
             >
-              {isHover && (
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink dark:bg-white text-white dark:text-black text-caption font-medium px-2 py-1 shadow-lg z-10 animate-rise">
-                  €{d.total.toFixed(0)} · {formatShortDate(d.date)}
-                </div>
-              )}
               <div className="h-full w-full rounded-full bg-black/5 dark:bg-white/10 relative overflow-hidden">
                 <div
                   className="absolute bottom-0 left-0 right-0 rounded-full transition-all ease-out"
