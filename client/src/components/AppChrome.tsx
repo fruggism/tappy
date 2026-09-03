@@ -116,28 +116,39 @@ export function Header({ scrolled = false }: { scrolled?: boolean }) {
  * entrambi: la riga della versione finisce così nella fascia dell'home
  * indicator, che è lo spazio giusto per un'informazione di servizio.
  */
+/**
+ * La pulsantiera, ancorata in fondo allo schermo. Sotto non c'è niente: lo
+ * spazio in basso serve a quello che conta, non a un piè di pagina sempre
+ * acceso. Marchio e versione stanno in coda al contenuto, e si vedono
+ * scorrendo fino in fondo (vedi PieDiPagina).
+ */
 export function Dock({ children }: { children: ReactNode }) {
   return (
     <div
       className="absolute bottom-0 left-0 right-0 px-4 pointer-events-none"
       style={{ paddingBottom: "max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))" }}
     >
-      {/* Il contenuto scorre sotto la pulsantiera — che è traslucida, ed è
-          voluto — ma la riga della versione non ha uno sfondo suo e ci si
-          sovrapporrebbe. Questa sfumatura lo fa sparire appena prima. */}
+      {/* Il contenuto scorre sotto la pulsantiera, che è traslucida: la
+          sfumatura lo fa svanire invece di farlo sbucare a metà. */}
       <div
         className="absolute inset-x-0 bottom-0 -top-6 bg-gradient-to-t
                    from-base via-base to-transparent
                    dark:from-base-dark dark:via-base-dark"
       />
+      <div className="relative pointer-events-auto">{children}</div>
+    </div>
+  );
+}
 
-      <div className="relative pointer-events-auto">
-        {children}
-        <div className="flex flex-col items-center gap-0.5 pt-2 pb-1 text-muted dark:text-muted-dark">
-          <FruPassMark className="opacity-60" />
-          <span className="text-caption tabular-nums opacity-70">{__APP_VERSION__}</span>
-        </div>
-      </div>
+/**
+ * Marchio dell'ecosistema e versione, in coda al contenuto: compaiono
+ * scorrendo fino in fondo, e non rubano spazio per il resto del tempo.
+ */
+export function PieDiPagina() {
+  return (
+    <div className="flex flex-col items-center gap-0.5 pt-6 pb-2 text-muted dark:text-muted-dark">
+      <FruPassMark className="opacity-60" />
+      <span className="text-caption tabular-nums opacity-70">{__APP_VERSION__}</span>
     </div>
   );
 }

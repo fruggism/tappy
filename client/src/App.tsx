@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useApp } from "./lib/AppContext";
-import { Dock, Header } from "./components/AppChrome";
+import { Dock, Header, PieDiPagina } from "./components/AppChrome";
 import Login from "./views/Login";
 import Andamento from "./views/Andamento";
 import Movimenti from "./views/Movimenti";
@@ -88,8 +88,8 @@ export default function App() {
     <div className="h-full flex flex-col max-w-md mx-auto relative bg-base dark:bg-base-dark">
       <Header scrolled={scrolled} />
 
-      {/* pb generoso: sotto ci sono nav e riga della versione, e l'ultima card
-          di ogni schermata non deve finirci sotto. */}
+      {/* pb generoso: sotto c'è la pulsantiera, e l'ultima cosa del contenuto
+          — il piè di pagina — non deve finirci sotto. */}
       <main
         ref={mainRef}
         className="flex-1 overflow-y-auto px-5 pt-2"
@@ -99,6 +99,7 @@ export default function App() {
         {tab === "andamento" && <Andamento />}
         {tab === "movimenti" && <Movimenti />}
         {tab === "impostazioni" && <Impostazioni />}
+        <PieDiPagina />
       </main>
 
       <Dock>
