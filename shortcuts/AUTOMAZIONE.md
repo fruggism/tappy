@@ -146,17 +146,22 @@ input»**: passa da sé *Importo*, *Esercente* e *Carta o biglietto* come
 variabili. Non serve estrarre niente dal testo della notifica — verificato
 sull'iPhone.
 
-## Azioni che in background non si possono usare
+## La categoria: scelta a mano, con un compromesso da conoscere
 
-Un'automazione impostata su «Esegui immediatamente» gira **senza nessuno
-davanti allo schermo**. Quindi ogni azione che chiede qualcosa all'utente la
-blocca: in particolare **«Scegli da elenco»**, comodo per scegliere la
-categoria al momento, non può stare qui.
+L'automazione include **«Scegli da elenco»** per selezionare la categoria al
+momento del pagamento. È una scelta deliberata del proprietario: un tocco in
+più, ma la spesa nasce già categorizzata.
 
-La categoria si sistema in un altro modo: non mandarla affatto — il server
-mette "Altro" — e cambiarla dopo in tappy, che costa un tocco. Oppure
-dedurla dall'esercente con delle azioni **Se** (`Esercente contiene "Eni"` →
-`Macchina`), che restano automatiche.
+Il compromesso da conoscere: un'automazione impostata su «Esegui
+immediatamente» gira anche a telefono in tasca, e un'azione che chiede
+qualcosa **sospende tutto finché non si risponde**. Se la richiesta passa
+inosservata, non si perde solo la categoria — **non parte nemmeno l'invio**,
+e la spesa non viene registrata.
+
+Se dovesse capitare troppo spesso, le alternative sono due: dedurre la
+categoria dall'esercente con delle azioni **Se** (`Esercente contiene "Eni"`
+→ `Macchina`), oppure mandare la spesa subito senza categoria e sistemarla
+dopo in tappy, che costa un tocco nella vista di dettaglio.
 
 ## Una verifica ancora aperta
 
