@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { api } from "../lib/api";
 import { accent } from "../lib/accent";
@@ -6,6 +6,10 @@ import { accent } from "../lib/accent";
 // deve restare valido anche mentre si sviluppa con i dati finti.
 import { API_BASE } from "../lib/realApi";
 import InstallaApp from "../components/InstallaApp";
+// La guida vive dentro l'app perché il momento in cui serve è questo: con
+// indirizzo e chiave sotto gli occhi e il telefono in mano. Caricata a
+// richiesta: contiene gli screenshot, e chi non la apre non li scarica.
+const GuidaAutomazione = lazy(() => import("./GuidaAutomazione"));
 import type { Category } from "../lib/types";
 
 const PALETTE = ["#39ff88", "#00e5ff", "#ff2ecb", "#a3a3ff", "#ffcf4d", "#ff6b6b"];
@@ -84,6 +88,7 @@ export default function Impostazioni() {
   const [newCatColor, setNewCatColor] = useState(PALETTE[0]);
   const [copied, setCopied] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [guidaAperta, setGuidaAperta] = useState(false);
 
   // Deve tenere conto del prefisso: dentro il sito condiviso dell'hub l'app
   // vive in una sottocartella e l'API sta sotto /tappy/api.
@@ -103,6 +108,14 @@ export default function Impostazioni() {
   }
 
   if (!user) return null;
+
+  if (guidaAperta) {
+    return (
+      <Suspense fallback={null}>
+        <GuidaAutomazione onChiudi={() => setGuidaAperta(false)} />
+      </Suspense>
+    );
+  }
 
   const now = new Date();
   const dim = daysInMonth(now.getFullYear(), now.getMonth());
@@ -281,6 +294,21 @@ export default function Impostazioni() {
         <h2 className="text-callout font-semibold text-muted dark:text-muted-dark uppercase tracking-wide">
           Automazione Apple Pay
         </h2>
+        <button
+          onClick={() => setGuidaAperta(true)}
+          className="rounded-2xl bg-surface dark:bg-surface-dark px-4 py-3 flex items-center gap-3 text-left"
+        >
+          <span className="flex-1">
+            <span className="block text-callout font-medium">Come si prepara</span>
+            <span className="block text-footnote text-muted dark:text-muted-dark">
+              Guida passo per passo, con le schermate
+            </span>
+          </span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-4 w-4 text-muted dark:text-muted-dark shrink-0">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+
         <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3 text-callout">
           <p className="text-muted dark:text-muted-dark">
             Nell&apos;automazione dell&apos;iPhone che scatta al pagamento Apple Pay, fai una
