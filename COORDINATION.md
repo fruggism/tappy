@@ -479,3 +479,25 @@ gente:
   tutti (`listTransactions` accetta già `from`/`to`).
 - **Il primo accesso costa 6 scritture** (utente, 4 categorie, carta), in
   sequenza. Va bene per un'iscrizione ogni tanto, non per un'ondata.
+
+## 12. Da fare quando l'automazione sarà definitiva
+
+**Rifare gli screenshot della guida.** Quelli in `client/public/guida/` sono
+del 2026-09-03 e mostrano l'ordine **vecchio**: la posizione prima
+dell'invio, e `lat`/`lon` dentro il corpo della prima chiamata. Il testo
+della guida descrive già il nuovo ordine in due tempi, quindi finché non si
+rifanno le immagini contraddicono le istruzioni accanto a cui stanno.
+
+Da rifare, appena Riccardo è convinto dell'automazione e non la tocca più:
+
+- `2-posizione.jpg` — le azioni della posizione **dopo** la chiamata, con
+  «Ottieni valore dal dizionario» in mezzo
+- `3-invio.jpg` — il corpo JSON della prima chiamata **senza** `lat`/`lon`
+- una nuova immagine per la seconda chiamata (`.../applepay/posizione`, con
+  `id`/`lat`/`lon`)
+- `1-innesco.jpg` e `4-nota.jpg` restano validi
+
+Nelle immagini la `x-api-key` va mascherata: iOS ne mostra i primi caratteri
+e queste finiscono in un repo pubblico. Lo script che ridimensiona e maschera
+è ricostruibile in due minuti (Chromium via Playwright, canvas, larghezza 760,
+qualità 0.72, rettangolo bianco sopra la riga della chiave).
