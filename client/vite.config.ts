@@ -16,7 +16,10 @@ const data = [
 // sottocartella (es. /tappy/): senza questo, gli asset verrebbero cercati
 // nella radice del sito e la pagina resterebbe bianca.
 // In locale e su un sito dedicato la variabile non serve.
-const basePath = process.env.VITE_BASE_PATH || "/";
+// Percorsi relativi per default: così la stessa build funziona sia alla
+// radice di un sito dedicato sia dentro una sottocartella dell'hub, senza
+// doverla rifare. VITE_BASE_PATH resta per il caso in cui serva assoluto.
+const basePath = process.env.VITE_BASE_PATH || "./";
 
 export default defineConfig({
   base: basePath,

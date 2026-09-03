@@ -58,7 +58,10 @@ cui tappy si discosta dallo standard. Nel dettaglio:
 | Footer con logo centrale e versione sotto | ✅ conforme come **riga sotto la nav**, non come barra fissa a sé: due barre fisse in basso su iPhone sono insostenibili |
 | `viewport-fit=cover` + `env(safe-area-inset-*)` | ✅ conforme |
 | Toggle giorno/notte manuale | ✅ conforme, **più** la terza posizione "sistema" in Impostazioni (sovrainsieme del requisito) |
-| Nessuna credenziale dell'ecosistema nel codice | ✅ conforme, verificato |
+| Nessuna credenziale dell'ecosistema nel codice | ✅ conforme, verificato dallo script di export |
+| Percorsi relativi, `index.html` alla radice della cartella | ✅ conforme, provato da un sottopercorso |
+| `manifest.json` + icone 192/512/180 | ✅ conforme |
+| Pulsante "Installa app" con le istruzioni | ✅ conforme (iOS e Android hanno istruzioni diverse: si mostra quella giusta) |
 | Palette `#06070f` + ciano/magenta/gold | ❌ **deroga**: resta la palette tappy |
 | Font Orbitron / Space Grotesk / Space Mono | ❌ **deroga**: restano i font di sistema |
 | Card `20px`, bottoni `12px`, ombre `0 8px 22px rgba(0,0,0,.45)` | ❌ **deroga**: restano `16px` e ombre leggere |
@@ -86,8 +89,73 @@ lettera.
       codice, e nessun riferimento alla base dell'hub
 - [ ] Il token Airtable di tappy è abilitato **solo** sulla base `tappy`
       (vedi `SETUP.md` §2)
+- [ ] `npm run esporta` passa tutti i controlli, col dominio vero
+- [ ] La cartella è su GitHub, sul branch `export-frupass`
+- [ ] Pulsante "Installa app", `manifest.json` e icone presenti (fatto)
 
-## 4. Cosa mandare
+## 4. Preparare la cartella per l'hub
+
+L'hub vuole una cartella **statica e autosufficiente**, da copiare in
+`frupass-hub/tappy/`. Tappy però ha un backend — è il motivo per cui esiste,
+visto che l'automazione deve poter scrivere una spesa. La guida
+dell'ecosistema lo prevede: l'identità arriva dall'hub, i dati stanno «su un
+tuo backend separato».
+
+Quindi la sistemazione è questa:
+
+- **Nell'hub** va solo il frontend, statico, con percorsi relativi.
+- **Il backend resta sul sito Netlify di tappy** e viene chiamato da un altro
+  dominio. Il webhook dell'automazione continua a puntare lì, e non cambia
+  quando l'app entra nell'hub.
+
+Serve quindi il dominio del sito Netlify di tappy, e va passato all'export:
+
+```bash
+TAPPY_API_URL=https://<tuo-sito>.netlify.app npm run esporta
+```
+
+Lo script compila il client con i percorsi relativi e l'API puntata al
+backend, copia tutto in `export/tappy/`, e **si rifiuta di consegnare** se
+trova un riferimento assoluto, un `localhost`, un'icona mancante o una
+credenziale finita nel pacchetto. Sono gli errori che altrimenti si scoprono
+solo online.
+
+Poi:
+
+```bash
+git checkout -b export-frupass
+git add -f export/tappy
+git commit -m "Export statico di tappy per l'hub"
+git push -u origin export-frupass
+```
+
+E all'amministratore basta dire: repository `fruggism/tappy`, branch
+`export-frupass`, cartella `export/tappy/`.
+
+⚠️ **Non esportare prima del deploy**: senza il dominio vero l'app cercherebbe
+l'API dove non c'è. E se un giorno cambi il dominio del backend, va rifatto
+l'export — è l'unico punto in cui quell'indirizzo resta scritto.
+
+### Cosa contiene la cartella
+
+```
+tappy/
+  index.html
+  assets/            (js e css, con percorsi relativi)
+  manifest.json
+  icons/icon-192.png, icon-512.png, icon-180.png
+  icona.svg
+```
+
+### Verificato
+
+Il pacchetto è stato provato servito **da un sottopercorso** (`/tappy/`), che
+è il test che la guida indica come più importante: l'app parte, nessuna
+risorsa manca, il manifest e le icone si raggiungono, l'API viene cercata sul
+backend esterno e non sull'hub, e l'arrivo dalla tile con `#code=` entra senza
+mostrare il login.
+
+## 5. Cosa mandare
 
 All'amministratore serve:
 
@@ -101,7 +169,7 @@ All'amministratore serve:
 L'inserimento nel catalogo e l'abilitazione sui profili utente **li fa
 l'amministratore**, dal pannello admin: non c'è nulla da fare lato codice.
 
-## 5. Dopo la pubblicazione
+## 6. Dopo la pubblicazione
 
 Da controllare la prima volta che apri tappy **dalla tile dell'hub**, non dal
 link diretto: è l'unico modo di provare davvero l'auto-login con un codice

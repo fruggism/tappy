@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 // Il prefisso vero del backend, non quello finto del mock: l'URL del webhook
 // deve restare valido anche mentre si sviluppa con i dati finti.
 import { API_BASE } from "../lib/realApi";
+import InstallaApp from "../components/InstallaApp";
 import type { Category } from "../lib/types";
 
 const PALETTE = ["#39ff88", "#00e5ff", "#ff2ecb", "#a3a3ff", "#ffcf4d", "#ff6b6b"];
@@ -322,7 +323,8 @@ export default function Impostazioni() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-2">
+        <InstallaApp />
         <button
           onClick={logout}
           className="rounded-xl bg-surface dark:bg-surface-dark text-muted dark:text-muted-dark text-sm py-2.5"
