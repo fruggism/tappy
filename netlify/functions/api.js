@@ -256,6 +256,19 @@ router.delete(
 // alla notifica di pagamento Apple Pay, fa la POST qui con l'header x-api-key:
 // è l'api key interna di tappy, leggibile in Impostazioni. NON si usa il
 // codice Fru Pass — è la credenziale dell'intero ecosistema.
+// Se l'iPhone non è riuscito a leggere la posizione, i campi arrivano vuoti
+// — stringa vuota o null, non assenti. `Number("")` e `Number(null)` fanno
+// **zero**, che è una coordinata valida (golfo di Guinea): la spesa sarebbe
+// finita sulla mappa in mezzo all'oceano. Qui il vuoto resta vuoto. La
+// virgola decimale si accetta perché a seconda della lingua Shortcuts la usa.
+function coordinata(valore) {
+  if (valore === undefined || valore === null) return undefined;
+  const testo = String(valore).trim().replace(",", ".");
+  if (!testo) return undefined;
+  const n = Number(testo);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 router.post("/webhook/applepay", async (req, res) => {
   try {
     const user = await db.getUserByApiKey(req.header("x-api-key"));
@@ -294,8 +307,8 @@ router.post("/webhook/applepay", async (req, res) => {
       time,
       // L'automazione le manda solo se è riuscita a leggere la posizione e se
       // l'utente non l'ha disattivata: qui non sono mai obbligatorie.
-      lat: Number(lat),
-      lon: Number(lon),
+      lat: coordinata(lat),
+      lon: coordinata(lon),
     });
     res.status(201).json(tx);
   } catch (err) {

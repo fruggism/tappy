@@ -124,6 +124,30 @@ const scritta = creazioni.find((c) => c.tabella === "Transactions");
 t("webhook accetta la chiave vera e scrive sull'utente giusto",
   buona.stato === 201 && scritta && scritta.UserId === "FRU-BBBB-BBBB", { buona, scritta });
 
+// --- 1-bis. la posizione mancante non deve inventare un punto ------------
+// Se l'iPhone non legge la posizione, i campi arrivano vuoti, non assenti:
+// e `Number("")` è zero, cioè un punto reale in mezzo all'oceano.
+for (const [nome, lat, lon] of [
+  ["campi vuoti", "", ""],
+  ["campi null", null, null],
+  ["campi assenti", undefined, undefined],
+]) {
+  creazioni = [];
+  const r = await chiama("POST", "/api/webhook/applepay", {
+    corpo: { amount: 2, name: "Senza posizione", lat, lon }, chiave: "chiaveDiAnnaChiaveDiAnna",
+  });
+  const riga = creazioni.find((c) => c.tabella === "Transactions");
+  t(`spesa registrata lo stesso, senza coordinate: ${nome}`,
+    r.stato === 201 && riga && riga.Lat === undefined && riga.Lon === undefined, { r, riga });
+}
+creazioni = [];
+const conVirgola = await chiama("POST", "/api/webhook/applepay", {
+  corpo: { amount: 2, name: "Con posizione", lat: "44,7", lon: "10,3" }, chiave: "chiaveDiAnnaChiaveDiAnna",
+});
+const rigaVirgola = creazioni.find((c) => c.tabella === "Transactions");
+t("coordinate con la virgola decimale: lette",
+  conVirgola.stato === 201 && rigaVirgola.Lat === 44.7 && rigaVirgola.Lon === 10.3, rigaVirgola);
+
 // --- 2. gli id di un altro utente non passano ----------------------------
 for (const [nome, corpo] of [
   ["categoria", { amount: 5, name: "Spesa", category_id: "catB" }],

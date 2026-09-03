@@ -195,6 +195,16 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
             Servono solo per la mappa. Se non ti interessa, salta questo passo e più avanti ometti{" "}
             <code>lat</code> e <code>lon</code>.
           </p>
+          <p className="text-ink dark:text-ink-dark">
+            Se il telefono non riesce a leggere la posizione, la spesa si registra lo stesso: arriva
+            senza luogo e non compare sulla mappa.
+          </p>
+          <p>
+            L&apos;unico caso in cui si perde è se iOS <b>nega</b> la posizione: allora l&apos;azione
+            va in errore e l&apos;automazione si ferma prima di mandare qualcosa. Se dopo un
+            pagamento vero non vedi la spesa, è quasi sempre questo: togli queste tre azioni e i due
+            campi, e l&apos;invio non può più fallire per la posizione.
+          </p>
         </Passo>
 
         <Passo

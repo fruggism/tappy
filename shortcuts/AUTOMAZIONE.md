@@ -125,11 +125,26 @@ un tocco nella vista di dettaglio.
 sulla mappa. Per togliere il luogo da una spesa già registrata, aprila in
 Movimenti e usa **Rimuovi la posizione**.
 
-**Una verifica ancora aperta**: la posizione arriva anche quando
-l'automazione scatta da sola? Lanciandola a mano funziona — verificato. Ma il
-caso vero è a telefono bloccato in tasca, ed è lì che iOS può negare la
-localizzazione a un'automazione in background. Si scopre col primo pagamento
-vero: se `lat`/`lon` arrivano vuoti, la spesa si registra lo stesso.
+**Se la posizione non arriva, la spesa si perde?** Dipende da *dove* si
+ferma, e i due casi vanno tenuti distinti.
+
+- **Coordinate vuote che arrivano al server**: nessun problema. Il webhook
+  tratta `""`, `null` e il campo assente allo stesso modo — la spesa si
+  registra senza luogo e semplicemente non compare sulla mappa. (Fino al
+  2026-09-03 `Number("")` faceva `0` e la spesa finiva a 0°,0°, in mezzo al
+  golfo di Guinea: corretto, con prova in `tests/multiutente.test.mjs`.)
+- **L'azione della posizione che fallisce sul telefono**: qui sì. Se iOS nega
+  la localizzazione, «Ottieni la posizione attuale» va in errore e
+  l'automazione si interrompe **lì**, prima dell'invio: non arriva niente, e
+  la spesa non viene registrata affatto. Non è il server a decidere, è
+  Shortcuts.
+
+**Una verifica ancora aperta** è proprio questa: a telefono bloccato in
+tasca, iOS concede la posizione a un'automazione in background? Lanciandola a
+mano funziona — verificato. Si scopre col primo pagamento vero. Se la spesa
+non compare in tappy, la causa più probabile è questa: togli le tre azioni
+della posizione e i campi `lat`/`lon`, e l'automazione torna a essere una
+sola chiamata che non può fallire per il GPS.
 
 Controlla anche che **Impostazioni → Privacy → Localizzazione → Comandi
 Rapidi** abbia **«Posizione esatta»** attiva: con la posizione approssimata le
