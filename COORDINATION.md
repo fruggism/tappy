@@ -80,6 +80,11 @@ Quello che ricevi da me per ogni idea: *cosa* si costruisce, *chi* lo fa,
 - **Niente dipendenze nuove senza il mio ok.** Il progetto è deliberatamente
   leggero: nessuna libreria di charting, nessuna libreria di animazione, i
   grafici sono SVG/CSS scritti a mano. Vale ancora.
+  **Unica eccezione, decisa e motivata: Leaflet** (più un piccolo strato
+  heat) per la mappa della Fase 5. La regola nasce per non appesantire i
+  *grafici*; una mappa è un'altra cosa, e riscrivere proiezione, tessere e
+  pinch-zoom non è tenere il progetto leggero — è rifare peggio. Non è un
+  precedente per le altre viste: i grafici restano SVG a mano.
 - **Regressioni visive**: chi tocca `Andamento.tsx` (767 righe, il file più
   delicato) descrive nella PR quali dei sette blocchi ha toccato — gauge,
   confronto, proiezione, anelli categoria, sparkline, in evidenza, macchina
@@ -325,12 +330,18 @@ resta senza dati e avremmo costruito una vista vuota.
 
 | # | Task | Agent | Dipende da |
 |---|---|---|---|
-| G0 | Scelta sulla libreria (§8.1b) | **tu** | — |
-| G1 | **Verifica sull'iPhone**: l'automazione riesce a leggere la posizione quando scatta da sé? Solo questo, prima di tutto il resto | Automazioni | — |
-| G2 | `lat`/`lon` in `types.ts`, nella tabella `Transactions`, nel webhook, in `mockApi` e negli script di verifica dello schema | Backend & Deploy | G1 |
+| G0 ✅ | ~~Scelta sulla libreria~~ — **decisa: Leaflet + strato heat**, eccezione registrata in §4 | fatto | — |
+| G1 ⬅ **prossimo, e tocca a te** | **Verifica sull'iPhone**: l'automazione riesce a leggere la posizione quando scatta da sé? Solo questo, prima di tutto il resto | Automazioni | — |
+| G2 ✅ | *Fatto.* `lat`/`lon` in `types.ts`, nella tabella `Transactions`, nel webhook, in `mockApi` e negli script di verifica dello schema | Backend & Deploy | G1 |
 | G3 | L'automazione manda `lat`/`lon` al webhook, con l'opzione di non mandarli | Automazioni | G1, G2 |
 | G4 | Spec della vista mappa: come si entra da Movimenti, il selettore di periodo (giorno/mese/anno), la resa della heatmap nei due temi, lo stato vuoto («nessun movimento con posizione in questo periodo»), l'attribuzione OSM, e come si cancella una posizione | UI Expert | G0 |
 | G5 | Implementazione della vista mappa | UI Developer | G4, G2 |
+
+**Attenzione a una collisione**: il pacchetto grafico in lavorazione riscrive
+buona parte di `Movimenti.tsx` (controlli, chip, raggruppamento per giorno).
+La mappa deve quindi vivere in una vista propria (`views/Mappa.tsx`) e
+toccare `Movimenti.tsx` per la sola icona di ingresso: una riga, non un
+intreccio. Chi implementa G5 lo rispetti, o i due lavori si scontrano.
 
 **G1 prima di tutto**: è l'unico punto che può far cadere l'intera idea, e
 costa mezz'ora. Costruire mappa e schema prima di sapere se l'iPhone
