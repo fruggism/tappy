@@ -21,6 +21,7 @@ const SCHEMA = {
   Transactions: [
     "UserId", "Date", "Time", "Amount", "MyShare", "Name",
     "CardId", "CategoryId", "Source", "IsIncome", "Note", "CreatedAt",
+    "Lat", "Lon",
   ],
 };
 

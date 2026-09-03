@@ -39,6 +39,10 @@ export interface Transaction {
   card_id: string | null;
   category_id: string;
   source: "manual" | "applepay";
+  // Dove è avvenuta la spesa, se l'automazione ha potuto leggere la posizione.
+  // Sempre facoltativa: una spesa senza coordinate è normale, non un errore.
+  lat: number | null;
+  lon: number | null;
   is_income: 0 | 1;
   note: string | null;
   created_at: string;

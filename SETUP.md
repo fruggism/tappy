@@ -91,10 +91,14 @@ non danno errore, ma sporcano.
 | `IsIncome` | Checkbox |
 | `Note` | Single line text |
 | `CreatedAt` | Single line text |
+| `Lat` | Number (6 decimali) |
+| `Lon` | Number (6 decimali) |
 
 **Sui campi `Number`**: Airtable chiede la precisione. Metti **2 decimali**
 per `MonthlyBudget`, `Amount`, `MyShare` e `Budget`; **intero** per
-`SortOrder`. Con 0 decimali gli importi verrebbero arrotondati in silenzio.
+`SortOrder`; **6 decimali** per `Lat` e `Lon` (dove è avvenuta la spesa, riempiti dall'automazione e sempre
+facoltativi) — con meno, la posizione di una
+spesa si sposta di centinaia di metri e la mappa perde senso. Con 0 decimali gli importi verrebbero arrotondati in silenzio.
 
 **Non creare utenti a mano.** Al primo accesso con un codice Fru Pass valido,
 tappy crea da sé la riga in `Users`, le 4 categorie di default e una carta

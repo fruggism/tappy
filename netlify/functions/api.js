@@ -221,7 +221,7 @@ router.post("/webhook/applepay", async (req, res) => {
     const user = await db.getUserByApiKey(req.header("x-api-key"));
     if (!user) return res.status(401).json({ error: "invalid api key" });
 
-    const { amount, name, card, category, date, time, note } = req.body;
+    const { amount, name, card, category, date, time, note, lat, lon } = req.body;
     if (amount === undefined || !name) {
       return res.status(400).json({ error: "amount and name required" });
     }
@@ -252,6 +252,10 @@ router.post("/webhook/applepay", async (req, res) => {
       note,
       date,
       time,
+      // L'automazione le manda solo se è riuscita a leggere la posizione e se
+      // l'utente non l'ha disattivata: qui non sono mai obbligatorie.
+      lat: Number(lat),
+      lon: Number(lon),
     });
     res.status(201).json(tx);
   } catch (err) {
