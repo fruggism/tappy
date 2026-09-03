@@ -1,34 +1,141 @@
 # L'automazione Apple Pay
 
-Come collegare l'iPhone a tappy: al pagamento, l'**automazione** manda la
-spesa (e, se vuoi, la posizione) al webhook. Non è un comando rapido da
-lanciare a mano — scatta da sé, e tu non tocchi niente.
+Al pagamento, un'**automazione** dell'iPhone manda a tappy importo,
+esercente, carta, categoria e posizione. Non è un comando rapido da lanciare
+a mano: scatta da sé, e l'unica cosa che fai è scegliere la categoria con un
+tocco (vedi §5).
 
-Serve l'app **deployata**: l'automazione chiama un URL pubblico, e
-`localhost` dal telefono non esiste.
+Serve l'app **online**: l'automazione chiama un URL pubblico, e `localhost`
+dal telefono non esiste.
 
-## Cosa serve, e dove si trova
+---
 
-In **Impostazioni → Automazione Apple Pay**, dentro l'app, ci sono i due
-valori da copiare:
+## 1. I due valori da copiare
+
+Apri tappy → **Impostazioni → Automazione Apple Pay**. Ci sono, entrambi col
+pulsante Copia:
 
 - **URL webhook** — es. `https://tappy.netlify.app/api/webhook/applepay`
 - **Chiave del webhook** — un segreto interno di tappy
 
-⚠️ Nell'automazione va la **chiave del webhook**, mai il codice Fru Pass.
-Il codice apre tutte le app dell'ecosistema, e un'automazione si può
-esportare e condividere con un link.
+⚠️ Nell'automazione va la **chiave del webhook**, mai il codice Fru Pass: il
+codice apre tutte le app dell'ecosistema, e un'automazione si può esportare e
+condividere con un link.
 
-## La richiesta
+## 2. L'innesco
 
-`POST` all'URL, con questi header:
+Quello dei pagamenti con carta, che comincia con **«Ricevi transazione come
+input»**. Passa da sé *Importo*, *Esercente* e *Carta o biglietto* come
+variabili: non serve estrarre niente dal testo della notifica — verificato
+sull'iPhone.
 
-```
-Content-Type: application/json
-x-api-key: <la chiave del webhook>
-```
+Impostalo su **«Esegui immediatamente»**, con la richiesta di conferma
+**disattivata**: altrimenti a ogni pagamento l'iPhone chiede il permesso, e
+l'automatismo non serve più a niente.
 
-e questo corpo JSON:
+## 3. Le azioni, nell'ordine
+
+1. **Elenco** — `Leisure`, `Spesa`, `Macchina`, `Altro`. Sono le stesse
+   categorie che tappy ha già, quindi combaciano da sole.
+2. **Scegli da Elenco** → produce *Elemento selezionato*.
+3. **Ottieni la posizione attuale**.
+4. **Ottieni Latitudine da Posizione attuale**.
+5. **Ottieni Longitudine da Posizione attuale**.
+6. **Ottieni contenuti dall'URL** — è l'azione che fa tutto:
+
+   - **URL**: quello copiato da Impostazioni
+   - **Metodo**: `POST`
+   - **Intestazioni**: due righe —
+     `Content-Type` → `application/json`
+     `x-api-key` → la chiave copiata da Impostazioni
+   - **Corpo richiesta**: `JSON`, con questi campi:
+
+     | Campo | Tipo | Variabile |
+     |---|---|---|
+     | `amount` | Numero | **Importo** |
+     | `name` | Testo | **Esercente** |
+     | `card` | Testo | **Carta o biglietto** |
+     | `category` | Testo | **Elemento selezionato** |
+     | `lat` | Numero | **Latitudine** |
+     | `lon` | Numero | **Longitudine** |
+
+Per inserire una variabile, tocca il campo e scegli dal suggerimento sopra la
+tastiera.
+
+**Non mandare `date` e `time`**: se mancano, il server usa l'istante della
+chiamata, che è quello giusto. Un formato sbagliato sarebbe solo un modo in
+più di sbagliare.
+
+## 4. Collaudo
+
+Mentre la costruisci, tieni due cose in fondo e toglile quando funziona:
+
+- il blocco **Testo** + **Aggiungi a nota**, che ti mostra cosa è arrivato
+  davvero dall'innesco — utile se tappy non riceve nulla e vuoi sapere se il
+  problema è a monte;
+- un'azione **Mostra notifica** con il *Contenuto dell'URL*, che ti mostra la
+  risposta del server.
+
+Le risposte e cosa significano:
+
+| Cosa leggi | Cosa fare |
+|---|---|
+| la spesa creata, coi suoi campi | ha funzionato |
+| `{"error":"invalid api key"}` | la chiave è sbagliata o incollata male |
+| `{"error":"amount and name required"}` | l'importo o l'esercente arrivano vuoti — quasi sempre l'importo, vedi sotto |
+| niente, o errore di rete | URL sbagliato, o app non raggiungibile |
+
+**Se l'importo arriva come testo** (`12,50 €`) il server lo rifiuta: metti
+prima dell'invio due azioni **Sostituisci testo**, una che tolga tutto ciò che
+non è cifra o separatore, l'altra che trasformi la virgola in punto.
+
+Prova prima **lanciandola a mano**, poi con un pagamento vero. Poi apri tappy
+→ **Movimenti**: la spesa deve esserci, con origine "Apple Pay". Se hai
+mandato la posizione, aprila e controllala — comparirà anche sulla mappa, nel
+periodo giusto.
+
+## 5. La categoria: un tocco, e il suo compromesso
+
+Scegliere la categoria al momento del pagamento è una scelta deliberata: un
+tocco in più, ma la spesa nasce già categorizzata.
+
+Il compromesso: un'automazione «Esegui immediatamente» gira anche a telefono
+in tasca, e un'azione che chiede qualcosa **sospende tutto finché non si
+risponde**. Se la richiesta passa inosservata, non si perde solo la categoria
+— **non parte nemmeno l'invio**, e la spesa non viene registrata.
+
+Se dovesse capitare troppo spesso, due alternative: dedurre la categoria
+dall'esercente con azioni **Se** (`Esercente contiene "Eni"` → `Macchina`),
+oppure mandare la spesa senza categoria e sistemarla dopo in tappy, che costa
+un tocco nella vista di dettaglio.
+
+## 6. La posizione
+
+È sempre facoltativa. Per farne a meno, togli le azioni 3-5 e i campi
+`lat`/`lon`: le spese si registrano identiche e semplicemente non compaiono
+sulla mappa. Per togliere il luogo da una spesa già registrata, aprila in
+Movimenti e usa **Rimuovi la posizione**.
+
+**Una verifica ancora aperta**: la posizione arriva anche quando
+l'automazione scatta da sola? Lanciandola a mano funziona — verificato. Ma il
+caso vero è a telefono bloccato in tasca, ed è lì che iOS può negare la
+localizzazione a un'automazione in background. Si scopre col primo pagamento
+vero: se `lat`/`lon` arrivano vuoti, la spesa si registra lo stesso.
+
+Controlla anche che **Impostazioni → Privacy → Localizzazione → Comandi
+Rapidi** abbia **«Posizione esatta»** attiva: con la posizione approssimata le
+coordinate sono arrotondate a chilometri, e la heatmap diventa una macchia
+sulla città.
+
+---
+
+## Il contratto della richiesta
+
+Per riferimento, se un giorno servisse ricostruirla da zero o chiamarla da
+altro.
+
+`POST` all'URL del webhook, header `Content-Type: application/json` e
+`x-api-key: <chiave>`, corpo:
 
 ```json
 {
@@ -36,9 +143,6 @@ e questo corpo JSON:
   "name": "Bar Roma",
   "card": "Visa",
   "category": "Leisure",
-  "date": "2026-09-03",
-  "time": "07:57",
-  "note": "",
   "lat": 44.788466,
   "lon": 10.260754
 }
@@ -46,139 +150,19 @@ e questo corpo JSON:
 
 | Campo | Obbligatorio | Note |
 |---|---|---|
-| `amount` | **sì** | importo della spesa, numero (non "12,50 €") |
+| `amount` | **sì** | numero, non `"12,50 €"` |
 | `name` | **sì** | esercente |
 | `card` | no | se non esiste viene creata |
 | `category` | no | se non corrisponde a nulla, la spesa finisce in "Altro" |
 | `date` / `time` | no | se mancano si usa l'istante della chiamata |
 | `note` | no | |
-| `lat` / `lon` | no | dove è avvenuta la spesa; senza, il movimento c'è lo stesso e non compare sulla mappa |
+| `lat` / `lon` | no | senza, il movimento c'è lo stesso e non compare sulla mappa |
 
-Risposta attesa: **201** con la spesa creata. **401** significa chiave
-sbagliata; **400**, che mancano `amount` o `name`.
+Risposta attesa: **201** con la spesa creata. **401** = chiave sbagliata,
+**400** = mancano `amount` o `name`.
 
-## Come si costruisce, passo per passo
+## Se l'app si sposta dentro l'hub Fru Pass
 
-### Prima: i due valori
-
-Apri tappy → **Impostazioni → Automazione Apple Pay** e copia **URL webhook**
-e **chiave del webhook**. Entrambi hanno il pulsante Copia.
-
-### Poi: l'automazione
-
-1. App **Comandi Rapidi** → scheda **Automazione** → **+**.
-2. Scegli l'innesco legato ai pagamenti disponibile sul tuo iOS.
-3. **«Esegui immediatamente»**, con la richiesta di conferma **disattivata**:
-   altrimenti a ogni pagamento l'iPhone chiede il permesso, e l'automatismo
-   non serve più a niente.
-4. Azioni, nell'ordine:
-
-   **a. Ottieni posizione attuale** — solo se vuoi la mappa.
-
-   **b. Ottieni contenuti dall'URL** — è l'azione che fa tutto. Toccala per
-   espanderla e imposta:
-
-   - **URL**: quello copiato da Impostazioni;
-   - **Metodo**: `POST`;
-   - **Intestazioni**: due righe —
-     `Content-Type` → `application/json`
-     `x-api-key` → la chiave copiata da Impostazioni;
-   - **Corpo richiesta**: `JSON`, e aggiungi i campi:
-
-     | Campo | Tipo | Valore |
-     |---|---|---|
-     | `amount` | Numero | l'importo della transazione |
-     | `name` | Testo | l'esercente |
-     | `card` | Testo | la carta (facoltativo) |
-     | `category` | Testo | es. `Macchina` (facoltativo) |
-     | `lat` | Numero | *Latitudine* dalla posizione ottenuta al passo a |
-     | `lon` | Numero | *Longitudine* dalla posizione ottenuta al passo a |
-
-   Per inserire un valore che viene da un'azione precedente, tocca il campo e
-   scegli la variabile dal suggerimento sopra la tastiera.
-
-### Tre dettagli che fanno fallire l'invio
-
-1. **`amount` deve essere un numero**, non `12,50 €`. Se la variabile arriva
-   come testo con simbolo e virgola, mettici prima un'azione **Sostituisci
-   testo** che tolga tutto ciò che non è cifra o separatore, e una seconda che
-   trasformi la virgola in punto. Il server rifiuta con `400` un importo che
-   non riesce a leggere.
-2. **Non mandare `date` e `time`** se non sei costretto: se mancano, il server
-   usa l'istante della chiamata, che è quello giusto. Un formato sbagliato è
-   un modo di sbagliare in più, e non serve a niente.
-3. **`lat` e `lon` vanno come numeri**, non come testo né come "posizione".
-   Nel selettore delle variabili scegli le proprietà *Latitudine* e
-   *Longitudine* della posizione, non la posizione intera.
-
-### Come vedere se ha funzionato
-
-Mentre la costruisci, aggiungi in fondo un'azione **Mostra notifica** con il
-*Contenuto dell'URL* (il risultato dell'azione b). Ti fa vedere la risposta:
-
-- la spesa appena creata, con i suoi campi → **ha funzionato**;
-- `{"error":"invalid api key"}` → la chiave è sbagliata o incollata male;
-- `{"error":"amount and name required"}` → uno dei due campi obbligatori
-  arriva vuoto: è quasi sempre il punto 1 qui sopra, o un innesco che non
-  passa i dettagli della transazione;
-- niente / errore di rete → l'URL è sbagliato, o l'app non è online.
-
-Quando funziona, togli la notifica: l'automazione deve essere silenziosa.
-
-Poi apri tappy → **Movimenti**: la spesa deve esserci, con l'origine
-"Apple Pay". Se hai mandato la posizione, aprila e controlla che ci sia — e
-nella mappa comparirà nel periodo giusto.
-
-## Per registrare le spese senza la posizione
-
-Togli l'azione **Ottieni posizione attuale** e i due campi `lat`/`lon` dal
-corpo. Tutto il resto funziona identico: le spese si registrano, e sulla
-mappa semplicemente non compaiono. La posizione non è mai obbligatoria, in
-nessun punto della catena.
-
-Per togliere il luogo da una spesa già registrata: aprila in Movimenti e usa
-**Rimuovi la posizione**.
-
-## L'innesco giusto
-
-Quello dei pagamenti con carta, che comincia con **«Ricevi transazione come
-input»**: passa da sé *Importo*, *Esercente* e *Carta o biglietto* come
-variabili. Non serve estrarre niente dal testo della notifica — verificato
-sull'iPhone.
-
-## La categoria: scelta a mano, con un compromesso da conoscere
-
-L'automazione include **«Scegli da elenco»** per selezionare la categoria al
-momento del pagamento. È una scelta deliberata del proprietario: un tocco in
-più, ma la spesa nasce già categorizzata.
-
-Il compromesso da conoscere: un'automazione impostata su «Esegui
-immediatamente» gira anche a telefono in tasca, e un'azione che chiede
-qualcosa **sospende tutto finché non si risponde**. Se la richiesta passa
-inosservata, non si perde solo la categoria — **non parte nemmeno l'invio**,
-e la spesa non viene registrata.
-
-Se dovesse capitare troppo spesso, le alternative sono due: dedurre la
-categoria dall'esercente con delle azioni **Se** (`Esercente contiene "Eni"`
-→ `Macchina`), oppure mandare la spesa subito senza categoria e sistemarla
-dopo in tappy, che costa un tocco nella vista di dettaglio.
-
-## Una verifica ancora aperta
-
-**La posizione arriva anche quando l'automazione scatta da sola?** Lanciandola
-a mano funziona — è verificato. Ma il caso vero è a telefono bloccato in
-tasca, ed è lì che iOS può negare la localizzazione a un'automazione in
-background. Si scopre col primo pagamento vero: se `lat`/`lon` arrivano
-vuoti, la spesa si registra lo stesso e semplicemente non compare sulla
-mappa.
-
-Un controllo utile: **Impostazioni → Privacy → Localizzazione → Comandi
-Rapidi** deve avere **«Posizione esatta»** attiva. Con la posizione
-approssimata le coordinate sono arrotondate a chilometri, e la heatmap
-diventa una macchia sulla città.
-
-## Se sposti l'app dentro l'hub Fru Pass
-
-L'URL del webhook cambia (diventa `.../tappy/api/webhook/applepay`), quindi
-va aggiornato nell'automazione. In Impostazioni compare sempre quello giusto
-per il deploy in cui ti trovi: si copia da lì.
+L'URL del webhook cambia (diventa `.../tappy/api/webhook/applepay`) e va
+aggiornato nell'automazione. In Impostazioni compare sempre quello giusto per
+il deploy in cui ti trovi: si copia da lì.
