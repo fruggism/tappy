@@ -81,11 +81,18 @@ export default function Impostazioni() {
   const [newCatName, setNewCatName] = useState("");
   const [newCatColor, setNewCatColor] = useState(PALETTE[0]);
   const [copied, setCopied] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
   // Deve tenere conto del prefisso: dentro il sito condiviso dell'hub l'app
   // vive in una sottocartella e l'API sta sotto /tappy/api. Con l'origin
   // secco, l'URL copiato nell'automazione punterebbe a una rotta inesistente.
   const webhookUrl = `${window.location.origin}${API_BASE}/api/webhook/applepay`;
+
+  async function copyWebhookUrl() {
+    await navigator.clipboard.writeText(webhookUrl);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 1500);
+  }
 
   async function copyApiKey() {
     if (!user?.api_key) return;
@@ -284,9 +291,17 @@ export default function Impostazioni() {
             <span className="text-[10px] text-muted dark:text-muted-dark uppercase tracking-wide">
               URL webhook
             </span>
-            <code className="rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-xs break-all">
-              {webhookUrl}
-            </code>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-xl bg-surface2 dark:bg-surface2-dark px-3 py-2 text-xs break-all">
+                {webhookUrl}
+              </code>
+              <button
+                onClick={copyWebhookUrl}
+                className="text-xs rounded-lg bg-ink dark:bg-white text-white dark:text-black px-3 py-2 shrink-0"
+              >
+                {copiedUrl ? "Copiato!" : "Copia"}
+              </button>
+            </div>
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-[10px] text-muted dark:text-muted-dark uppercase tracking-wide">

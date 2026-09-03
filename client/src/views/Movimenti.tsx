@@ -5,6 +5,7 @@ import TransactionModal from "../components/TransactionModal";
 // Leaflet pesa quanto mezza app: si carica quando si apre la mappa, non
 // all'avvio di chi non la aprirà mai.
 const Mappa = lazy(() => import("./Mappa"));
+const Dettaglio = lazy(() => import("./DettaglioMovimento"));
 import type { Transaction } from "../lib/types";
 
 type Sort = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
@@ -77,6 +78,7 @@ export default function Movimenti() {
   const { transactions, categories, cards, refreshTransactions } = useApp();
   const [showModal, setShowModal] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [dettaglio, setDettaglio] = useState<Transaction | null>(null);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [sort, setSort] = useState<Sort>("date_desc");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -108,6 +110,22 @@ export default function Movimenti() {
   async function handleDelete(id: string) {
     await api.deleteTransaction(id);
     await refreshTransactions();
+  }
+
+  if (dettaglio) {
+    return (
+      <Suspense fallback={null}>
+        <Dettaglio
+          movimento={dettaglio}
+          onChiudi={() => setDettaglio(null)}
+          onModifica={() => {
+            setEditing(dettaglio);
+            setDettaglio(null);
+            setShowModal(true);
+          }}
+        />
+      </Suspense>
+    );
   }
 
   if (showMap) {
@@ -190,7 +208,8 @@ export default function Movimenti() {
           return (
             <div
               key={t.id}
-              className="flex items-center gap-3 rounded-2xl bg-surface dark:bg-surface-dark px-4 py-3"
+              onClick={() => setDettaglio(t)}
+              className="flex items-center gap-3 rounded-2xl bg-surface dark:bg-surface-dark px-4 py-3 cursor-pointer active:opacity-70 transition-opacity"
             >
               <span
                 className="h-9 w-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
@@ -218,6 +237,7 @@ export default function Movimenti() {
               >
                 {t.is_income ? "+" : "-"}€{t.my_share.toFixed(2)}
               </span>
+              <span onClick={(e) => e.stopPropagation()}>
               <RowMenu
                 onEdit={() => {
                   setEditing(t);
@@ -225,6 +245,7 @@ export default function Movimenti() {
                 }}
                 onDelete={() => handleDelete(t.id)}
               />
+              </span>
             </div>
           );
         })}
