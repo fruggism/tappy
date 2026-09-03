@@ -381,6 +381,77 @@ export default function GuidaAutomazione({ onChiudi }: { onChiudi: () => void })
         </Passo>
 
         <section className="flex flex-col gap-2">
+          <h2 className="text-headline">In più: le spese senza carta</h2>
+          <div className="text-callout text-muted dark:text-muted-dark flex flex-col gap-2">
+            <p>
+              Contanti, bonifici, un pranzo pagato da un altro: non c&apos;è nessun pagamento che
+              faccia scattare l&apos;automazione. Per quelli si fa un <b>comando rapido</b> — non
+              un&apos;automazione: lo lanci tu, quindi può chiedere quel che serve senza rischiare
+              di fermarsi.
+            </p>
+            <p>
+              In <b>Comandi Rapidi</b> → scheda <b>Comandi</b> → <b>+</b>, e queste azioni:
+            </p>
+            <ol className="list-decimal pl-4 flex flex-col gap-1.5">
+              <li>
+                <b>Chiedi input</b> → tipo <b>Numero</b>, domanda <code>Quanto?</code>
+              </li>
+              <li>
+                <b>Imposta variabile</b> <code>Importo</code> su <b>Input fornito</b>
+              </li>
+              <li>
+                <b>Chiedi input</b> → tipo <b>Testo</b>, domanda <code>Dove?</code>
+              </li>
+              <li>
+                <b>Imposta variabile</b> <code>Esercente</code> su <b>Input fornito</b>
+              </li>
+              <li>
+                <b>Elenco</b> e <b>Scegli da Elenco</b>, come al passo 5
+              </li>
+              <li>
+                <b>Ottieni contenuti dall&apos;URL</b> — il <b>primo</b> indirizzo, quello del
+                passo 1, con i campi qui sotto
+              </li>
+            </ol>
+            <div className="rounded-2xl bg-surface dark:bg-surface-dark p-3 mt-1 overflow-x-auto">
+              <table className="w-full text-left">
+                <tbody>
+                  <Campo nome="amount" tipo="Numero" valore="Importo" />
+                  <Campo nome="name" tipo="Testo" valore="Esercente" />
+                  <Campo nome="category" tipo="Testo" valore="Elemento selezionato" />
+                  <Campo nome="source" tipo="Testo" valore="manual — scritto a mano" />
+                </tbody>
+              </table>
+            </div>
+            <p>
+              Le due <b>Imposta variabile</b> sembrano di troppo e non lo sono: con due domande di
+              seguito, «Input fornito» diventa ambiguo e si finisce per mandare l&apos;importo nel
+              nome. Dando un nome alle due risposte, scegliere la variabile giusta è immediato.
+            </p>
+            <p>
+              <code>source</code> con valore <code>manual</code> è quello che fa comparire la spesa
+              come <i>inserita a mano</i> invece di <i>Apple Pay</i>. Si scrive a mano, non è una
+              variabile.
+            </p>
+            <p>
+              Se vuoi anche il luogo, aggiungi <b>Ottieni la posizione attuale</b> con latitudine e
+              longitudine prima della chiamata, e i campi <code>lat</code> e <code>lon</code>: qui
+              sei tu a lanciarlo, quindi la posizione c&apos;è sempre e basta una chiamata sola.
+            </p>
+            <p>
+              Tienilo a portata: dal foglio di condivisione del comando puoi{" "}
+              <b>aggiungerlo alla schermata Home</b>, e diventa un&apos;icona che apre solo quelle
+              due domande.
+            </p>
+            <p className="text-ink dark:text-ink-dark">
+              A differenza di un&apos;automazione, un comando rapido <b>si può condividere</b> con
+              un link. Ma dentro c&apos;è la tua chiave: prima di mandarlo a qualcuno, svuota il
+              campo <code>x-api-key</code> e digli di metterci la sua.
+            </p>
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
           <h2 className="text-headline">Se non funziona</h2>
           <div className="text-callout text-muted dark:text-muted-dark flex flex-col gap-3">
             <p>

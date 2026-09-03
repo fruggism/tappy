@@ -189,6 +189,29 @@ const spesaAltrui = await chiama("POST", "/api/webhook/applepay/posizione", {
 t("la posizione non si può attaccare alla spesa di un altro utente",
   spesaAltrui.stato === 404, spesaAltrui);
 
+// --- 1-quater. il comando rapido si dichiara manuale ---------------------
+// Stesso endpoint dell'automazione, ma la spesa non deve risultare letta da
+// un pagamento: in Movimenti comparirebbe come «Apple Pay».
+creazioni = [];
+const aMano = await chiama("POST", "/api/webhook/applepay", {
+  corpo: { amount: 9, name: "Contanti", source: "manual" }, chiave: "chiaveDiAnnaChiaveDiAnna",
+});
+t("con source:manual la spesa è «inserita a mano»",
+  aMano.stato === 201 && aMano.corpo.source === "manual", aMano);
+
+creazioni = [];
+const senzaSource = await chiama("POST", "/api/webhook/applepay", {
+  corpo: { amount: 9, name: "Bar" }, chiave: "chiaveDiAnnaChiaveDiAnna",
+});
+t("senza source resta applepay, come manda l'automazione",
+  senzaSource.stato === 201 && senzaSource.corpo.source === "applepay", senzaSource);
+
+const sourceInventato = await chiama("POST", "/api/webhook/applepay", {
+  corpo: { amount: 9, name: "Bar", source: "chissà" }, chiave: "chiaveDiAnnaChiaveDiAnna",
+});
+t("un source inventato non finisce nella base",
+  sourceInventato.corpo.source === "applepay", sourceInventato);
+
 // --- 2. gli id di un altro utente non passano ----------------------------
 for (const [nome, corpo] of [
   ["categoria", { amount: 5, name: "Spesa", category_id: "catB" }],

@@ -189,6 +189,52 @@ Rapidi** abbia **«Posizione esatta»** attiva: con la posizione approssimata le
 coordinate sono arrotondate a chilometri, e la heatmap diventa una macchia
 sulla città.
 
+## 7. Le spese senza carta: un comando rapido
+
+Contanti, bonifici, la propria parte di un conto pagato da altri: non c'è
+nessun pagamento che faccia scattare l'automazione. Per quelle si fa un
+**comando rapido** — non un'automazione. La differenza che conta: lo lancia
+una persona, quindi può chiedere quel che serve senza il rischio di
+sospendersi a telefono bloccato (§5).
+
+Azioni, in ordine:
+
+1. **Chiedi input** — tipo *Numero*, domanda `Quanto?`
+2. **Imposta variabile** `Importo` su *Input fornito*
+3. **Chiedi input** — tipo *Testo*, domanda `Dove?`
+4. **Imposta variabile** `Esercente` su *Input fornito*
+5. **Elenco** e **Scegli da Elenco**, come in §3
+6. **Ottieni contenuti dall'URL** — il **primo** indirizzo (`.../applepay`),
+   `POST`, le stesse due intestazioni, corpo:
+
+   | Campo | Tipo | Variabile |
+   |---|---|---|
+   | `amount` | Numero | **Importo** |
+   | `name` | Testo | **Esercente** |
+   | `category` | Testo | **Elemento selezionato** |
+   | `source` | Testo | `manual` — scritto a mano, non è una variabile |
+
+Le due **Imposta variabile** non sono pignoleria: con due «Chiedi input» di
+seguito la variabile *Input fornito* diventa ambigua, ed è facilissimo
+mandare l'importo dentro il nome. Nominandole, la scelta è inequivocabile.
+
+`source: "manual"` è ciò che fa comparire la spesa come *inserita a mano*
+invece di *Apple Pay*. Senza quel campo il server assume `applepay`, perché
+è l'automazione a non mandarlo: vedi il contratto qui sotto.
+
+Per il luogo bastano **Ottieni la posizione attuale** più latitudine e
+longitudine prima della chiamata, e i campi `lat`/`lon` nel corpo. Qui non
+serve spezzare l'invio in due tempi: il comando gira in primo piano, la
+posizione c'è, e una chiamata sola basta.
+
+Dal foglio di condivisione si può **aggiungere alla schermata Home**: diventa
+un'icona che apre solo le due domande.
+
+⚠️ Un comando rapido, a differenza di un'automazione, **si condivide** con un
+link iCloud. Dentro però c'è la chiave del webhook: prima di mandarlo a
+qualcuno, svuota il campo `x-api-key`. Chi lo riceve ci mette la propria,
+che trova nelle sue Impostazioni.
+
 ---
 
 ## Il contratto della richiesta
@@ -218,6 +264,7 @@ altro.
 | `category` | no | se non corrisponde a nulla, la spesa finisce in "Altro" |
 | `date` / `time` | no | se mancano si usa l'istante della chiamata |
 | `note` | no | |
+| `source` | no | `manual` per una spesa inserita a mano; senza, si assume `applepay` |
 | `lat` / `lon` | no | senza, il movimento c'è lo stesso e non compare sulla mappa |
 
 Risposta attesa: **201** con la spesa creata. **401** = chiave sbagliata,

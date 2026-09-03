@@ -300,7 +300,12 @@ router.post("/webhook/applepay", async (req, res) => {
       name,
       card_id: cardId,
       category_id: categoryId,
-      source: "applepay",
+      // Un comando rapido lanciato a mano manda source:"manual": la spesa
+      // l'ha inserita una persona, non è stata letta da un pagamento, e in
+      // Movimenti non deve comparire come «Apple Pay». Qualunque altro
+      // valore, o la sua assenza, resta applepay — l'automazione non lo
+      // manda, e non va costretta a farlo.
+      source: req.body.source === "manual" ? "manual" : "applepay",
       is_income: false,
       note,
       date,
