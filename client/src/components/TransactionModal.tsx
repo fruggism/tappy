@@ -3,6 +3,7 @@ import { useApp } from "../lib/AppContext";
 import { api } from "../lib/api";
 import { haptic, HAPTIC } from "../lib/haptics";
 import type { Transaction } from "../lib/types";
+import Foglio from "./Foglio";
 
 interface Props {
   onClose: () => void;
@@ -87,10 +88,10 @@ export default function TransactionModal({ onClose, existing }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
+    <Foglio lastra onChiudi={onClose}>
       <form
         onSubmit={handleSubmit}
-        className="w-full sm:max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl sm:rounded-3xl p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto animate-rise"
+        className="w-full p-6 flex flex-col gap-4"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-headline font-semibold">
@@ -292,6 +293,6 @@ export default function TransactionModal({ onClose, existing }: Props) {
           {saving ? "Salvataggio…" : existing ? "Salva modifiche" : "Registra spesa"}
         </button>
       </form>
-    </div>
+    </Foglio>
   );
 }

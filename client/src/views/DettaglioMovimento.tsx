@@ -5,6 +5,7 @@ import { useState } from "react";
 import { api } from "../lib/api";
 import { useApp } from "../lib/AppContext";
 import type { Transaction } from "../lib/types";
+import Foglio, { BarraFoglio } from "../components/Foglio";
 
 function Riga({ etichetta, children }: { etichetta: string; children: React.ReactNode }) {
   return (
@@ -49,22 +50,8 @@ export default function DettaglioMovimento({
   }
 
   return (
-    <div className="fixed inset-0 z-30 flex flex-col bg-base dark:bg-base-dark">
-      <header
-        className="px-4 pb-3 flex items-center gap-3"
-        style={{ paddingTop: "max(1.5rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
-      >
-        <button
-          onClick={onChiudi}
-          aria-label="Chiudi"
-          className="h-8 w-8 -ml-1 flex items-center justify-center rounded-full text-muted dark:text-muted-dark active:scale-90 transition-transform"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        <h1 className="text-headline font-semibold truncate">{t.name}</h1>
-      </header>
+    <Foglio onChiudi={onChiudi}>
+      <BarraFoglio titolo={t.name} onChiudi={onChiudi} />
 
       <div className="flex-1 overflow-y-auto px-4 pb-6 flex flex-col gap-4">
         <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 text-center">
@@ -153,6 +140,6 @@ export default function DettaglioMovimento({
           Modifica
         </button>
       </div>
-    </div>
+    </Foglio>
   );
 }

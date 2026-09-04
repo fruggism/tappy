@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useApp } from "./lib/AppContext";
 import { Dock, Header, PieDiPagina } from "./components/AppChrome";
+import { FoglioRoot } from "./components/Foglio";
 import Login from "./views/Login";
 import Andamento from "./views/Andamento";
 import Movimenti from "./views/Movimenti";
@@ -86,18 +87,21 @@ export default function App() {
     <div className="h-full flex flex-col max-w-md mx-auto relative bg-base dark:bg-base-dark">
       <Header scrolled={scrolled} sezione={sezioneAttiva} />
 
-      <main
-        ref={mainRef}
-        className="flex-1 overflow-y-auto px-5 pt-2"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 8rem)" }}
-      >
-        <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
-        {tab === "andamento" && <Andamento />}
-        {tab === "movimenti" && <Movimenti />}
-        {tab === "impegni" && <Impegni />}
-        {tab === "impostazioni" && <Impostazioni />}
-        <PieDiPagina />
-      </main>
+      <div className="flex-1 relative min-h-0">
+        <FoglioRoot>
+          <main
+            ref={mainRef}
+            className="h-full overflow-y-auto px-5 pt-2 pb-6"
+          >
+            <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
+            {tab === "andamento" && <Andamento />}
+            {tab === "movimenti" && <Movimenti />}
+            {tab === "impegni" && <Impegni />}
+            {tab === "impostazioni" && <Impostazioni />}
+            <PieDiPagina />
+          </main>
+        </FoglioRoot>
+      </div>
 
       <Dock>
         <nav className="rounded-2xl bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-xl flex">

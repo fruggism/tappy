@@ -162,37 +162,8 @@ export default function Movimenti() {
     await refreshTransactions();
   }
 
-  if (dettaglio) {
-    return (
-      <Suspense fallback={null}>
-        <Dettaglio
-          movimento={dettaglio}
-          onChiudi={() => setDettaglio(null)}
-          onModifica={() => {
-            setEditing(dettaglio);
-            setDettaglio(null);
-            setShowModal(true);
-          }}
-        />
-      </Suspense>
-    );
-  }
-
-  if (showMap) {
-    return (
-      <Suspense
-        fallback={
-          <div className="fixed inset-0 z-30 flex items-center justify-center bg-base dark:bg-base-dark">
-            <div className="h-8 w-8 rounded-full border-2 border-acc-green/30 border-t-acc-green animate-spin" />
-          </div>
-        }
-      >
-        <Mappa onChiudi={() => setShowMap(false)} />
-      </Suspense>
-    );
-  }
-
   return (
+    <>
     <div className="flex flex-col gap-4 animate-rise">
       <SpendingClock offset={monthOffset} onOffsetChange={setMonthOffset} />
 
@@ -314,6 +285,7 @@ export default function Movimenti() {
           </div>
         ))}
       </div>
+    </div>
 
       {showModal && (
         <TransactionModal
@@ -321,6 +293,24 @@ export default function Movimenti() {
           onClose={() => setShowModal(false)}
         />
       )}
-    </div>
+      {dettaglio && (
+        <Suspense fallback={null}>
+          <Dettaglio
+            movimento={dettaglio}
+            onChiudi={() => setDettaglio(null)}
+            onModifica={() => {
+              setEditing(dettaglio);
+              setDettaglio(null);
+              setShowModal(true);
+            }}
+          />
+        </Suspense>
+      )}
+      {showMap && (
+        <Suspense fallback={null}>
+          <Mappa onChiudi={() => setShowMap(false)} />
+        </Suspense>
+      )}
+    </>
   );
 }

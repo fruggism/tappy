@@ -118,15 +118,10 @@ export function Header({
 export function Dock({ children }: { children: ReactNode }) {
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-20 pointer-events-none"
-      style={{ paddingBottom: "max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))" }}
+      className="shrink-0 z-40"
+      style={{ paddingBottom: "max(0.75rem, calc(env(safe-area-inset-bottom) + 0.35rem))" }}
     >
-      <div
-        className="absolute inset-x-0 bottom-0 -top-6 bg-gradient-to-t
-                   from-base via-base to-transparent
-                   dark:from-base-dark dark:via-base-dark"
-      />
-      <div className="relative max-w-md mx-auto px-4 pointer-events-auto">{children}</div>
+      <div className="relative max-w-md mx-auto px-4">{children}</div>
     </div>
   );
 }

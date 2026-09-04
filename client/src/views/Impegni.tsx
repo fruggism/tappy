@@ -1,15 +1,20 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useApp } from "../lib/AppContext";
 import {
   caricoPerMese,
   costoRicorrenteMensile,
+  disdire,
   formattaGiorno,
   impegnoResiduo,
   impegnoResiduoTotale,
   mappaGiorno,
+  occorrenzeConImporto,
+  riattivare,
   type Piano,
 } from "../lib/piani";
-import { leggiPiani } from "../lib/pianiLocali";
+import { aggiornaPiano, eliminaPiano, leggiPiani } from "../lib/pianiLocali";
+import Foglio from "../components/Foglio";
+import FoglioPiano from "../components/FoglioPiano";
 
 const MESI = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
 const GIORNI = ["L","M","M","G","V","S","D"];
@@ -119,22 +124,59 @@ function Calendario({
   );
 }
 
-function Scheda({ piano, onChiudi }: { piano: Piano; onChiudi: () => void }) {
+function Scheda({
+  piano,
+  onChiudi,
+  onModifica,
+  onCambio,
+}: {
+  piano: Piano;
+  onChiudi: () => void;
+  onModifica: () => void;
+  onCambio: () => void;
+}) {
+  const { user } = useApp();
   const oggi = oggiIso();
   const r = impegnoResiduo(piano, oggi);
+  const [scadenze, setScadenze] = useState(false);
+  const [confermaElimina, setConfermaElimina] = useState(false);
+
+  const orizzonte = piano.end_date
+    ? piano.end_date
+    : `${new Date().getFullYear() + 2}-12-31`;
+  const occorrenze = occorrenzeConImporto({ ...piano, active: true }, piano.start_date, orizzonte);
+  const passate = occorrenze.filter((o) => o.date < oggi);
+  const future = occorrenze.filter((o) => o.date >= oggi);
+
+  function toccaDisdetta() {
+    if (!user) return;
+    aggiornaPiano(user.code, piano.active ? disdire(piano) : riattivare(piano));
+    onCambio();
+    onChiudi();
+  }
+
+  function toccaElimina() {
+    if (!user) return;
+    eliminaPiano(user.code, piano.id);
+    onCambio();
+    onChiudi();
+  }
+
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40" onClick={onChiudi}>
-      <div className="w-full max-w-md rounded-t-3xl bg-base dark:bg-base-dark p-5 pb-10" onClick={(e) => e.stopPropagation()}>
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15" />
+    <Foglio lastra onChiudi={onChiudi}>
+      <div className="p-5 pb-8 flex flex-col gap-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-title2 truncate">{piano.name}</p>
             <p className="text-headline tabular-nums mt-1">
               €{piano.amount.toFixed(2)}
               <span className="text-callout font-normal text-muted dark:text-muted-dark">
-                {piano.type === "subscription" ? " / mese" : " a rata"}
+                {piano.type === "subscription" ? " / occorrenza" : " a rata"}
               </span>
             </p>
+            {!piano.active && (
+              <p className="text-callout text-acc-pink mt-2">Disdetto — lo storico resta</p>
+            )}
             {piano.type === "installment" ? (
               <div className="mt-3 space-y-1 text-callout text-muted dark:text-muted-dark">
                 <p>Mancano {r.rate} rate · €{r.euro.toFixed(0)}</p>
@@ -147,14 +189,82 @@ function Scheda({ piano, onChiudi }: { piano: Piano; onChiudi: () => void }) {
           </div>
           {piano.type === "installment" ? <AnelloRata fatte={r.fatte} totali={r.totali} /> : null}
         </div>
+
+        <button
+          type="button"
+          onClick={() => setScadenze((s) => !s)}
+          className="w-full rounded-2xl bg-surface2 dark:bg-surface2-dark py-2.5 text-callout"
+        >
+          {scadenze ? "Nascondi le scadenze" : "Vedi le scadenze"}
+        </button>
+
+        {scadenze && (
+          <div className="rounded-2xl bg-surface dark:bg-surface-dark px-4 py-2 max-h-48 overflow-y-auto">
+            {passate.map((o) => (
+              <p key={o.date} className="flex justify-between py-1.5 text-callout text-muted dark:text-muted-dark">
+                <span>{formattaGiorno(o.date)}</span>
+                <span className="tabular-nums">€{o.importo.toFixed(2)}</span>
+              </p>
+            ))}
+            <p className="text-caption uppercase tracking-wide text-muted dark:text-muted-dark py-2">oggi</p>
+            {future.map((o) => (
+              <p key={o.date} className="flex justify-between py-1.5 text-callout">
+                <span>{formattaGiorno(o.date)}</span>
+                <span className="tabular-nums">€{o.importo.toFixed(2)}</span>
+              </p>
+            ))}
+            {occorrenze.length === 0 && (
+              <p className="text-callout text-muted dark:text-muted-dark py-2">Nessuna scadenza calcolata.</p>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={onModifica}
+            className="rounded-xl bg-ink dark:bg-white text-white dark:text-black text-callout font-medium py-2.5"
+          >
+            Modifica
+          </button>
+          <button
+            type="button"
+            onClick={toccaDisdetta}
+            className="rounded-xl bg-surface2 dark:bg-surface2-dark text-callout py-2.5"
+          >
+            {piano.active ? "Disdici" : "Riattiva"}
+          </button>
+          {!confermaElimina ? (
+            <button
+              type="button"
+              onClick={() => setConfermaElimina(true)}
+              className="text-callout text-acc-pink py-2"
+            >
+              Elimina
+            </button>
+          ) : (
+            <div className="rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3">
+              <p className="text-callout">Si cancella del tutto, anche lo storico. Per fermarlo basta disdire.</p>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setConfermaElimina(false)} className="flex-1 text-callout rounded-xl bg-surface2 dark:bg-surface2-dark py-2">
+                  Annulla
+                </button>
+                <button type="button" onClick={toccaElimina} className="flex-1 text-callout rounded-xl bg-acc-pink/10 text-acc-pink py-2">
+                  Elimina
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </Foglio>
   );
 }
 
 export default function Impegni() {
   const { user } = useApp();
-  const piani = useMemo(() => (user ? leggiPiani(user.code) : []), [user]);
+  const [, setTick] = useState(0);
+  const piani = user ? leggiPiani(user.code) : [];
   const oggi = oggiIso();
   const cursore = new Date();
   const year = cursore.getFullYear();
@@ -167,10 +277,13 @@ export default function Impegni() {
   const residuo = impegnoResiduoTotale(piani, oggi);
   const [giorno, setGiorno] = useState<string | null>(null);
   const [aperto, setAperto] = useState<Piano | null>(null);
+  const [form, setForm] = useState<Piano | null | "nuovo">(null);
+
+  const ricarica = () => setTick((n) => n + 1);
 
   const lista = giorno
     ? piani.filter((p) => mappaGiorno([p], giorno, giorno).has(giorno))
-    : piani.filter((p) => p.active);
+    : [...piani].sort((a, b) => Number(b.active) - Number(a.active));
 
   return (
     <div className="flex flex-col gap-4 animate-rise">
@@ -187,6 +300,13 @@ export default function Impegni() {
         </div>
       </div>
 
+      <button
+        onClick={() => setForm("nuovo")}
+        className="w-full rounded-2xl bg-ink dark:bg-white text-white dark:text-black font-medium py-3 flex items-center justify-center gap-2 shadow-lg shadow-black/10"
+      >
+        <span className="text-headline leading-none">+</span> Aggiungi spesa prevista
+      </button>
+
       <LineaTempo mesi={mesi} />
 
       <p className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide px-1">
@@ -195,14 +315,27 @@ export default function Impegni() {
       <Calendario year={year} month={month} intensita={intensita} selezionato={giorno} onPick={(d) => setGiorno((g) => (g === d ? null : d))} />
 
       <div className="flex flex-col gap-2">
+        {lista.length === 0 && (
+          <p className="text-center text-callout text-muted dark:text-muted-dark py-8">
+            Nessuna spesa prevista. Aggiungi un abbonamento o una rata.
+          </p>
+        )}
         {lista.map((p) => {
           const r = impegnoResiduo(p, oggi);
           return (
-            <button key={p.id} onClick={() => setAperto(p)} className="w-full rounded-3xl bg-surface dark:bg-surface-dark p-4 flex items-center justify-between text-left">
+            <button
+              key={p.id}
+              onClick={() => setAperto(p)}
+              className={`w-full rounded-3xl bg-surface dark:bg-surface-dark p-4 flex items-center justify-between text-left ${p.active ? "" : "opacity-55"}`}
+            >
               <div className="min-w-0">
                 <p className="text-headline truncate">{p.name}</p>
                 <p className="text-footnote text-muted dark:text-muted-dark">
-                  {p.type === "installment" ? `rata · ${r.fatte}/${r.totali}` : "abbonamento"}
+                  {!p.active
+                    ? "disdetto"
+                    : p.type === "installment"
+                      ? `rata · ${r.fatte}/${r.totali}`
+                      : "abbonamento"}
                 </p>
               </div>
               <span className="text-headline tabular-nums">€{p.amount.toFixed(0)}</span>
@@ -211,7 +344,25 @@ export default function Impegni() {
         })}
       </div>
 
-      {aperto ? <Scheda piano={aperto} onChiudi={() => setAperto(null)} /> : null}
+      {aperto ? (
+        <Scheda
+          piano={aperto}
+          onChiudi={() => setAperto(null)}
+          onModifica={() => {
+            setForm(aperto);
+            setAperto(null);
+          }}
+          onCambio={ricarica}
+        />
+      ) : null}
+
+      {form !== null ? (
+        <FoglioPiano
+          esistente={form === "nuovo" ? undefined : form}
+          onChiudi={() => setForm(null)}
+          onSalvato={ricarica}
+        />
+      ) : null}
     </div>
   );
 }

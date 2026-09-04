@@ -151,6 +151,22 @@ export function caricoPerMese(
   return out;
 }
 
+export function congelarePrezzo(piano: Piano, importo: number, da: string): Piano {
+  if (piano.amount === importo) return piano;
+  const storico = [...piano.price_history].filter((v) => v.da !== da);
+  storico.push({ da, importo });
+  storico.sort((a, b) => a.da.localeCompare(b.da));
+  return { ...piano, amount: importo, price_history: storico };
+}
+
+export function disdire(piano: Piano): Piano {
+  return { ...piano, active: false };
+}
+
+export function riattivare(piano: Piano): Piano {
+  return { ...piano, active: true };
+}
+
 export function formattaGiorno(isoDate: string): string {
   const [y, m, d] = isoDate.split("-");
   const mesi = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];

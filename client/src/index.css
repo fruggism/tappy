@@ -118,6 +118,19 @@ body {
   animation: rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes sheet {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-sheet {
+  animation: sheet 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Sforamento budget: l'anello rosso "extra giro" respira per segnalare l'allarme
    senza essere frenetico — non un lampeggio, un battito lento e continuo. */
 @keyframes overflowPulse {

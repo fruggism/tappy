@@ -8,6 +8,7 @@ import "leaflet/dist/leaflet.css";
 import { HeatLayer, type PuntoCaldo } from "../components/HeatLayer";
 import { creaMappa } from "../lib/mappa";
 import { useApp } from "../lib/AppContext";
+import Foglio, { BarraFoglio } from "../components/Foglio";
 
 type Periodo = "giorno" | "mese" | "anno";
 
@@ -149,29 +150,16 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
   }, [punti]);
 
   return (
-    <div className="fixed inset-0 z-30 flex flex-col bg-base dark:bg-base-dark">
-      <header
-        className="px-4 pb-3 flex items-center gap-3"
-        style={{ paddingTop: "max(1.5rem, calc(env(safe-area-inset-top) + 0.5rem))" }}
-      >
-        <button
-          onClick={onChiudi}
-          aria-label="Chiudi la mappa"
-          className="h-8 w-8 -ml-1 flex items-center justify-center rounded-full text-muted dark:text-muted-dark active:scale-90 transition-transform"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-headline font-semibold leading-tight">Dove ho speso</h1>
-          <p className="text-footnote text-muted dark:text-muted-dark">
-            {punti.length === 0
-              ? "nessun luogo in questo periodo"
-              : `${punti.length} ${punti.length === 1 ? "spesa" : "spese"} · €${Math.round(totale)}`}
-          </p>
-        </div>
-      </header>
+    <Foglio onChiudi={onChiudi}>
+      <BarraFoglio
+        titolo="Dove ho speso"
+        sotto={
+          punti.length === 0
+            ? "nessun luogo in questo periodo"
+            : `${punti.length} ${punti.length === 1 ? "spesa" : "spese"} · €${Math.round(totale)}`
+        }
+        onChiudi={onChiudi}
+      />
 
       <div className="px-4 pb-3 flex items-center gap-2">
         <div className="inline-flex bg-surface2 dark:bg-surface2-dark rounded-full p-1 text-footnote">
@@ -215,7 +203,7 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
         </div>
       </div>
 
-      <div className="relative flex-1">
+      <div className="relative flex-1 min-h-0">
         {/* Le tessere di OSM sono chiare: sul tema scuro si invertono, invece
             di appoggiare una mappa luminosa su un'app nera. Il filtro sta
             sulle sole tessere (vedi index.css): sull'intero contenitore
@@ -236,14 +224,11 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
       </div>
 
       {senzaPosizione > 0 && (
-        <p
-          className="px-4 py-2 text-caption text-muted dark:text-muted-dark text-center"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.5rem)" }}
-        >
+        <p className="px-4 py-2 text-caption text-muted dark:text-muted-dark text-center">
           {senzaPosizione} {senzaPosizione === 1 ? "spesa" : "spese"} di questo periodo
           {senzaPosizione === 1 ? " non è" : " non sono"} sulla mappa: {senzaPosizione === 1 ? "non ha" : "non hanno"} una posizione.
         </p>
       )}
-    </div>
+    </Foglio>
   );
 }
