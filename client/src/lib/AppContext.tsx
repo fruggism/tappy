@@ -97,25 +97,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [u, c, cd, tx, pl] = await Promise.all([
+      const [u, c, cd, tx] = await Promise.all([
         api.me(),
         api.categories(),
         api.cards(),
         api.transactions(),
-        api.plans(),
       ]);
-      let pianiCaricati = pl;
+      let pianiCaricati: Piano[] = [];
+      try {
+        pianiCaricati = await api.plans();
+      } catch {
+        // La tabella Plans può non esserci ancora: il resto dell'app deve
+        // aprirsi lo stesso.
+      }
       // I programmati nati sul telefono, prima di Airtable, si caricano una
       // volta e poi la copia locale si toglie: altrimenti Netflix doppio.
-      if (pl.length === 0) {
+      if (pianiCaricati.length === 0) {
         const locali = leggiPiani(u.code);
         if (locali.length) {
-          for (const p of locali) {
-            const { id: _id, user_id: _u, created_at: _c, ...dati } = p;
-            await api.createPlan(dati);
+          try {
+            for (const p of locali) {
+              const { id: _id, user_id: _u, created_at: _c, ...dati } = p;
+              await api.createPlan(dati);
+            }
+            svuotaPianiLocali(u.code);
+            pianiCaricati = await api.plans();
+          } catch {
+            // Airtable non è pronto: restano sul telefono, si ritenta al prossimo avvio.
           }
-          svuotaPianiLocali(u.code);
-          pianiCaricati = await api.plans();
         }
       }
       setUser(u);
