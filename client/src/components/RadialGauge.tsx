@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { accent } from "../lib/accent";
 
 export interface GaugeSegment {
@@ -28,26 +28,40 @@ interface Props {
 
 const CX = 100;
 const CY = 100;
-const R_OUTER = 88;
-const R_INNER = 64;
-const R_SEGNO = 76;
-const CIRC_OUTER = 2 * Math.PI * R_OUTER;
+const R_OUTER = 84;
+const R_INNER = 62;
 const CIRC_INNER = 2 * Math.PI * R_INNER;
-const CIRC_SEGNO = 2 * Math.PI * R_SEGNO;
 
 function riduciMoto() {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 }
 
+/** 0 = mezzanotte in alto, senso orario. */
+function polo(r: number, frac: number): [number, number] {
+  const a = -Math.PI / 2 + frac * 2 * Math.PI;
+  return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
+}
+
+function arco(r: number, da: number, a: number): string {
+  let delta = a - da;
+  if (delta <= 0) delta += 1;
+  const [x0, y0] = polo(r, da);
+  const [x1, y1] = polo(r, da + delta);
+  const large = delta > 0.5 ? 1 : 0;
+  return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+}
+
 export default function RadialGauge({
   segments,
   budget,
-  size = 240,
+  size = 252,
   centerLabel,
   centerSub,
   orologio = null,
 }: Props) {
+  const uid = useId().replace(/:/g, "");
   const [mounted, setMounted] = useState(riduciMoto);
+  const [focus, setFocus] = useState<string | null>(null);
   const total = segments.reduce((s, seg) => s + seg.value, 0);
   const pct = budget > 0 ? Math.min(total / budget, 1) : 0;
   const overBudget = budget > 0 && total > budget;
@@ -68,7 +82,7 @@ export default function RadialGauge({
   }, []);
 
   const visibili = segments.filter((s) => s.value > 0);
-  const gap = visibili.length > 1 ? 0.014 : 0;
+  const gap = visibili.length > 1 ? 0.016 : 0;
   let cursor = 0;
   const outer = visibili.map((seg) => {
     const fraction = total > 0 ? (seg.value / total) * (1 - gap * visibili.length) : 0;
@@ -79,10 +93,28 @@ export default function RadialGauge({
 
   const innerColor = overBudget ? pink : green;
   const innerFrac = mounted ? pct : 0;
+  const scelto = outer.find((s) => s.id === focus) ?? null;
+  const tip = scelto
+    ? (() => {
+        const [x, y] = polo(R_OUTER + 6, scelto.start + scelto.fraction / 2);
+        return { x, y, label: scelto.label, value: scelto.value };
+      })()
+    : null;
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <svg viewBox="0 0 200 200" width={size} height={size} className="-rotate-90 overflow-visible">
+      <svg
+        viewBox="-16 -16 232 232"
+        width={size}
+        height={size}
+        className="overflow-visible"
+        onPointerDown={() => setFocus(null)}
+      >
+        <defs>
+          <path id={`${uid}-cat`} d={arco(R_OUTER + 14, 0.82, 1.18)} fill="none" />
+          <path id={`${uid}-bud`} d={arco(R_INNER - 13, 0.82, 1.18)} fill="none" />
+        </defs>
+
         <circle
           cx={CX}
           cy={CY}
@@ -92,35 +124,56 @@ export default function RadialGauge({
           className="text-black/5 dark:text-white/10"
           strokeWidth="11"
         />
-        <circle
-          cx={CX}
-          cy={CY}
-          r={R_INNER}
-          fill="none"
-          stroke="currentColor"
-          className="text-black/5 dark:text-white/10"
-          strokeWidth="11"
-        />
 
-        {outer.map((seg, i) => (
-          <circle
+        {orologio && orologio.passi > 0
+          ? Array.from({ length: orologio.passi }, (_, i) => {
+              const slot = 1 / orologio.passi;
+              const vuoto = slot * 0.2;
+              const da = i * slot + vuoto / 2;
+              const a = (i + 1) * slot - vuoto / 2;
+              const oggi = orologio.oggi === i;
+              const previsto = orologio.programmati.includes(i);
+              return (
+                <path
+                  key={`g-${i}`}
+                  d={arco(R_INNER, da, a)}
+                  fill="none"
+                  stroke={oggi ? cyan : previsto ? green : "currentColor"}
+                  strokeWidth="11"
+                  strokeLinecap="butt"
+                  strokeDasharray={previsto && !oggi ? "2.4 2.2" : undefined}
+                  className={oggi || previsto ? undefined : "text-black/[0.12] dark:text-white/20"}
+                  opacity={previsto && !oggi ? 0.9 : 1}
+                />
+              );
+            })
+          : (
+            <circle
+              cx={CX}
+              cy={CY}
+              r={R_INNER}
+              fill="none"
+              stroke="currentColor"
+              className="text-black/5 dark:text-white/10"
+              strokeWidth="11"
+            />
+          )}
+
+        {outer.map((seg) => (
+          <path
             key={seg.id}
-            cx={CX}
-            cy={CY}
-            r={R_OUTER}
+            d={arco(R_OUTER, seg.start, seg.start + (mounted ? seg.fraction : 0))}
             fill="none"
             stroke={seg.color}
             strokeWidth="11"
             strokeLinecap="butt"
-            strokeDasharray={CIRC_OUTER}
-            strokeDashoffset={mounted ? CIRC_OUTER * (1 - seg.fraction) : CIRC_OUTER}
-            style={{
-              transform: `rotate(${seg.start * 360}deg)`,
-              transformOrigin: "100px 100px",
-              transition: riduciMoto()
-                ? undefined
-                : `stroke-dashoffset 1.1s cubic-bezier(0.22,1,0.36,1) ${i * 0.08}s`,
+            opacity={focus === seg.id ? 1 : 0.4}
+            className="cursor-pointer"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              setFocus(seg.id);
             }}
+            onPointerEnter={() => setFocus(seg.id)}
           />
         ))}
 
@@ -130,61 +183,55 @@ export default function RadialGauge({
           r={R_INNER}
           fill="none"
           stroke={innerColor}
-          strokeWidth="11"
+          strokeWidth={orologio ? 5.5 : 11}
           strokeLinecap="round"
           strokeDasharray={CIRC_INNER}
           strokeDashoffset={CIRC_INNER * (1 - innerFrac)}
+          transform={`rotate(-90 ${CX} ${CY})`}
           className={overBudget ? "gauge-overflow-pulse" : undefined}
           style={{
             filter: `drop-shadow(0 0 5px ${innerColor}99)`,
+            pointerEvents: "none",
             transition: riduciMoto() ? undefined : "stroke-dashoffset 1.1s cubic-bezier(0.22,1,0.36,1)",
           }}
         />
 
-        {orologio &&
-          orologio.programmati.map((i) => {
-            if (orologio.passi <= 0) return null;
-            const largo = CIRC_SEGNO / orologio.passi;
-            const a = Math.max(2, largo * 0.16);
-            const g = Math.max(1.5, largo * 0.08);
-            return (
-              <circle
-                key={`p-${i}`}
-                cx={CX}
-                cy={CY}
-                r={R_SEGNO}
-                fill="none"
-                stroke={green}
-                strokeWidth="3.5"
-                strokeLinecap="butt"
-                strokeDasharray={`${a} ${g} ${a} ${g} ${a} ${CIRC_SEGNO}`}
-                opacity={0.9}
-                style={{
-                  transform: `rotate(${(i / orologio.passi) * 360}deg)`,
-                  transformOrigin: "100px 100px",
-                }}
-              />
-            );
-          })}
-
-        {orologio && orologio.oggi != null && orologio.passi > 0 && (
-          <line
-            x1={CX + R_INNER - 9}
-            y1={CY}
-            x2={CX + R_INNER + 9}
-            y2={CY}
-            stroke={cyan}
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            style={{
-              transform: `rotate(${((orologio.oggi + 0.5) / orologio.passi) * 360}deg)`,
-              transformOrigin: "100px 100px",
-            }}
-          />
-        )}
+        <text
+          className="fill-black/40 dark:fill-white/40"
+          fontSize="7.5"
+          letterSpacing="1.1"
+          style={{ pointerEvents: "none" }}
+        >
+          <textPath href={`#${uid}-cat`} startOffset="50%" textAnchor="middle">
+            categorie
+          </textPath>
+        </text>
+        <text
+          className="fill-black/40 dark:fill-white/40"
+          fontSize="7.5"
+          letterSpacing="1.1"
+          style={{ pointerEvents: "none" }}
+        >
+          <textPath href={`#${uid}-bud`} startOffset="50%" textAnchor="middle">
+            budget
+          </textPath>
+        </text>
       </svg>
 
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
+      {tip && (
+        <div
+          className="absolute z-10 pointer-events-none rounded-full bg-ink dark:bg-white text-white dark:text-black text-caption font-medium px-2.5 py-1 tabular-nums shadow-lg"
+          style={{
+            left: `${((tip.x + 16) / 232) * 100}%`,
+            top: `${((tip.y + 16) / 232) * 100}%`,
+            transform: "translate(-50%, -130%)",
+          }}
+        >
+          {tip.label} · €{Math.round(tip.value)}
+        </div>
+      )}
+
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
         <span
           className={`text-largeTitle font-semibold tracking-tight tabular-nums ${
             overBudget ? "text-acc-pink" : ""
