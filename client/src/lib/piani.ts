@@ -1,4 +1,4 @@
-export type TipoPiano = "subscription" | "installment";
+export type TipoPiano = "subscription" | "installment" | "once";
 export type Frequenza = "weekly" | "monthly" | "everyN";
 
 export interface VoceStorico {
@@ -62,6 +62,12 @@ function avanza(d: Date, piano: Piano): Date {
 
 export function occorrenzeConImporto(piano: Piano, from: string, to: string): Occorrenza[] {
   if (!piano.active) return [];
+  if (piano.type === "once") {
+    if (piano.start_date >= from && piano.start_date <= to) {
+      return [{ date: piano.start_date, importo: importoAl(piano, piano.start_date), piano_id: piano.id }];
+    }
+    return [];
+  }
   const out: Occorrenza[] = [];
   let cursore = parseIso(piano.start_date);
   const fine = piano.end_date ? parseIso(piano.end_date) : parseIso(to);
@@ -101,6 +107,17 @@ export function impegnoResiduo(piano: Piano, oggi: string): {
   prossimo: string | null;
 } {
   const vuoto = { rate: 0, euro: 0, fatte: 0, totali: 0, euroTotale: 0, prossimo: null as string | null };
+  if (piano.type === "once") {
+    const dovuto = piano.start_date >= oggi;
+    return {
+      rate: dovuto ? 1 : 0,
+      euro: dovuto ? piano.amount : 0,
+      fatte: dovuto ? 0 : 1,
+      totali: 1,
+      euroTotale: piano.amount,
+      prossimo: dovuto ? piano.start_date : null,
+    };
+  }
   if (piano.type !== "installment" || !piano.end_date) return vuoto;
   const tutte = occorrenzeConImporto({ ...piano, active: true }, piano.start_date, piano.end_date);
   const future = tutte.filter((o) => o.date >= oggi);
@@ -116,7 +133,7 @@ export function impegnoResiduo(piano: Piano, oggi: string): {
 
 export function impegnoResiduoTotale(piani: Piano[], oggi: string): { rate: number; euro: number } {
   return piani
-    .filter((p) => p.active && p.type === "installment")
+    .filter((p) => p.active && (p.type === "installment" || p.type === "once"))
     .map((p) => impegnoResiduo(p, oggi))
     .reduce((s, x) => ({ rate: s.rate + x.rate, euro: s.euro + x.euro }), { rate: 0, euro: 0 });
 }

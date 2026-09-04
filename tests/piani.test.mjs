@@ -63,5 +63,19 @@ const rata = {
 };
 t("le rate si fermano alla fine", occorrenzeConImporto(rata, "2025-01-01", "2026-01-01").length === 4);
 
+const una = {
+  ...base,
+  id: "u1",
+  name: "Assicurazione",
+  type: "once",
+  amount: 320,
+  price_history: [{ da: "2025-06-01", importo: 320 }],
+  start_date: "2025-06-10",
+  end_date: "2025-06-10",
+};
+t("una volta è una sola scadenza", occorrenzeConImporto(una, "2025-01-01", "2025-12-31").length === 1);
+t("una volta non entra nel costo ricorrente", costoRicorrenteMensile([una]) === 0);
+t("fuori intervallo non compare", occorrenzeConImporto(una, "2025-01-01", "2025-05-01").length === 0);
+
 console.log(`\n${ok} ok, ${ko} falliti`);
 process.exit(ko ? 1 : 0);

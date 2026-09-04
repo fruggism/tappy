@@ -58,7 +58,7 @@ export default function FoglioPiano({
       setErrore("La fine non può precedere l'inizio.");
       return;
     }
-    const nMesi = frequency === "everyN" ? Math.max(1, parseInt(intervalMonths, 10) || 1) : null;
+    const nMesi = type === "once" ? null : frequency === "everyN" ? Math.max(1, parseInt(intervalMonths, 10) || 1) : null;
     setSaving(true);
     setErrore("");
     try {
@@ -69,10 +69,10 @@ export default function FoglioPiano({
         price_history: esistente?.price_history ?? [{ da: startDate, importo }],
         category_id: categoryId || null,
         card_id: esistente?.card_id ?? null,
-        frequency,
+        frequency: type === "once" ? "monthly" : frequency,
         interval_months: nMesi,
         start_date: startDate,
-        end_date: type === "installment" ? endDate : endDate || null,
+        end_date: type === "once" ? startDate : type === "installment" ? endDate : endDate || null,
         review_date: null,
         active: esistente?.active ?? true,
         note: note.trim() || null,
@@ -108,9 +108,11 @@ export default function FoglioPiano({
         </h2>
 
         <SegmentedControl
+          className="w-full [&>button]:flex-1"
           options={[
             { value: "subscription", label: "Abbonamento" },
             { value: "installment", label: "Rata" },
+            { value: "once", label: "Una volta" },
           ]}
           value={type}
           onChange={setType}
@@ -132,20 +134,22 @@ export default function FoglioPiano({
           />
         </label>
 
-        <div className="flex flex-col gap-1">
-          <span className="text-callout">Ogni quanto</span>
-          <SegmentedControl
-            options={[
-              { value: "weekly", label: "Settimana" },
-              { value: "monthly", label: "Mese" },
-              { value: "everyN", label: "N mesi" },
-            ]}
-            value={frequency}
-            onChange={setFrequency}
-          />
-        </div>
+        {type !== "once" && (
+          <div className="flex flex-col gap-1">
+            <span className="text-callout">Ogni quanto</span>
+            <SegmentedControl
+              options={[
+                { value: "weekly", label: "Settimana" },
+                { value: "monthly", label: "Mese" },
+                { value: "everyN", label: "N mesi" },
+              ]}
+              value={frequency}
+              onChange={setFrequency}
+            />
+          </div>
+        )}
 
-        {frequency === "everyN" && (
+        {type !== "once" && frequency === "everyN" && (
           <label className="flex flex-col gap-1 text-callout">
             Ogni quanti mesi
             <input
@@ -157,16 +161,23 @@ export default function FoglioPiano({
           </label>
         )}
 
-        <div className="flex gap-3">
-          <label className="flex flex-col gap-1 text-callout flex-1">
-            Inizio
+        {type === "once" ? (
+          <label className="flex flex-col gap-1 text-callout">
+            Il giorno
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={campo} />
           </label>
-          <label className="flex flex-col gap-1 text-callout flex-1">
-            {type === "installment" ? "Fine" : "Fine (facoltativa)"}
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={campo} />
-          </label>
-        </div>
+        ) : (
+          <div className="flex gap-3">
+            <label className="flex flex-col gap-1 text-callout flex-1">
+              Inizio
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={campo} />
+            </label>
+            <label className="flex flex-col gap-1 text-callout flex-1">
+              {type === "installment" ? "Fine" : "Fine (facoltativa)"}
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={campo} />
+            </label>
+          </div>
+        )}
 
         {categories.length > 0 && (
           <div className="flex flex-col gap-1">

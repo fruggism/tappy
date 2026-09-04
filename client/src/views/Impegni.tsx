@@ -171,7 +171,7 @@ function Scheda({
             <p className="text-headline tabular-nums mt-1">
               €{piano.amount.toFixed(2)}
               <span className="text-callout font-normal text-muted dark:text-muted-dark">
-                {piano.type === "subscription" ? " / occorrenza" : " a rata"}
+                {piano.type === "subscription" ? " / occorrenza" : piano.type === "installment" ? " a rata" : ""}
               </span>
             </p>
             {!piano.active && (
@@ -183,18 +183,24 @@ function Scheda({
                 <p>Totale piano €{r.euroTotale.toFixed(0)}</p>
                 {r.prossimo ? <p>Prossimo {formattaGiorno(r.prossimo)}</p> : <p>Nessuna rata rimasta</p>}
               </div>
+            ) : piano.type === "once" ? (
+              <p className="text-callout text-muted dark:text-muted-dark mt-3">
+                {formattaGiorno(piano.start_date)}
+              </p>
             ) : null}
           </div>
           {piano.type === "installment" ? <AnelloRata fatte={r.fatte} totali={r.totali} /> : null}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setScadenze((s) => !s)}
-          className="w-full rounded-2xl bg-surface2 dark:bg-surface2-dark py-2.5 text-callout"
-        >
-          {scadenze ? "Nascondi le scadenze" : "Vedi le scadenze"}
-        </button>
+        {piano.type !== "once" && (
+          <button
+            type="button"
+            onClick={() => setScadenze((s) => !s)}
+            className="w-full rounded-2xl bg-surface2 dark:bg-surface2-dark py-2.5 text-callout"
+          >
+            {scadenze ? "Nascondi le scadenze" : "Vedi le scadenze"}
+          </button>
+        )}
 
         {scadenze && (
           <div className="rounded-2xl bg-surface dark:bg-surface-dark px-4 py-2 max-h-48 overflow-y-auto">
@@ -230,7 +236,7 @@ function Scheda({
             onClick={toccaDisdetta}
             className="rounded-xl bg-surface2 dark:bg-surface2-dark text-callout py-2.5"
           >
-            {piano.active ? "Disdici" : "Riattiva"}
+            {piano.active ? (piano.type === "once" ? "Annulla" : "Disdici") : "Riattiva"}
           </button>
           {!confermaElimina ? (
             <button
@@ -333,7 +339,9 @@ export default function Impegni() {
                     ? "disdetto"
                     : p.type === "installment"
                       ? `rata · ${r.fatte}/${r.totali}`
-                      : "abbonamento"}
+                      : p.type === "once"
+                        ? formattaGiorno(p.start_date)
+                        : "abbonamento"}
                 </p>
               </div>
               <span className="text-headline tabular-nums">€{p.amount.toFixed(0)}</span>
