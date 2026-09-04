@@ -43,7 +43,6 @@ const R_OUTER = 96;
 const SW_OUTER = 6;
 const R_INNER = 74;
 const SW_INNER = 7;
-const R_LABEL = 85;
 const CIRC_INNER = 2 * Math.PI * R_INNER;
 
 function riduciMoto() {
@@ -258,7 +257,7 @@ export default function RadialGauge({
               <path
                 key={`tp-${seg.id}`}
                 id={`${uid}-${seg.id}`}
-                d={arco(R_LABEL, seg.start, seg.start + seg.fraction, !capovolgi)}
+                d={arco(R_OUTER, seg.start, seg.start + seg.fraction, !capovolgi)}
                 fill="none"
               />
             );
@@ -303,37 +302,30 @@ export default function RadialGauge({
               stroke={seg.color}
               strokeWidth={SW_OUTER}
               strokeLinecap="butt"
-              opacity={centro?.tipo === "categoria" && centro.nome === seg.label ? 1 : 0.45}
               style={{ pointerEvents: "none" }}
             />
           </g>
         ))}
 
         {outer.map((seg) => {
-          const arcoPx = seg.fraction * 2 * Math.PI * R_LABEL;
-          const pctSeg = total > 0 ? Math.round((seg.value / total) * 100) : 0;
-          const conNome = `${seg.label}  ${pctSeg}%`;
-          const soloPct = `${pctSeg}%`;
-          const largo = (s: string, fs: number) => s.length * fs * 0.62;
-          let testo: string | null = null;
-          let fs = 6.2;
-          if (arcoPx >= largo(conNome, 6.2) + 10) testo = conNome;
-          else if (arcoPx >= largo(soloPct, 6.6) + 8) {
-            testo = soloPct;
-            fs = 6.6;
-          }
-          if (!testo) return null;
+          const fs = 5.4;
+          const arcoPx = seg.fraction * 2 * Math.PI * R_OUTER;
+          if (arcoPx < seg.label.length * fs * 0.62 + 8) return null;
           return (
             <text
               key={`lb-${seg.id}`}
               fontSize={fs}
               fontWeight={600}
-              letterSpacing="0.2"
+              letterSpacing="0.25"
               fill={seg.color}
+              strokeLinejoin="round"
+              paintOrder="stroke"
+              strokeWidth="2.2"
+              className="stroke-surface dark:stroke-surface-dark"
               style={{ pointerEvents: "none" }}
             >
               <textPath href={`#${uid}-${seg.id}`} startOffset="50%" textAnchor="middle">
-                {testo}
+                {seg.label}
               </textPath>
             </text>
           );
