@@ -38,12 +38,12 @@ t(
 t("niente «Ricordamelo il»", !pianoForm.includes("Ricordamelo") && !impegni.includes("Revisione il"));
 t("niente selezione carta sulle spese previste", !pianoForm.includes(">Carta<"));
 t("si può registrare un pagamento una tantum", pianoForm.includes("Una volta"));
-t("la ruota ha due anelli", gauge.includes("R_CAT_OUT") && gauge.includes("R_INNER"));
+t("la ruota ha due anelli", gauge.includes("R_OUTER") && gauge.includes("R_INNER"));
 t("l'orologio non sta sul giorno", andamento.includes('period === "day"') && andamento.includes("orologio"));
 t("i previsti sono pallini sulle date", gauge.includes("programmati") && gauge.includes("rosso"));
 t("il giorno corrente è un pallino con il numero", gauge.includes("rBadge") && gauge.includes("etichette"));
 t("gli anelli non hanno etichette curve di nome", !gauge.includes(">categorie<") && !gauge.includes(">budget<"));
-t("niente nuvoletta: il dettaglio sta nel pannello", !gauge.includes("translate(-50%") && andamento.includes("PannelloScelta"));
+t("il pannello sostituisce budget e media, non sposta l'anello", /scelta \? \(/.test(andamento) && andamento.includes("PannelloScelta") && andamento.includes("PerDayRow"));
 t("sull'arco del budget c'è la percentuale", gauge.includes("pctTesto"));
 t("sulle fette strette il bassorilievo non c'è, il tap sì", gauge.includes("if (!testo) return null") && gauge.includes("scegliCat"));
 t("le categorie si possono toccare per l'importo", gauge.includes("scegliCat") && andamento.includes("PannelloScelta"));

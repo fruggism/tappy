@@ -624,7 +624,7 @@ function scaleToPeriod(monthlyAmount: number, period: Period, dim: number) {
 function PannelloScelta({ scelta }: { scelta: Scelta }) {
   if (scelta.tipo === "categoria") {
     return (
-      <div className="w-full rounded-2xl bg-surface2 dark:bg-surface2-dark px-4 py-3 flex items-center gap-3">
+      <div className="w-full rounded-2xl bg-surface2 dark:bg-surface2-dark px-4 py-3 flex items-center gap-3 min-h-[3.25rem]">
         <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: scelta.colore }} />
         <div className="min-w-0 flex-1">
           <p className="text-callout font-medium truncate">{scelta.nome}</p>
@@ -637,7 +637,7 @@ function PannelloScelta({ scelta }: { scelta: Scelta }) {
     );
   }
   return (
-    <div className="w-full rounded-2xl bg-surface2 dark:bg-surface2-dark px-4 py-3 flex flex-col gap-2">
+    <div className="w-full rounded-2xl bg-surface2 dark:bg-surface2-dark px-4 py-3 flex flex-col gap-2 min-h-[3.25rem] justify-center">
       {scelta.voci.map((v, i) => (
         <div key={`${v.date}-${v.nome}-${i}`} className="flex items-center gap-3">
           <span className="h-2.5 w-2.5 rounded-full shrink-0 bg-[#ff3b30]" />
@@ -769,14 +769,17 @@ function HeroCard({
         />
       </div>
 
-      {scelta ? <PannelloScelta scelta={scelta} /> : null}
-      <div className="w-full flex flex-col gap-2">
-        <div className="w-full flex justify-between text-callout px-1">
-          <span className="text-muted dark:text-muted-dark">{budgetLabel}</span>
-          <span className="font-medium tabular-nums">€{budget.toFixed(0)}</span>
+      {scelta ? (
+        <PannelloScelta scelta={scelta} />
+      ) : (
+        <div className="w-full flex flex-col gap-2">
+          <div className="w-full flex justify-between text-callout px-1">
+            <span className="text-muted dark:text-muted-dark">{budgetLabel}</span>
+            <span className="font-medium tabular-nums">€{budget.toFixed(0)}</span>
+          </div>
+          <PerDayRow perDay={perDay} />
         </div>
-        <PerDayRow perDay={perDay} />
-      </div>
+      )}
     </div>
   );
 }

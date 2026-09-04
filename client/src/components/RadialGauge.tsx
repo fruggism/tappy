@@ -39,11 +39,11 @@ interface Props {
 
 const CX = 100;
 const CY = 100;
-const R_CAT_OUT = 97;
-const R_CAT_IN = 80;
-const R_CAT = (R_CAT_OUT + R_CAT_IN) / 2;
-const R_INNER = 68;
+const R_OUTER = 96;
+const SW_OUTER = 6;
+const R_INNER = 74;
 const SW_INNER = 7;
+const R_LABEL = 85;
 const CIRC_INNER = 2 * Math.PI * R_INNER;
 
 function riduciMoto() {
@@ -67,17 +67,6 @@ function arco(r: number, da: number, a: number, orario = true): string {
   const xb = orario ? x1 : x0;
   const yb = orario ? y1 : y0;
   return `M ${xa.toFixed(2)} ${ya.toFixed(2)} A ${r} ${r} 0 ${large} ${sweep} ${xb.toFixed(2)} ${yb.toFixed(2)}`;
-}
-
-function settore(rOut: number, rIn: number, da: number, a: number): string {
-  let delta = a - da;
-  if (delta <= 0) delta += 1;
-  const large = delta > 0.5 ? 1 : 0;
-  const [ox0, oy0] = polo(rOut, da);
-  const [ox1, oy1] = polo(rOut, da + delta);
-  const [ix1, iy1] = polo(rIn, da + delta);
-  const [ix0, iy0] = polo(rIn, da);
-  return `M ${ox0.toFixed(2)} ${oy0.toFixed(2)} A ${rOut} ${rOut} 0 ${large} 1 ${ox1.toFixed(2)} ${oy1.toFixed(2)} L ${ix1.toFixed(2)} ${iy1.toFixed(2)} A ${rIn} ${rIn} 0 ${large} 0 ${ix0.toFixed(2)} ${iy0.toFixed(2)} Z`;
 }
 
 function DialGiorni({
@@ -259,15 +248,6 @@ export default function RadialGauge({
         onPointerDown={azzera}
       >
         <defs>
-          <filter id={`${uid}-basso`} x="-20%" y="-20%" width="140%" height="140%">
-            <feOffset dx="0" dy="0.45" in="SourceAlpha" result="off" />
-            <feFlood floodColor="#000" floodOpacity="0.28" result="n" />
-            <feComposite in="n" in2="off" operator="in" result="sh" />
-            <feMerge>
-              <feMergeNode in="sh" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
           {outer.map((seg) => {
             const mid = (seg.start + seg.fraction / 2) % 1;
             const capovolgi = mid > 0.25 && mid < 0.75;
@@ -275,7 +255,7 @@ export default function RadialGauge({
               <path
                 key={`tp-${seg.id}`}
                 id={`${uid}-${seg.id}`}
-                d={arco(R_CAT, seg.start, seg.start + seg.fraction, !capovolgi)}
+                d={arco(R_LABEL, seg.start, seg.start + seg.fraction, !capovolgi)}
                 fill="none"
               />
             );
@@ -285,11 +265,11 @@ export default function RadialGauge({
         <circle
           cx={CX}
           cy={CY}
-          r={R_CAT}
+          r={R_OUTER}
           fill="none"
           stroke="currentColor"
           className="text-black/5 dark:text-white/10"
-          strokeWidth={R_CAT_OUT - R_CAT_IN}
+          strokeWidth={SW_OUTER}
         />
         <circle
           cx={CX}
@@ -302,32 +282,42 @@ export default function RadialGauge({
         />
 
         {outer.map((seg) => (
-          <path
-            key={seg.id}
-            d={settore(R_CAT_OUT, R_CAT_IN, seg.start, seg.start + (mounted ? seg.fraction : 0.001))}
-            fill={seg.color}
-            fillOpacity={focus === seg.id ? 0.92 : 0.38}
-            className="cursor-pointer"
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              scegliCat(seg);
-            }}
-          />
+          <g key={seg.id}>
+            <path
+              d={arco(R_OUTER, seg.start, seg.start + (mounted ? seg.fraction : 0.001))}
+              fill="none"
+              stroke="transparent"
+              strokeWidth="16"
+              className="cursor-pointer"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                scegliCat(seg);
+              }}
+            />
+            <path
+              d={arco(R_OUTER, seg.start, seg.start + (mounted ? seg.fraction : 0.001))}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth={SW_OUTER}
+              strokeLinecap="butt"
+              opacity={focus === seg.id ? 1 : 0.45}
+              style={{ pointerEvents: "none" }}
+            />
+          </g>
         ))}
 
         {outer.map((seg) => {
-          const arcoPx = seg.fraction * 2 * Math.PI * R_CAT;
+          const arcoPx = seg.fraction * 2 * Math.PI * R_LABEL;
           const pctSeg = total > 0 ? Math.round((seg.value / total) * 100) : 0;
           const conNome = `${seg.label}  ${pctSeg}%`;
           const soloPct = `${pctSeg}%`;
           const largo = (s: string, fs: number) => s.length * fs * 0.62;
           let testo: string | null = null;
-          let fs = 6.4;
-          if (arcoPx >= largo(conNome, 6.4) + 10) {
-            testo = conNome;
-          } else if (arcoPx >= largo(soloPct, 6.8) + 8) {
+          let fs = 6.2;
+          if (arcoPx >= largo(conNome, 6.2) + 10) testo = conNome;
+          else if (arcoPx >= largo(soloPct, 6.6) + 8) {
             testo = soloPct;
-            fs = 6.8;
+            fs = 6.6;
           }
           if (!testo) return null;
           return (
@@ -335,10 +325,8 @@ export default function RadialGauge({
               key={`lb-${seg.id}`}
               fontSize={fs}
               fontWeight={600}
-              letterSpacing="0.15"
-              fill="#fff"
-              fillOpacity="0.88"
-              filter={`url(#${uid}-basso)`}
+              letterSpacing="0.2"
+              fill={seg.color}
               style={{ pointerEvents: "none" }}
             >
               <textPath href={`#${uid}-${seg.id}`} startOffset="50%" textAnchor="middle">
