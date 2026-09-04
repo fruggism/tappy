@@ -47,6 +47,7 @@ t("il dettaglio della categoria sta al centro, non in un pannello", gauge.includ
 t("sull'arco del budget c'è la percentuale", gauge.includes("pctTesto"));
 t("sulle fette niente etichette, il tap apre il centro", !gauge.includes("key={`lb-") && gauge.includes("scegliCat"));
 t("le categorie si possono toccare per l'importo", gauge.includes("scegliCat") && gauge.includes("animate-gauge-centro"));
+t("sulla categoria l'anello esterno copre il budget", gauge.includes("catMode") && gauge.includes("CIRC_OUTER"));
 t("sulla categoria, nome e % sulla stessa riga, sotto Bdg e €/gg", gauge.includes("{centro.nome} {Math.round(centro.pct)}%") && gauge.includes("KpiSotto"));
 t("al centro ci sono Bdg e €/gg, non il commento in linea", gauge.includes("Bdg €") && gauge.includes("€/gg") && !gauge.includes("in linea"));
 t("sotto la ruota c'è la riga dei programmati, non gli anellini", andamento.includes("rigaProgrammati") && !andamento.includes("CategoryRing"));

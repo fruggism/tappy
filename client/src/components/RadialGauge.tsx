@@ -46,6 +46,7 @@ const SW_OUTER = 6;
 const R_INNER = 74;
 const SW_INNER = 7;
 const CIRC_INNER = 2 * Math.PI * R_INNER;
+const CIRC_OUTER = 2 * Math.PI * R_OUTER;
 
 function riduciMoto() {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
@@ -213,6 +214,16 @@ export default function RadialGauge({
   const innerFrac = mounted ? pct : 0;
   const [bx, by] = polo(R_INNER, Math.min(innerFrac, 0.995));
   const pctTesto = budget > 0 ? `${Math.round(pctPiena * 100)}%` : "";
+  const catMode = centro?.tipo === "categoria";
+  const catBdg = catMode ? centro.budget ?? 0 : 0;
+  const catFrac = catMode
+    ? catBdg > 0
+      ? Math.min(centro.importo / catBdg, 1)
+      : 1
+    : 0;
+  const catOver = catMode && catBdg > 0 && centro.importo > catBdg;
+  const catColore = catMode ? (catOver ? pink : centro.colore) : "transparent";
+  const transAnello = riduciMoto() ? undefined : "stroke-dashoffset 0.9s cubic-bezier(0.22,1,0.36,1), opacity 0.32s ease, stroke 0.32s ease";
 
   function scegliCat(seg: (typeof outer)[number]) {
     if (centro?.tipo === "categoria" && centro.nome === seg.label) {
@@ -257,9 +268,11 @@ export default function RadialGauge({
           cy={CY}
           r={R_OUTER}
           fill="none"
-          stroke="currentColor"
-          className="text-black/5 dark:text-white/10"
+          stroke={catMode ? catColore : "currentColor"}
+          className={catMode ? undefined : "text-black/5 dark:text-white/10"}
           strokeWidth={SW_OUTER}
+          opacity={catMode ? 0.2 : 1}
+          style={{ transition: transAnello }}
         />
         <circle
           cx={CX}
@@ -272,7 +285,14 @@ export default function RadialGauge({
         />
 
         {outer.map((seg) => (
-          <g key={seg.id}>
+          <g
+            key={seg.id}
+            style={{
+              opacity: catMode ? 0 : 1,
+              pointerEvents: catMode ? "none" : "auto",
+              transition: riduciMoto() ? undefined : "opacity 0.32s ease",
+            }}
+          >
             <path
               d={arco(R_OUTER, seg.start, seg.start + (mounted ? seg.fraction : 0.001))}
               fill="none"
@@ -294,6 +314,26 @@ export default function RadialGauge({
             />
           </g>
         ))}
+
+        <circle
+          cx={CX}
+          cy={CY}
+          r={R_OUTER}
+          fill="none"
+          stroke={catColore}
+          strokeWidth={SW_OUTER}
+          strokeLinecap="round"
+          strokeDasharray={CIRC_OUTER}
+          strokeDashoffset={CIRC_OUTER * (1 - (mounted && catMode ? catFrac : 0))}
+          transform={`rotate(-90 ${CX} ${CY})`}
+          opacity={catMode ? 1 : 0}
+          className={catOver ? "gauge-overflow-pulse" : undefined}
+          style={{
+            pointerEvents: "none",
+            filter: catMode ? `drop-shadow(0 0 5px ${catColore}99)` : undefined,
+            transition: transAnello,
+          }}
+        />
 
         <circle
           cx={CX}
