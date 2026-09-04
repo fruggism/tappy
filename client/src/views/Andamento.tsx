@@ -553,46 +553,17 @@ function CategoryRing({
   const color = over ? accent("pink", "#ff2ecb") : c.color;
 
   return (
-    <div className="flex flex-col items-center gap-2 w-[5.5rem] shrink-0">
+    <div className="flex flex-col items-center gap-1.5 w-[4.75rem] shrink-0">
       <MiniRing pct={pct} color={color} visible={visible}>
         <span className="text-footnote font-semibold tabular-nums leading-none" style={{ color }}>
           €{c.value.toFixed(0)}
         </span>
       </MiniRing>
-      <div className="flex flex-col items-center gap-0.5 max-w-full">
-        <span className="text-callout font-medium truncate max-w-full">{c.label}</span>
-        <span className="text-caption text-muted dark:text-muted-dark truncate max-w-full">
-          {hasBudget ? (over ? "oltre budget" : `su €${c.budget!.toFixed(0)}`) : `${Math.round(pct)}% del totale`}
+      {hasBudget ? (
+        <span className="text-caption text-muted dark:text-muted-dark tabular-nums">
+          su €{c.budget!.toFixed(0)}
         </span>
-      </div>
-    </div>
-  );
-}
-
-function CategoryRingsContent({
-  categories,
-  visible,
-}: {
-  categories: { id: string; label: string; color: string; value: number; budget: number | null }[];
-  visible: boolean;
-}) {
-  const total = categories.reduce((s, c) => s + c.value, 0);
-
-  return (
-    <div className="w-full flex flex-col gap-4">
-      <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">
-        Per categoria
-      </span>
-      {categories.length === 0 && (
-        <p className="text-center text-callout text-muted dark:text-muted-dark py-4">
-          Nessuna spesa in questo periodo.
-        </p>
-      )}
-      <div className="flex flex-wrap justify-center gap-y-4 gap-x-2">
-        {categories.map((c) => (
-          <CategoryRing key={c.id} category={c} total={total} visible={visible} />
-        ))}
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -629,7 +600,7 @@ function HeroCard({
   onTravelDateChange: (d: Date) => void;
   now: Date;
   range: ReturnType<typeof getRange>;
-  byCategory: { id: string; label: string; color: string; value: number }[];
+  byCategory: { id: string; label: string; color: string; value: number; budget: number | null }[];
   budget: number;
   totalPeriod: number;
   perDay: number;
@@ -711,6 +682,14 @@ function HeroCard({
           orologio={orologio}
         />
       </div>
+
+      {byCategory.length > 0 ? (
+        <div className="w-full flex flex-wrap justify-center gap-x-3 gap-y-3 pt-1">
+          {byCategory.map((c) => (
+            <CategoryRing key={c.id} category={c} total={totalPeriod} visible />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -751,20 +730,15 @@ function TimeCard({
 }
 
 function WhereCard({
-  byCategory,
   topCategory,
   topMerchant,
 }: {
-  byCategory: { id: string; label: string; color: string; value: number; budget: number | null }[];
   topCategory: { label: string; color: string; value: number } | null;
   topMerchant: { name: string; value: number } | null;
 }) {
-  const [ref, visible] = useInView<HTMLDivElement>();
+  if (!topCategory && !topMerchant) return null;
   return (
-    <div ref={ref} className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col gap-5">
-      <span className="text-caption text-muted dark:text-muted-dark uppercase tracking-wide">Dove</span>
-      <CategoryRingsContent categories={byCategory} visible={visible} />
-      <div className="h-px bg-black/[0.06] dark:bg-white/10" />
+    <div className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4">
       <TopContent topCategory={topCategory} topMerchant={topMerchant} />
     </div>
   );
@@ -901,7 +875,7 @@ export default function Andamento() {
         prevRange={prevRange}
       />
 
-      <WhereCard byCategory={byCategory} topCategory={byCategory[0] ?? null} topMerchant={topMerchant} />
+      <WhereCard topCategory={byCategory[0] ?? null} topMerchant={topMerchant} />
     </div>
   );
 }
