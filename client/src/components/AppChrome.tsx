@@ -53,19 +53,17 @@ function HomeIcon() {
   );
 }
 
-export function Header({ scrolled = false }: { scrolled?: boolean }) {
+export function Header({
+  scrolled = false,
+  sezione,
+}: {
+  scrolled?: boolean;
+  /** Nome della tab attiva, in grigio accanto al wordmark. */
+  sezione?: string;
+}) {
   const { effectiveTheme, setTheme } = useApp();
   const scuro = effectiveTheme === "dark";
 
-  // L'icona mostra lo **stato corrente** (luna = stai vedendo lo scuro), non
-  // l'azione: è la convenzione iOS, invertirla confonde.
-  // Il tocco alterna solo chiaro ↔ scuro; la terza posizione "sistema" resta
-  // in Impostazioni, che è il posto giusto per una preferenza e non per un
-  // gesto. Partendo da "sistema" si fissa l'opposto di quel che si sta
-  // vedendo, così il tocco fa sempre qualcosa di visibile.
-  //
-  // Il titolo si contrae quando il contenuto sotto scorre: `scrolled` arriva
-  // da App.tsx, che osserva una sentinella in cima a <main>.
   return (
     <header
       className={`sticky top-0 z-20 px-5 pb-2 flex items-center justify-between border-b transition-all duration-300
@@ -79,11 +77,18 @@ export function Header({ scrolled = false }: { scrolled?: boolean }) {
       }}
     >
       <h1
-        className={`font-bold tracking-tight transition-all duration-300 ${
+        className={`font-bold tracking-tight flex items-baseline gap-2 min-w-0 transition-all duration-300 ${
           scrolled ? "text-callout" : "text-title2"
         }`}
       >
-        tap<span className="text-acc-green">py</span>
+        <span className="shrink-0">
+          tap<span className="text-acc-green">py</span>
+        </span>
+        {sezione ? (
+          <span className="font-medium text-muted/55 dark:text-muted-dark/55 truncate text-callout">
+            {sezione}
+          </span>
+        ) : null}
       </h1>
 
       <div className="flex items-center gap-3 text-muted dark:text-muted-dark">
@@ -110,29 +115,12 @@ export function Header({ scrolled = false }: { scrolled?: boolean }) {
   );
 }
 
-/**
- * La pulsantiera, ancorata in fondo allo schermo. Sotto non c'è niente: lo
- * spazio in basso serve a quello che conta, non a un piè di pagina sempre
- * acceso. Marchio e versione stanno in coda al contenuto, e si vedono
- * scorrendo fino in fondo (vedi PieDiPagina).
- *
- * È `fixed`, non `absolute`: agganciata al contenitore dell'app dipendeva
- * dall'altezza che il browser gli aveva dato, e quando quella non
- * corrispondeva allo schermo — barra di Safari che rientra, viewport
- * ricalcolata — la pulsantiera restava a mezz'aria con una striscia vuota
- * sotto. `fixed` la lega al fondo della finestra e basta. La larghezza
- * dell'app la ridà il contenitore interno, uguale a quello di App.
- */
 export function Dock({ children }: { children: ReactNode }) {
   return (
     <div
       className="fixed bottom-0 left-0 right-0 z-20 pointer-events-none"
       style={{ paddingBottom: "max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))" }}
     >
-      {/* Il contenuto scorre sotto la pulsantiera, che è traslucida: la
-          sfumatura lo fa svanire invece di farlo sbucare a metà. Sta fuori
-          dal contenitore largo quanto l'app perché deve coprire anche la
-          fascia di safe-area, che è padding di questo elemento. */}
       <div
         className="absolute inset-x-0 bottom-0 -top-6 bg-gradient-to-t
                    from-base via-base to-transparent
@@ -143,10 +131,6 @@ export function Dock({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * Marchio dell'ecosistema e versione, in coda al contenuto: compaiono
- * scorrendo fino in fondo, e non rubano spazio per il resto del tempo.
- */
 export function PieDiPagina() {
   return (
     <div className="flex flex-col items-center gap-0.5 pt-6 pb-2 text-muted dark:text-muted-dark">
