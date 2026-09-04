@@ -251,6 +251,56 @@ router.delete(
   })
 );
 
+const TIPI_PIANO = new Set(["subscription", "installment", "once"]);
+const FREQ_PIANO = new Set(["weekly", "monthly", "everyN"]);
+
+router.get(
+  "/plans",
+  withUser(async (req, res, user) => res.json(await db.listPlans(user.code)))
+);
+
+router.post(
+  "/plans",
+  withUser(async (req, res, user) => {
+    const { name, amount, type, start_date } = req.body;
+    if (!name || amount === undefined || !start_date) {
+      return res.status(400).json({ error: "name, amount and start_date required" });
+    }
+    if (type && !TIPI_PIANO.has(type)) return res.status(400).json({ error: "unknown type" });
+    if (req.body.frequency && !FREQ_PIANO.has(req.body.frequency)) {
+      return res.status(400).json({ error: "unknown frequency" });
+    }
+    const estraneo = await idAltrui(user, req.body.category_id, req.body.card_id);
+    if (estraneo) return res.status(400).json({ error: `unknown ${estraneo}` });
+    res.status(201).json(await db.createPlan(user.code, req.body));
+  })
+);
+
+router.patch(
+  "/plans/:id",
+  withUser(async (req, res, user) => {
+    const piano = await db.getPlan(req.params.id, user.code);
+    if (!piano) return res.status(404).json({ error: "not found" });
+    if (req.body.type && !TIPI_PIANO.has(req.body.type)) return res.status(400).json({ error: "unknown type" });
+    if (req.body.frequency && !FREQ_PIANO.has(req.body.frequency)) {
+      return res.status(400).json({ error: "unknown frequency" });
+    }
+    const estraneo = await idAltrui(user, req.body.category_id, req.body.card_id);
+    if (estraneo) return res.status(400).json({ error: `unknown ${estraneo}` });
+    res.json(await db.updatePlan(piano.id, req.body));
+  })
+);
+
+router.delete(
+  "/plans/:id",
+  withUser(async (req, res, user) => {
+    const piano = await db.getPlan(req.params.id, user.code);
+    if (!piano) return res.status(404).json({ error: "not found" });
+    await db.deletePlan(piano.id);
+    res.status(204).end();
+  })
+);
+
 // ---------- Apple Pay Shortcut webhook ----------
 // L'automazione dell'iPhone (Comandi Rapidi → Automazione), che scatta da sé
 // alla notifica di pagamento Apple Pay, fa la POST qui con l'header x-api-key:

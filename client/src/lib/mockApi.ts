@@ -2,6 +2,7 @@
 // Stessa interfaccia di realApi.ts, ma tutto vive in localStorage.
 // In Fase 2 basterà cambiare l'import in api.ts per puntare al backend vero.
 import type { Card, Category, Transaction, User } from "./types";
+import type { Piano } from "./piani";
 
 const STORAGE_KEY = "tappy_mock_db_v1";
 
@@ -10,6 +11,7 @@ interface Db {
   categories: Category[];
   cards: Card[];
   transactions: Transaction[];
+  plans: Piano[];
 }
 
 function uid() {
@@ -135,7 +137,7 @@ function seed(): Db {
     });
   }
 
-  return { user, categories, cards, transactions };
+  return { user, categories, cards, transactions, plans: [] };
 }
 
 function load(): Db {
@@ -148,6 +150,7 @@ function load(): Db {
       parsed.categories.forEach((c) => {
         if (c.budget === undefined) c.budget = null;
       });
+      if (!parsed.plans) parsed.plans = [];
       return parsed;
     } catch {
       // corrupted, reseed
@@ -260,6 +263,31 @@ export const mockApi = {
   },
   deleteTransaction: (id: string) => {
     db.transactions = db.transactions.filter((t) => t.id !== id);
+    save(db);
+    return delay(undefined);
+  },
+
+  plans: () => delay([...(db.plans ?? [])]),
+  createPlan: (data: Omit<Piano, "id" | "user_id" | "created_at">) => {
+    const piano: Piano = {
+      ...data,
+      id: uid(),
+      user_id: db.user.code,
+      created_at: new Date().toISOString(),
+    };
+    db.plans = [piano, ...(db.plans ?? [])];
+    save(db);
+    return delay(piano);
+  },
+  updatePlan: (id: string, data: Partial<Piano>) => {
+    const piano = (db.plans ?? []).find((p) => p.id === id);
+    if (!piano) throw new Error("not found");
+    Object.assign(piano, data);
+    save(db);
+    return delay(piano);
+  },
+  deletePlan: (id: string) => {
+    db.plans = (db.plans ?? []).filter((p) => p.id !== id);
     save(db);
     return delay(undefined);
   },

@@ -241,6 +241,31 @@ const idAnna = (await chiama("GET", "/api/transactions", { codice: "FRU-AAAA-AAA
 const sbirciata = await chiama("PATCH", `/api/transactions/${idAnna}`, { corpo: { name: "Modificata" }, codice: "FRU-BBBB-BBBB" });
 t("il movimento di un altro utente non si tocca", sbirciata.stato === 404, sbirciata);
 
+// --- 3-bis. i piani non escono dal recinto -------------------------------
+creazioni = [];
+const pianoAnna = await chiama("POST", "/api/plans", {
+  corpo: { name: "Netflix", amount: 12.99, type: "subscription", start_date: "2026-01-01", frequency: "monthly" },
+  codice: "FRU-AAAA-AAAA",
+});
+t("si crea un piano sul proprio utente",
+  pianoAnna.stato === 201 && pianoAnna.corpo.user_id === "FRU-AAAA-AAAA", pianoAnna);
+
+const pianoAltrui = await chiama("POST", "/api/plans", {
+  corpo: { name: "Furto", amount: 1, type: "subscription", start_date: "2026-01-01", category_id: "catB" },
+  codice: "FRU-AAAA-AAAA",
+});
+t("un piano con la categoria di un altro: rifiutato",
+  pianoAltrui.stato === 400 && !creazioni.some((c) => c.tabella === "Plans" && c.Name === "Furto"), pianoAltrui);
+
+const sbirciataPiano = await chiama("PATCH", `/api/plans/${pianoAnna.corpo.id}`, {
+  corpo: { amount: 99 }, codice: "FRU-BBBB-BBBB",
+});
+t("il piano di un altro utente non si tocca", sbirciataPiano.stato === 404, sbirciataPiano);
+
+const listaBruno = await chiama("GET", "/api/plans", { codice: "FRU-BBBB-BBBB" });
+t("i piani sono solo i propri",
+  listaBruno.stato === 200 && listaBruno.corpo.every((p) => p.user_id === "FRU-BBBB-BBBB"), listaBruno);
+
 // --- 4. due primi accessi simultanei non creano due utenti ---------------
 creazioni = [];
 global.fetch = async () => ({ status: 200, ok: true, json: async () => ({ profile: { code: "FRU-CCCC-CCCC", name: "Carla" } }) });

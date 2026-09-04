@@ -4,7 +4,6 @@ import RadialGauge, { type Orologio } from "../components/RadialGauge";
 import SegmentedControl from "../components/SegmentedControl";
 import { accent } from "../lib/accent";
 import { indiceNelPeriodo, occorrenzePiani } from "../lib/piani";
-import { leggiPiani } from "../lib/pianiLocali";
 import type { Transaction } from "../lib/types";
 
 type Period = "day" | "week" | "month";
@@ -666,7 +665,7 @@ function WhereCard({
 }
 
 export default function Andamento() {
-  const { user, categories, transactions } = useApp();
+  const { user, categories, transactions, piani } = useApp();
   const [period, setPeriod] = useState<Period>("month");
   const [travelDate, setTravelDate] = useState<Date>(() => new Date());
 
@@ -747,7 +746,6 @@ export default function Andamento() {
     if (period === "day" || !user) return null;
     const from = range.from;
     const to = finePiena(from, range.daysTotal);
-    const piani = leggiPiani(user.code);
     const occ = occorrenzePiani(piani, from, to);
     const programmati = occ
       .map((o) => {
@@ -769,15 +767,15 @@ export default function Andamento() {
         return String(new Date(y, m - 1, d + i).getDate());
       }),
     };
-  }, [period, range, user]);
+  }, [period, range, user, piani]);
 
   const programmatiEuro = useMemo(() => {
     if (!user) return 0;
     const da = range.current ? toISODate(now) : range.from;
     const a = finePiena(range.from, range.daysTotal);
     if (da > a) return 0;
-    return occorrenzePiani(leggiPiani(user.code), da, a).reduce((s, o) => s + o.importo, 0);
-  }, [period, range, user, now]);
+    return occorrenzePiani(piani, da, a).reduce((s, o) => s + o.importo, 0);
+  }, [period, range, user, now, piani]);
 
   return (
     <div className="flex flex-col items-center gap-6 animate-rise">

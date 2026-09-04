@@ -12,7 +12,7 @@ import {
   riattivare,
   type Piano,
 } from "../lib/piani";
-import { aggiornaPiano, eliminaPiano, leggiPiani } from "../lib/pianiLocali";
+import { api } from "../lib/api";
 import Foglio from "../components/Foglio";
 import FoglioPiano from "../components/FoglioPiano";
 
@@ -148,16 +148,16 @@ function Scheda({
   const passate = occorrenze.filter((o) => o.date < oggi);
   const future = occorrenze.filter((o) => o.date >= oggi);
 
-  function toccaDisdetta() {
+  async function toccaDisdetta() {
     if (!user) return;
-    aggiornaPiano(user.code, piano.active ? disdire(piano) : riattivare(piano));
+    await api.updatePlan(piano.id, piano.active ? disdire(piano) : riattivare(piano));
     onCambio();
     onChiudi();
   }
 
-  function toccaElimina() {
+  async function toccaElimina() {
     if (!user) return;
-    eliminaPiano(user.code, piano.id);
+    await api.deletePlan(piano.id);
     onCambio();
     onChiudi();
   }
@@ -266,9 +266,7 @@ function Scheda({
 }
 
 export default function Impegni() {
-  const { user } = useApp();
-  const [, setTick] = useState(0);
-  const piani = user ? leggiPiani(user.code) : [];
+  const { piani, refreshPiani } = useApp();
   const oggi = oggiIso();
   const cursore = new Date();
   const year = cursore.getFullYear();
@@ -283,7 +281,9 @@ export default function Impegni() {
   const [aperto, setAperto] = useState<Piano | null>(null);
   const [form, setForm] = useState<Piano | null | "nuovo">(null);
 
-  const ricarica = () => setTick((n) => n + 1);
+  const ricarica = () => {
+    refreshPiani();
+  };
 
   const lista = giorno
     ? piani.filter((p) => mappaGiorno([p], giorno, giorno).has(giorno))

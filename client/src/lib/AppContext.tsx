@@ -10,12 +10,15 @@ import {
   type FruPassProfile,
 } from "./frupass";
 import type { Card, Category, Transaction, User } from "./types";
+import type { Piano } from "./piani";
+import { leggiPiani, svuotaPianiLocali } from "./pianiLocali";
 
 interface AppState {
   user: User | null;
   categories: Category[];
   cards: Card[];
   transactions: Transaction[];
+  piani: Piano[];
   loading: boolean;
   /** true quando serve mostrare la schermata di login Fru Pass */
   needsLogin: boolean;
@@ -23,6 +26,7 @@ interface AppState {
   effectiveTheme: "light" | "dark";
   refresh: () => Promise<boolean>;
   refreshTransactions: () => Promise<void>;
+  refreshPiani: () => Promise<void>;
   setTheme: (t: User["theme"]) => Promise<void>;
   setBudget: (amount: number) => Promise<void>;
   /** Rifiuta con un errore leggibile se il codice non è valido. */
@@ -37,6 +41,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [piani, setPiani] = useState<Piano[]>([]);
   const [loading, setLoading] = useState(true);
   const [needsLogin, setNeedsLogin] = useState(false);
   const [profile, setProfile] = useState<FruPassProfile | null>(null);
@@ -53,6 +58,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refreshTransactions = useCallback(async () => {
     setTransactions(await api.transactions());
+  }, []);
+
+  const refreshPiani = useCallback(async () => {
+    setPiani(await api.plans());
   }, []);
 
   // Le spese non arrivano più solo da qui: l'automazione dell'iPhone le
@@ -88,16 +97,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [u, c, cd, tx] = await Promise.all([
+      const [u, c, cd, tx, pl] = await Promise.all([
         api.me(),
         api.categories(),
         api.cards(),
         api.transactions(),
+        api.plans(),
       ]);
+      let pianiCaricati = pl;
+      // I programmati nati sul telefono, prima di Airtable, si caricano una
+      // volta e poi la copia locale si toglie: altrimenti Netflix doppio.
+      if (pl.length === 0) {
+        const locali = leggiPiani(u.code);
+        if (locali.length) {
+          for (const p of locali) {
+            const { id: _id, user_id: _u, created_at: _c, ...dati } = p;
+            await api.createPlan(dati);
+          }
+          svuotaPianiLocali(u.code);
+          pianiCaricati = await api.plans();
+        }
+      }
       setUser(u);
       setCategories(c);
       setCards(cd);
       setTransactions(tx);
+      setPiani(pianiCaricati);
       setNeedsLogin(false);
       return true;
     } catch {
@@ -221,6 +246,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCategories([]);
     setCards([]);
     setTransactions([]);
+    setPiani([]);
     setNeedsLogin(true);
     setLoading(false);
   }, []);
@@ -271,12 +297,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     categories,
     cards,
     transactions,
+    piani,
     loading,
     needsLogin,
     profile,
     effectiveTheme,
     refresh,
     refreshTransactions,
+    refreshPiani,
     setTheme,
     setBudget,
     login,

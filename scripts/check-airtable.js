@@ -23,6 +23,11 @@ const SCHEMA = {
     "CardId", "CategoryId", "Source", "IsIncome", "Note", "CreatedAt",
     "Lat", "Lon",
   ],
+  Plans: [
+    "UserId", "Name", "Type", "Amount", "PriceHistory", "CategoryId", "CardId",
+    "Frequency", "IntervalMonths", "StartDate", "EndDate", "ReviewDate",
+    "Active", "Note", "CreatedAt",
+  ],
 };
 
 /**

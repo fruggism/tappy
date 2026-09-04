@@ -39,8 +39,8 @@ sicurezza e va deciso consapevolmente.
 
 1. Vai su [airtable.com](https://airtable.com), **Create → Start from
    scratch**. Chiama la base **`tappy`**.
-2. Crea **4 tabelle** con questi nomi esatti: `Users`, `Categories`, `Cards`,
-   `Transactions`. (Airtable te ne crea una di default chiamata "Table 1":
+2. Crea **5 tabelle** con questi nomi esatti: `Users`, `Categories`, `Cards`,
+   `Transactions`, `Plans`. (Airtable te ne crea una di default chiamata "Table 1":
    rinominala in `Users`.)
 3. In ogni tabella crea i campi qui sotto, con **nome e tipo esatti** — il
    backend li cerca così come sono scritti, maiuscole comprese.
@@ -94,9 +94,28 @@ non danno errore, ma sporcano.
 | `Lat` | Number (6 decimali) |
 | `Lon` | Number (6 decimali) |
 
+### `Plans`
+| Campo | Tipo |
+|---|---|
+| `Name` | Single line text |
+| `UserId` | Single line text |
+| `Type` | Single line text |
+| `Amount` | Number |
+| `PriceHistory` | Long text |
+| `CategoryId` | Single line text |
+| `CardId` | Single line text |
+| `Frequency` | Single line text |
+| `IntervalMonths` | Number |
+| `StartDate` | Single line text |
+| `EndDate` | Single line text |
+| `ReviewDate` | Single line text |
+| `Active` | Checkbox |
+| `Note` | Single line text |
+| `CreatedAt` | Single line text |
+
 **Sui campi `Number`**: Airtable chiede la precisione. Metti **2 decimali**
-per `MonthlyBudget`, `Amount`, `MyShare` e `Budget`; **intero** per
-`SortOrder`; **6 decimali** per `Lat` e `Lon` (dove è avvenuta la spesa, riempiti dall'automazione e sempre
+per `MonthlyBudget`, `Amount`, `MyShare`, `Budget`; **intero** per
+`SortOrder` e `IntervalMonths`; **6 decimali** per `Lat` e `Lon` (dove è avvenuta la spesa, riempiti dall'automazione e sempre
 facoltativi) — con meno, la posizione di una
 spesa si sposta di centinaia di metri e la mappa perde senso. Con 0 decimali gli importi verrebbero arrotondati in silenzio.
 

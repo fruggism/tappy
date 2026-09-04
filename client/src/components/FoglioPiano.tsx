@@ -7,7 +7,7 @@ import {
   type Piano,
   type TipoPiano,
 } from "../lib/piani";
-import { aggiornaPiano, creaPiano } from "../lib/pianiLocali";
+import { api } from "../lib/api";
 import Foglio from "./Foglio";
 import SegmentedControl from "./SegmentedControl";
 
@@ -43,7 +43,7 @@ export default function FoglioPiano({
   const [errore, setErrore] = useState("");
   const [saving, setSaving] = useState(false);
 
-  function salva() {
+  async function salva() {
     if (!user) return;
     const importo = parseFloat(amount.replace(",", "."));
     if (!name.trim() || isNaN(importo) || importo <= 0) {
@@ -82,13 +82,15 @@ export default function FoglioPiano({
           importo !== esistente.amount
             ? congelarePrezzo(esistente, importo, oggiIso())
             : esistente;
-        aggiornaPiano(user.code, { ...congelato, ...base, amount: congelato.amount, price_history: congelato.price_history });
+        await api.updatePlan(esistente.id, { ...congelato, ...base, amount: congelato.amount, price_history: congelato.price_history });
       } else {
-        creaPiano(user.code, base);
+        await api.createPlan(base);
       }
       haptic(HAPTIC.saved);
       onSalvato();
       onChiudi();
+    } catch (e) {
+      setErrore(e instanceof Error ? e.message : "Non salvato");
     } finally {
       setSaving(false);
     }

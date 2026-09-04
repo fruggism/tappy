@@ -1,4 +1,5 @@
 import type { Card, Category, Transaction, User } from "./types";
+import type { Piano } from "./piani";
 
 // In produzione client e API stanno sullo stesso dominio Netlify (redirect
 // /api/* -> funzione), quindi non serve un URL assoluto. VITE_API_URL resta
@@ -60,6 +61,13 @@ export const realApi = {
     req<Transaction>(`/api/transactions/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteTransaction: (id: string) =>
     req<void>(`/api/transactions/${id}`, { method: "DELETE" }),
+
+  plans: () => req<Piano[]>("/api/plans"),
+  createPlan: (data: Omit<Piano, "id" | "user_id" | "created_at">) =>
+    req<Piano>("/api/plans", { method: "POST", body: JSON.stringify(data) }),
+  updatePlan: (id: string, data: Partial<Piano>) =>
+    req<Piano>(`/api/plans/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deletePlan: (id: string) => req<void>(`/api/plans/${id}`, { method: "DELETE" }),
 };
 
 export { BASE as API_BASE };

@@ -48,3 +48,7 @@ export function eliminaPiano(code: string, id: string) {
     leggiPiani(code).filter((p) => p.id !== id)
   );
 }
+
+export function svuotaPianiLocali(code: string) {
+  localStorage.removeItem(chiave(code));
+}

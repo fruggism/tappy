@@ -1,5 +1,5 @@
 // Layer di accesso dati: parla con Airtable al posto di una query SQL.
-// Le 4 tabelle (Users, Categories, Cards, Transactions) rispecchiano lo
+// Le 5 tabelle (Users, Categories, Cards, Transactions, Plans) rispecchiano lo
 // stesso modello dati del vecchio server Express+SQLite (vedi GUIDE.md).
 //
 // tappy fa parte dell'ecosistema Fru Pass: ogni utente è identificato dal suo
@@ -373,6 +373,105 @@ async function reassignTransactionsCategory(userId, fromCategoryId, toCategoryId
   }
 }
 
+function storicoDa(r) {
+  const grezzo = r.get("PriceHistory");
+  if (!grezzo) return [];
+  try {
+    const p = JSON.parse(grezzo);
+    return Array.isArray(p) ? p : [];
+  } catch {
+    return [];
+  }
+}
+
+function pianoFromRecord(r) {
+  return {
+    id: r.id,
+    user_id: r.get("UserId"),
+    name: r.get("Name"),
+    type: r.get("Type") || "subscription",
+    amount: r.get("Amount") || 0,
+    price_history: storicoDa(r),
+    category_id: r.get("CategoryId") || null,
+    card_id: r.get("CardId") || null,
+    frequency: r.get("Frequency") || "monthly",
+    interval_months: r.get("IntervalMonths") ?? null,
+    start_date: r.get("StartDate"),
+    end_date: r.get("EndDate") || null,
+    review_date: r.get("ReviewDate") || null,
+    active: r.get("Active") !== false,
+    note: r.get("Note") || null,
+    created_at: r.get("CreatedAt") || null,
+  };
+}
+
+async function listPlans(userId) {
+  const records = await table("Plans")
+    .select({
+      filterByFormula: `{UserId} = '${esc(userId)}'`,
+      sort: [{ field: "CreatedAt", direction: "desc" }],
+    })
+    .all();
+  return records.map(pianoFromRecord);
+}
+
+async function getPlan(id, userId) {
+  try {
+    const piano = pianoFromRecord(await table("Plans").find(id));
+    return piano.user_id === userId ? piano : null;
+  } catch {
+    return null;
+  }
+}
+
+async function createPlan(userId, data) {
+  const history = Array.isArray(data.price_history) && data.price_history.length
+    ? data.price_history
+    : [{ da: data.start_date, importo: data.amount }];
+  const fields = {
+    UserId: userId,
+    Name: data.name,
+    Type: data.type,
+    Amount: data.amount,
+    PriceHistory: JSON.stringify(history),
+    Frequency: data.frequency || "monthly",
+    StartDate: data.start_date,
+    Active: data.active !== false,
+    CreatedAt: new Date().toISOString(),
+  };
+  if (data.category_id) fields.CategoryId = data.category_id;
+  if (data.card_id) fields.CardId = data.card_id;
+  if (data.interval_months) fields.IntervalMonths = data.interval_months;
+  if (data.end_date) fields.EndDate = data.end_date;
+  if (data.review_date) fields.ReviewDate = data.review_date;
+  if (data.note) fields.Note = data.note;
+  const r = await table("Plans").create(fields);
+  return pianoFromRecord(r);
+}
+
+async function updatePlan(id, data) {
+  const patch = {};
+  if (data.name !== undefined) patch.Name = data.name;
+  if (data.type !== undefined) patch.Type = data.type;
+  if (data.amount !== undefined) patch.Amount = data.amount;
+  if (data.price_history !== undefined) patch.PriceHistory = JSON.stringify(data.price_history);
+  if (data.category_id !== undefined) patch.CategoryId = data.category_id;
+  if (data.card_id !== undefined) patch.CardId = data.card_id;
+  if (data.frequency !== undefined) patch.Frequency = data.frequency;
+  if (data.interval_months !== undefined) patch.IntervalMonths = data.interval_months;
+  if (data.start_date !== undefined) patch.StartDate = data.start_date;
+  if (data.end_date !== undefined) patch.EndDate = data.end_date;
+  if (data.review_date !== undefined) patch.ReviewDate = data.review_date;
+  if (data.active !== undefined) patch.Active = !!data.active;
+  if (data.note !== undefined) patch.Note = data.note;
+  const r = await table("Plans").update(id, patch);
+  return pianoFromRecord(r);
+}
+
+async function deletePlan(id) {
+  await table("Plans").destroy(id);
+}
+
 module.exports = {
   credenziali,
   getUserByFrupasCode,
@@ -394,4 +493,9 @@ module.exports = {
   updateTransaction,
   deleteTransaction,
   reassignTransactionsCategory,
+  listPlans,
+  getPlan,
+  createPlan,
+  updatePlan,
+  deletePlan,
 };

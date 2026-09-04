@@ -127,6 +127,29 @@ contano: il backend li usa così come sono).
 | `Note` | Single line text | facoltativo |
 | `CreatedAt` | Single line text | ISO 8601, scritta dal backend |
 
+### `Plans`
+
+Una riga per piano (abbonamento, rata, o pagamento una tantum). Le scadenze
+**non** si materializzano: si calcolano da inizio, frequenza e fine.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `UserId` | Single line text | codice frupas del proprietario |
+| `Name` | Single line text | «Netflix», «iPhone 15» |
+| `Type` | Single line text | `subscription` / `installment` / `once` |
+| `Amount` | Number | importo corrente della singola occorrenza |
+| `PriceHistory` | Long text | JSON `[{"da":"2025-01-01","importo":12.99}]` |
+| `CategoryId` | Single line text | record id di `Categories`, facoltativo |
+| `CardId` | Single line text | record id di `Cards`, facoltativo |
+| `Frequency` | Single line text | `weekly` / `monthly` / `everyN` |
+| `IntervalMonths` | Number | solo per `everyN` |
+| `StartDate` | Single line text | `YYYY-MM-DD` |
+| `EndDate` | Single line text | `YYYY-MM-DD`, obbligatoria per le rate |
+| `ReviewDate` | Single line text | `YYYY-MM-DD`, facoltativo |
+| `Active` | Checkbox | disdetto ≠ cancellato |
+| `Note` | Single line text | facoltativo |
+| `CreatedAt` | Single line text | ISO 8601, scritta dal backend |
+
 `UserId` è il **codice frupas** (testo semplice, non "linked record"): è
 l'identità condivisa nell'ecosistema, la stessa su tutte le app. `CardId` e
 `CategoryId` restano invece record id interni di Airtable — identificano

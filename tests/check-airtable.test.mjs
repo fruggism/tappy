@@ -35,7 +35,7 @@ t("campo mancante non viene scambiato per tabella mancante", r.esito === "campi-
 r = classifica(err(500, "Internal error"), "Users", SCHEMA.Users);
 t("errore imprevisto -> riportato com'è", r.esito === "errore" && r.dettaglio === "Internal error", r);
 
-t("lo schema controllato copre le 4 tabelle", Object.keys(SCHEMA).join() === "Users,Categories,Cards,Transactions");
+t("lo schema controllato copre le 5 tabelle", Object.keys(SCHEMA).join() === "Users,Categories,Cards,Transactions,Plans");
 
 console.log(`\n${ok} ok, ${ko} falliti`);
 process.exit(ko ? 1 : 0);
