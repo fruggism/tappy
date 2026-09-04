@@ -30,8 +30,10 @@ interface Props {
 
 const CX = 100;
 const CY = 100;
-const R_OUTER = 93;
-const R_INNER = 70;
+const R_OUTER = 96;
+const R_INNER = 83;
+const SW_OUTER = 6;
+const SW_INNER = 7;
 const CIRC_INNER = 2 * Math.PI * R_INNER;
 
 function riduciMoto() {
@@ -55,15 +57,16 @@ function arco(r: number, da: number, a: number): string {
 
 function DialGiorni({ orologio, rosso }: { orologio: Orologio; rosso: string }) {
   const passi = orologio.passi;
-  const R_NUM = R_INNER - 15;
+  const R_NUM = R_INNER - 14;
   const rBadge = Math.min(7.4, (Math.PI * R_NUM) / passi - 0.35);
   const fs = Math.min(passi > 14 ? 6.2 : 8.2, rBadge * 1.2);
+  const rPunto = R_INNER + SW_INNER / 2 + 3.2;
   return (
     <g style={{ pointerEvents: "none" }}>
       {Array.from({ length: passi }, (_, i) => {
         const frac = i / passi;
-        const [x1, y1] = polo(R_INNER - 5, frac);
-        const [x2, y2] = polo(R_INNER + 5.5, frac);
+        const [x1, y1] = polo(R_INNER - 4, frac);
+        const [x2, y2] = polo(R_INNER + 4, frac);
         const lunga = passi > 14 && i % 5 === 0;
         return (
           <line
@@ -81,7 +84,7 @@ function DialGiorni({ orologio, rosso }: { orologio: Orologio; rosso: string }) 
       })}
       {orologio.programmati.map((i) => {
         if (i === orologio.oggi) return null;
-        const [x, y] = polo(R_INNER + 8.5, i / passi);
+        const [x, y] = polo(rPunto, i / passi);
         return <circle key={`p-${i}`} cx={x} cy={y} r="2.1" fill={rosso} />;
       })}
       {orologio.etichette.map((lab, i) => {
@@ -188,8 +191,7 @@ export default function RadialGauge({
           r={R_OUTER}
           fill="none"
           stroke="currentColor"
-          className="text-black/5 dark:text-white/10"
-          strokeWidth="11"
+          strokeWidth={SW_OUTER}
         />
 
         <circle
@@ -199,7 +201,7 @@ export default function RadialGauge({
           fill="none"
           stroke="currentColor"
           className="text-black/[0.07] dark:text-white/10"
-          strokeWidth={orologio ? 7 : 11}
+          strokeWidth={SW_INNER}
         />
 
         {outer.map((seg) => (
@@ -208,7 +210,7 @@ export default function RadialGauge({
             d={arco(R_OUTER, seg.start, seg.start + (mounted ? seg.fraction : 0))}
             fill="none"
             stroke={seg.color}
-            strokeWidth="11"
+            strokeWidth={SW_OUTER}
             strokeLinecap="butt"
             opacity={focus === seg.id ? 1 : 0.4}
             className="cursor-pointer"
@@ -226,7 +228,7 @@ export default function RadialGauge({
           r={R_INNER}
           fill="none"
           stroke={innerColor}
-          strokeWidth={orologio ? 7 : 11}
+          strokeWidth={SW_INNER}
           strokeLinecap="round"
           strokeDasharray={CIRC_INNER}
           strokeDashoffset={CIRC_INNER * (1 - innerFrac)}
