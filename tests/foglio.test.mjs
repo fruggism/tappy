@@ -48,6 +48,7 @@ t("sull'arco del budget c'è la percentuale", gauge.includes("pctTesto"));
 t("sulle fette strette il bassorilievo non c'è, il tap sì", gauge.includes("seg.label.length") && gauge.includes("scegliCat"));
 t("le categorie si possono toccare per l'importo", gauge.includes("scegliCat") && gauge.includes("animate-gauge-centro"));
 t("il tocco sulla categoria mostra anche la percentuale", gauge.includes("scegliCat") && gauge.includes("pct"));
+t("al centro ci sono Bdg e €/gg, non il commento in linea", gauge.includes("Bdg €") && gauge.includes("€/gg") && !gauge.includes("in linea"));
 t("la ruota riempie la prima schermata", andamento.includes('closest("main")') && andamento.includes("slot.clientWidth"));
 
 console.log(`\n${ok} ok, ${ko} falliti`);

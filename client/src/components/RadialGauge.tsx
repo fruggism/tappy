@@ -31,9 +31,9 @@ export type Scelta =
 interface Props {
   segments: GaugeSegment[];
   budget: number;
+  perDay: number;
   size?: number;
   centerLabel: string;
-  centerSub: string;
   orologio?: Orologio | null;
 }
 
@@ -169,9 +169,9 @@ function DialGiorni({
 export default function RadialGauge({
   segments,
   budget,
+  perDay,
   size = 252,
   centerLabel,
-  centerSub,
   orologio = null,
 }: Props) {
   const uid = useId().replace(/:/g, "");
@@ -420,17 +420,15 @@ export default function RadialGauge({
               >
                 {centerLabel}
               </span>
-              <span className="text-footnote text-muted dark:text-muted-dark mt-1">{centerSub}</span>
-              {overBudget && (
-                <span className="text-caption font-medium text-acc-pink mt-1 gauge-overflow-pulse">
-                  oltre €{Math.round(total - budget)}
+              {budget > 0 && (
+                <span className="text-caption text-muted dark:text-muted-dark mt-1.5 tabular-nums">
+                  Bdg €{Math.round(budget)}
                 </span>
               )}
-              {!overBudget && budget > 0 && (
-                <span className="text-caption font-medium text-muted dark:text-muted-dark mt-1">
-                  ancora €{Math.round(budget - total)}
-                </span>
-              )}
+              <span className="text-caption tabular-nums mt-0.5">
+                <span className="text-muted dark:text-muted-dark">€/gg </span>
+                <span className="font-medium text-acc-green">€{Math.round(perDay)}</span>
+              </span>
             </>
           )}
         </div>
@@ -439,16 +437,3 @@ export default function RadialGauge({
   );
 }
 
-export function ritmo(
-  speso: number,
-  budget: number,
-  oggi: number | null,
-  passi: number
-): "in anticipo" | "in linea" | "sotto ritmo" | null {
-  if (oggi == null || budget <= 0 || passi <= 0) return null;
-  const tempo = (oggi + 1) / passi;
-  const spesa = speso / budget;
-  if (spesa > tempo + 0.08) return "in anticipo";
-  if (spesa < tempo - 0.08) return "sotto ritmo";
-  return "in linea";
-}

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import RadialGauge, { ritmo, type Orologio } from "../components/RadialGauge";
+import RadialGauge, { type Orologio } from "../components/RadialGauge";
 import SegmentedControl from "../components/SegmentedControl";
 import { accent } from "../lib/accent";
 import { indiceNelPeriodo, occorrenzePiani } from "../lib/piani";
@@ -319,19 +319,6 @@ function MiniRing({
   );
 }
 
-function PerDayRow({ perDay }: { perDay: number }) {
-  const animated = useCountUp(perDay);
-  return (
-    <div className="w-full flex justify-between text-callout px-1">
-      <span className="text-muted dark:text-muted-dark">Spesa media al giorno</span>
-      <span className="font-semibold tabular-nums text-acc-green">
-        €{animated.toFixed(0)}
-        <span className="text-footnote font-normal text-muted dark:text-muted-dark">/giorno</span>
-      </span>
-    </div>
-  );
-}
-
 function TrendArrow({ up, className }: { up: boolean; className?: string }) {
   return (
     <svg
@@ -632,10 +619,8 @@ function HeroCard({
   range,
   byCategory,
   budget,
-  budgetLabel,
   totalPeriod,
   perDay,
-  pctText,
   orologio,
 }: {
   period: Period;
@@ -646,10 +631,8 @@ function HeroCard({
   range: ReturnType<typeof getRange>;
   byCategory: { id: string; label: string; color: string; value: number }[];
   budget: number;
-  budgetLabel: string;
   totalPeriod: number;
   perDay: number;
-  pctText: string;
   orologio: Orologio | null;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -723,25 +706,10 @@ function HeroCard({
           size={lato}
           segments={byCategory}
           budget={budget}
+          perDay={perDay}
           centerLabel={`€${totalPeriod.toFixed(0)}`}
-          centerSub={
-            orologio
-              ? ritmo(totalPeriod, budget, orologio.oggi, orologio.passi) ??
-                (budget > 0 ? `${pctText} del budget` : pctText)
-              : budget > 0
-                ? `${pctText} del budget`
-                : pctText
-          }
           orologio={orologio}
         />
-      </div>
-
-      <div className="w-full flex flex-col gap-2">
-        <div className="w-full flex justify-between text-callout px-1">
-          <span className="text-muted dark:text-muted-dark">{budgetLabel}</span>
-          <span className="font-medium tabular-nums">€{budget.toFixed(0)}</span>
-        </div>
-        <PerDayRow perDay={perDay} />
       </div>
     </div>
   );
@@ -879,7 +847,6 @@ export default function Andamento() {
 
   const totalPeriod = byCategory.reduce((s, c) => s + c.value, 0);
   const perDay = range.daysElapsed > 0 ? totalPeriod / range.daysElapsed : 0;
-  const pctText = budget > 0 ? `${Math.round((totalPeriod / budget) * 100)}%` : "—";
 
   const orologio = useMemo<Orologio | null>(() => {
     if (period === "day" || !user) return null;
@@ -909,9 +876,6 @@ export default function Andamento() {
     };
   }, [period, range, user]);
 
-  const budgetLabel =
-    period === "day" ? "Budget giornaliero" : period === "week" ? "Budget settimanale" : "Budget mensile";
-
   return (
     <div className="flex flex-col items-center gap-6 animate-rise">
       <HeroCard
@@ -923,10 +887,8 @@ export default function Andamento() {
         range={range}
         byCategory={byCategory}
         budget={budget}
-        budgetLabel={budgetLabel}
         totalPeriod={totalPeriod}
         perDay={perDay}
-        pctText={pctText}
         orologio={orologio}
       />
 
