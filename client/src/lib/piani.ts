@@ -189,3 +189,12 @@ export function formattaGiorno(isoDate: string): string {
   const mesi = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
   return `${Number(d)} ${mesi[Number(m) - 1]} ${y}`;
 }
+
+/** Quanti giorni interi da `from` a `date` (0 = lo stesso giorno). */
+export function indiceNelPeriodo(from: string, date: string): number {
+  return Math.round((parseIso(date).getTime() - parseIso(from).getTime()) / 86400000);
+}
+
+export function giorniConProgrammati(piani: Piano[], from: string, to: string): string[] {
+  return [...new Set(occorrenzePiani(piani, from, to).map((o) => o.date))].sort();
+}

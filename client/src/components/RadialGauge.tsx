@@ -8,20 +8,36 @@ export interface GaugeSegment {
   color: string;
 }
 
+/** Settimana o mese: l'anello interno è anche un orologio. Giorno: null. */
+export interface Orologio {
+  passi: number;
+  /** 0-based, null se il periodo non è quello in corso. */
+  oggi: number | null;
+  /** 0-based, giorni con una spesa prevista. */
+  programmati: number[];
+}
+
 interface Props {
   segments: GaugeSegment[];
   budget: number;
   size?: number;
   centerLabel: string;
   centerSub: string;
-  /** Importo previsto nel periodo: non entra nel totale pieno, solo nell'arco tratteggiato. */
-  programmati?: number;
+  orologio?: Orologio | null;
 }
 
-const R = 84;
-const R_OVERFLOW = 96;
-const CIRC = 2 * Math.PI * R;
-const CIRC_OVERFLOW = 2 * Math.PI * R_OVERFLOW;
+const CX = 100;
+const CY = 100;
+const R_OUTER = 88;
+const R_INNER = 64;
+const R_SEGNO = 76;
+const CIRC_OUTER = 2 * Math.PI * R_OUTER;
+const CIRC_INNER = 2 * Math.PI * R_INNER;
+const CIRC_SEGNO = 2 * Math.PI * R_SEGNO;
+
+function riduciMoto() {
+  return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+}
 
 export default function RadialGauge({
   segments,
@@ -29,145 +45,145 @@ export default function RadialGauge({
   size = 240,
   centerLabel,
   centerSub,
-  programmati = 0,
+  orologio = null,
 }: Props) {
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(riduciMoto);
   const total = segments.reduce((s, seg) => s + seg.value, 0);
   const pct = budget > 0 ? Math.min(total / budget, 1) : 0;
   const overBudget = budget > 0 && total > budget;
-  const overflowFraction = overBudget ? (total - budget) / budget : 0;
   const pink = accent("pink", "#ff2ecb");
   const green = accent("green", "#39ff88");
+  const cyan = accent("cyan", "#00e5ff");
   const rafRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
+    if (riduciMoto()) {
+      setMounted(true);
+      return;
+    }
     rafRef.current = requestAnimationFrame(() => setMounted(true));
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, []);
 
+  const visibili = segments.filter((s) => s.value > 0);
+  const gap = visibili.length > 1 ? 0.014 : 0;
   let cursor = 0;
-  const arcs = segments
-    .filter((s) => s.value > 0)
-    .map((seg) => {
-      const fraction = overBudget
-        ? total > 0
-          ? seg.value / total
-          : 0
-        : budget > 0
-        ? seg.value / budget
-        : total > 0
-        ? seg.value / total
-        : 0;
-      const start = cursor;
-      cursor += fraction;
-      return { ...seg, start, fraction };
-    });
+  const outer = visibili.map((seg) => {
+    const fraction = total > 0 ? (seg.value / total) * (1 - gap * visibili.length) : 0;
+    const start = cursor;
+    cursor += fraction + gap;
+    return { ...seg, start, fraction };
+  });
 
-  const plannedFrac =
-    budget > 0 && programmati > 0 ? Math.min(programmati / budget, Math.max(0, 1 - cursor)) : 0;
-
-  const glowAngle = mounted ? pct * 360 : 0;
-  const glowX = Math.cos((glowAngle - 90) * (Math.PI / 180)) * R;
-  const glowY = Math.sin((glowAngle - 90) * (Math.PI / 180)) * R;
+  const innerColor = overBudget ? pink : green;
+  const innerFrac = mounted ? pct : 0;
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg viewBox="0 0 200 200" width={size} height={size} className="-rotate-90 overflow-visible">
         <circle
-          cx="100"
-          cy="100"
-          r={R}
+          cx={CX}
+          cy={CY}
+          r={R_OUTER}
           fill="none"
           stroke="currentColor"
           className="text-black/5 dark:text-white/10"
-          strokeWidth="14"
+          strokeWidth="11"
         />
-        {arcs.map((seg, i) => (
+        <circle
+          cx={CX}
+          cy={CY}
+          r={R_INNER}
+          fill="none"
+          stroke="currentColor"
+          className="text-black/5 dark:text-white/10"
+          strokeWidth="11"
+        />
+
+        {outer.map((seg, i) => (
           <circle
             key={seg.id}
-            cx="100"
-            cy="100"
-            r={R}
+            cx={CX}
+            cy={CY}
+            r={R_OUTER}
             fill="none"
             stroke={seg.color}
-            strokeWidth="14"
-            strokeLinecap="round"
-            strokeDasharray={CIRC}
-            strokeDashoffset={mounted ? CIRC * (1 - seg.fraction) : CIRC}
+            strokeWidth="11"
+            strokeLinecap="butt"
+            strokeDasharray={CIRC_OUTER}
+            strokeDashoffset={mounted ? CIRC_OUTER * (1 - seg.fraction) : CIRC_OUTER}
             style={{
               transform: `rotate(${seg.start * 360}deg)`,
               transformOrigin: "100px 100px",
-              transition: `stroke-dashoffset 1.1s cubic-bezier(0.22,1,0.36,1) ${i * 0.08}s`,
-              filter: `drop-shadow(0 0 6px ${seg.color}aa)`,
+              transition: riduciMoto()
+                ? undefined
+                : `stroke-dashoffset 1.1s cubic-bezier(0.22,1,0.36,1) ${i * 0.08}s`,
             }}
           />
         ))}
-        {plannedFrac > 0 && (
-          <circle
-            cx="100"
-            cy="100"
-            r={R}
-            fill="none"
-            stroke={green}
-            strokeWidth="14"
-            strokeLinecap="butt"
-            strokeDasharray={`${CIRC * plannedFrac} ${CIRC}`}
-            strokeDashoffset={0}
-            opacity={0.55}
-            style={{
-              transform: `rotate(${cursor * 360}deg)`,
-              transformOrigin: "100px 100px",
-            }}
-          />
-        )}
-        {plannedFrac > 0 && (
-          <circle
-            cx="100"
-            cy="100"
-            r={R}
-            fill="none"
-            stroke={green}
-            strokeWidth="14"
-            strokeLinecap="butt"
-            strokeDasharray="5 7"
-            opacity={0.9}
-            style={{
-              transform: `rotate(${cursor * 360}deg)`,
-              transformOrigin: "100px 100px",
-              clipPath: `circle(${R + 8}px at 100px 100px)`,
-            }}
-          />
-        )}
-        {overBudget && (
-          <circle
-            cx="100"
-            cy="100"
-            r={R_OVERFLOW}
-            fill="none"
-            stroke={pink}
-            strokeWidth="7"
+
+        <circle
+          cx={CX}
+          cy={CY}
+          r={R_INNER}
+          fill="none"
+          stroke={innerColor}
+          strokeWidth="11"
+          strokeLinecap="round"
+          strokeDasharray={CIRC_INNER}
+          strokeDashoffset={CIRC_INNER * (1 - innerFrac)}
+          className={overBudget ? "gauge-overflow-pulse" : undefined}
+          style={{
+            filter: `drop-shadow(0 0 5px ${innerColor}99)`,
+            transition: riduciMoto() ? undefined : "stroke-dashoffset 1.1s cubic-bezier(0.22,1,0.36,1)",
+          }}
+        />
+
+        {orologio &&
+          orologio.programmati.map((i) => {
+            if (orologio.passi <= 0) return null;
+            const largo = CIRC_SEGNO / orologio.passi;
+            const a = Math.max(2, largo * 0.16);
+            const g = Math.max(1.5, largo * 0.08);
+            return (
+              <circle
+                key={`p-${i}`}
+                cx={CX}
+                cy={CY}
+                r={R_SEGNO}
+                fill="none"
+                stroke={green}
+                strokeWidth="3.5"
+                strokeLinecap="butt"
+                strokeDasharray={`${a} ${g} ${a} ${g} ${a} ${CIRC_SEGNO}`}
+                opacity={0.9}
+                style={{
+                  transform: `rotate(${(i / orologio.passi) * 360}deg)`,
+                  transformOrigin: "100px 100px",
+                }}
+              />
+            );
+          })}
+
+        {orologio && orologio.oggi != null && orologio.passi > 0 && (
+          <line
+            x1={CX + R_INNER - 9}
+            y1={CY}
+            x2={CX + R_INNER + 9}
+            y2={CY}
+            stroke={cyan}
+            strokeWidth="2.4"
             strokeLinecap="round"
-            strokeDasharray={CIRC_OVERFLOW}
-            strokeDashoffset={mounted ? CIRC_OVERFLOW * (1 - Math.min(overflowFraction, 1)) : CIRC_OVERFLOW}
-            className="gauge-overflow-pulse"
             style={{
-              transition: "stroke-dashoffset 1.1s cubic-bezier(0.22,1,0.36,1) 0.4s",
+              transform: `rotate(${((orologio.oggi + 0.5) / orologio.passi) * 360}deg)`,
+              transformOrigin: "100px 100px",
             }}
           />
         )}
       </svg>
-      {mounted && !overBudget && total > 0 && (
-        <div
-          className="absolute rounded-full h-3 w-3 bg-white transition-all duration-1000 ease-out"
-          style={{
-            left: `calc(50% + ${(glowX / R) * (size / 2 - 7)}px - 6px)`,
-            top: `calc(50% + ${(glowY / R) * (size / 2 - 7)}px - 6px)`,
-            boxShadow: "0 0 12px 4px rgba(255,255,255,0.9)",
-          }}
-        />
-      )}
+
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
           className={`text-largeTitle font-semibold tracking-tight tabular-nums ${
@@ -190,4 +206,18 @@ export default function RadialGauge({
       </div>
     </div>
   );
+}
+
+export function ritmo(
+  speso: number,
+  budget: number,
+  oggi: number | null,
+  passi: number
+): "in anticipo" | "in linea" | "sotto ritmo" | null {
+  if (oggi == null || budget <= 0 || passi <= 0) return null;
+  const tempo = (oggi + 1) / passi;
+  const spesa = speso / budget;
+  if (spesa > tempo + 0.08) return "in anticipo";
+  if (spesa < tempo - 0.08) return "sotto ritmo";
+  return "in linea";
 }

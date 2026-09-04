@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import RadialGauge from "../components/RadialGauge";
+import RadialGauge, { ritmo, type Orologio } from "../components/RadialGauge";
 import SegmentedControl from "../components/SegmentedControl";
 import { accent } from "../lib/accent";
+import { giorniConProgrammati, indiceNelPeriodo } from "../lib/piani";
+import { leggiPiani } from "../lib/pianiLocali";
 import type { Transaction } from "../lib/types";
 
 type Period = "day" | "week" | "month";
@@ -22,6 +24,17 @@ function startOfWeek(d: Date) {
 
 function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
+}
+
+function isoLocale(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function finePiena(from: string, passi: number) {
+  const [y, m, d] = from.split("-").map(Number);
+  const x = new Date(y, m - 1, d);
+  x.setDate(x.getDate() + passi - 1);
+  return isoLocale(x);
 }
 
 function formatShortDate(iso: string) {
@@ -623,6 +636,7 @@ function HeroCard({
   totalPeriod,
   perDay,
   pctText,
+  orologio,
 }: {
   period: Period;
   onPeriodChange: (p: Period) => void;
@@ -636,6 +650,7 @@ function HeroCard({
   totalPeriod: number;
   perDay: number;
   pctText: string;
+  orologio: Orologio | null;
 }) {
   return (
     <div className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col items-center gap-4">
@@ -684,7 +699,15 @@ function HeroCard({
         segments={byCategory}
         budget={budget}
         centerLabel={`€${totalPeriod.toFixed(0)}`}
-        centerSub={budget > 0 ? `${pctText} del budget` : pctText}
+        centerSub={
+          orologio
+            ? ritmo(totalPeriod, budget, orologio.oggi, orologio.passi) ??
+              (budget > 0 ? `${pctText} del budget` : pctText)
+            : budget > 0
+              ? `${pctText} del budget`
+              : pctText
+        }
+        orologio={orologio}
       />
 
       <div className="w-full flex flex-col gap-2">
@@ -832,6 +855,21 @@ export default function Andamento() {
   const perDay = range.daysElapsed > 0 ? totalPeriod / range.daysElapsed : 0;
   const pctText = budget > 0 ? `${Math.round((totalPeriod / budget) * 100)}%` : "—";
 
+  const orologio = useMemo<Orologio | null>(() => {
+    if (period === "day" || !user) return null;
+    const from = range.from;
+    const to = finePiena(from, range.daysTotal);
+    const piani = leggiPiani(user.code);
+    const giorni = giorniConProgrammati(piani, from, to)
+      .map((d) => indiceNelPeriodo(from, d))
+      .filter((i) => i >= 0 && i < range.daysTotal);
+    return {
+      passi: range.daysTotal,
+      oggi: range.current ? range.daysElapsed - 1 : null,
+      programmati: giorni,
+    };
+  }, [period, range, user]);
+
   const budgetLabel =
     period === "day" ? "Budget giornaliero" : period === "week" ? "Budget settimanale" : "Budget mensile";
 
@@ -850,6 +888,7 @@ export default function Andamento() {
         totalPeriod={totalPeriod}
         perDay={perDay}
         pctText={pctText}
+        orologio={orologio}
       />
 
       <TimeCard

@@ -20,6 +20,8 @@ const impegni = src("../client/src/views/Impegni.tsx");
 const foglio = src("../client/src/components/Foglio.tsx");
 const pianoForm = src("../client/src/components/FoglioPiano.tsx");
 const app = src("../client/src/App.tsx");
+const gauge = src("../client/src/components/RadialGauge.tsx");
+const andamento = src("../client/src/views/Andamento.tsx");
 
 t("Foglio esiste e usa un portal, non il viewport", foglio.includes("createPortal") && !/className="[^"]*fixed inset-0/.test(foglio));
 t("il dettaglio non è fixed inset-0", !dettaglio.includes("fixed inset-0") && dettaglio.includes("<Foglio"));
@@ -36,6 +38,9 @@ t(
 t("niente «Ricordamelo il»", !pianoForm.includes("Ricordamelo") && !impegni.includes("Revisione il"));
 t("niente selezione carta sulle spese previste", !pianoForm.includes(">Carta<"));
 t("si può registrare un pagamento una tantum", pianoForm.includes("Una volta"));
+t("la ruota ha due anelli", gauge.includes("R_OUTER") && gauge.includes("R_INNER"));
+t("l'orologio non sta sul giorno", andamento.includes('period === "day"') && andamento.includes("orologio"));
+t("i previsti sono un tratteggio sull'orologio", gauge.includes("programmati") && gauge.includes("strokeDasharray"));
 
 console.log(`\n${ok} ok, ${ko} falliti`);
 process.exit(ko ? 1 : 0);

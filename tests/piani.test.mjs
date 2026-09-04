@@ -8,7 +8,7 @@ const { outputText } = ts.transpileModule(grezzo, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 });
 const modulo = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
-const { occorrenzeConImporto, congelarePrezzo, disdire, costoRicorrenteMensile } = modulo;
+const { occorrenzeConImporto, congelarePrezzo, disdire, costoRicorrenteMensile, indiceNelPeriodo, giorniConProgrammati } = modulo;
 
 let ok = 0, ko = 0;
 const t = (n, c, e) => {
@@ -76,6 +76,10 @@ const una = {
 t("una volta è una sola scadenza", occorrenzeConImporto(una, "2025-01-01", "2025-12-31").length === 1);
 t("una volta non entra nel costo ricorrente", costoRicorrenteMensile([una]) === 0);
 t("fuori intervallo non compare", occorrenzeConImporto(una, "2025-01-01", "2025-05-01").length === 0);
+
+t("indice 0 è lo stesso giorno", indiceNelPeriodo("2026-09-01", "2026-09-01") === 0);
+t("indice 3 è tre giorni dopo", indiceNelPeriodo("2026-09-01", "2026-09-04") === 3);
+t("i giorni con previsti sono unici", giorniConProgrammati([una], "2025-01-01", "2025-12-31").join() === "2025-06-10");
 
 console.log(`\n${ok} ok, ${ko} falliti`);
 process.exit(ko ? 1 : 0);
