@@ -291,30 +291,6 @@ export default function RadialGauge({
           </g>
         ))}
 
-        {outer.map((seg) => {
-          const mid = (seg.start + seg.fraction / 2) % 1;
-          const fs = 5.8;
-          const r = R_OUTER - 12;
-          const arcoPx = seg.fraction * 2 * Math.PI * r;
-          if (arcoPx < seg.label.length * fs * 0.55 + 8) return null;
-          const [x, y] = polo(r, mid);
-          return (
-            <text
-              key={`lb-${seg.id}`}
-              x={x}
-              y={y}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize={fs}
-              fontWeight={600}
-              fill={seg.color}
-              style={{ pointerEvents: "none" }}
-            >
-              {seg.label}
-            </text>
-          );
-        })}
-
         <circle
           cx={CX}
           cy={CY}
