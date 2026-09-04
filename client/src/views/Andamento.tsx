@@ -553,17 +553,20 @@ function CategoryRing({
   const color = over ? accent("pink", "#ff2ecb") : c.color;
 
   return (
-    <div className="flex flex-col items-center gap-1.5 w-[4.75rem] shrink-0">
-      <MiniRing pct={pct} color={color} visible={visible}>
-        <span className="text-footnote font-semibold tabular-nums leading-none" style={{ color }}>
-          €{c.value.toFixed(0)}
+    <div className="flex flex-col items-center gap-1.5 w-[5.25rem] shrink-0">
+      <MiniRing pct={pct} color={color} visible={visible} size={72}>
+        <span className="flex flex-col items-center leading-none px-1">
+          <span className="text-footnote font-semibold tabular-nums" style={{ color }}>
+            €{c.value.toFixed(0)}
+          </span>
+          {hasBudget ? (
+            <span className="text-[9px] tabular-nums text-muted dark:text-muted-dark mt-0.5">
+              su €{c.budget!.toFixed(0)}
+            </span>
+          ) : null}
         </span>
       </MiniRing>
-      {hasBudget ? (
-        <span className="text-caption text-muted dark:text-muted-dark tabular-nums">
-          su €{c.budget!.toFixed(0)}
-        </span>
-      ) : null}
+      <span className="text-caption font-medium truncate max-w-full text-center">{c.label}</span>
     </div>
   );
 }
