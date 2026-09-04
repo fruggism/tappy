@@ -4,33 +4,34 @@ import { Dock, Header, PieDiPagina } from "./components/AppChrome";
 import Login from "./views/Login";
 import Andamento from "./views/Andamento";
 import Movimenti from "./views/Movimenti";
+import Impegni from "./views/Impegni";
 import Impostazioni from "./views/Impostazioni";
 
-type Tab = "andamento" | "movimenti" | "impostazioni";
+type Tab = "andamento" | "movimenti" | "impegni" | "impostazioni";
 
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   {
     id: "andamento",
     label: "Andamento",
     icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.8}
-        d="M4 19V9m6 10V5m6 14v-7m6 7V3"
-      />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 19V9m6 10V5m6 14v-7m6 7V3" />
     ),
   },
   {
     id: "movimenti",
     label: "Movimenti",
     icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.8}
-        d="M3 7h18M3 12h18M3 17h10"
-      />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 7h18M3 12h18M3 17h10" />
+    ),
+  },
+  {
+    id: "impegni",
+    label: "Spese previste",
+    icon: (
+      <>
+        <rect x="3.5" y="5" width="17" height="16" rx="2" strokeWidth={1.8} />
+        <path strokeLinecap="round" strokeWidth={1.8} d="M8 3.5v3M16 3.5v3M3.5 10h17" />
+      </>
     ),
   },
   {
@@ -57,8 +58,6 @@ export default function App() {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
 
-  // Il titolo si contrae quando il contenuto scorre sotto l'header: una sentinella
-  // di 1px in cima al <main> segna il confine, niente da fare a ogni evento di scroll.
   useEffect(() => {
     const root = mainRef.current;
     const sentinel = sentinelRef.current;
@@ -73,9 +72,6 @@ export default function App() {
 
   if (needsLogin) return <Login />;
 
-  // Finché non si sa chi è l'utente si mostra lo spinner, mai il login: chi
-  // arriva dall'hub con il codice nell'URL non deve vedere la schermata di
-  // accesso comparire e sparire.
   if (loading || !user) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -84,12 +80,12 @@ export default function App() {
     );
   }
 
+  const sezioneAttiva = TABS.find((t) => t.id === tab)?.label ?? "";
+
   return (
     <div className="h-full flex flex-col max-w-md mx-auto relative bg-base dark:bg-base-dark">
-      <Header scrolled={scrolled} />
+      <Header scrolled={scrolled} sezione={sezioneAttiva} />
 
-      {/* pb generoso: sotto c'è la pulsantiera, e l'ultima cosa del contenuto
-          — il piè di pagina — non deve finirci sotto. */}
       <main
         ref={mainRef}
         className="flex-1 overflow-y-auto px-5 pt-2"
@@ -98,6 +94,7 @@ export default function App() {
         <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
         {tab === "andamento" && <Andamento />}
         {tab === "movimenti" && <Movimenti />}
+        {tab === "impegni" && <Impegni />}
         {tab === "impostazioni" && <Impostazioni />}
         <PieDiPagina />
       </main>
@@ -110,14 +107,14 @@ export default function App() {
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${
+                aria-label={t.label}
+                className={`flex-1 flex items-center justify-center py-3.5 transition-colors ${
                   active ? "text-acc-green" : "text-muted dark:text-muted-dark"
                 }`}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
                   {t.icon}
                 </svg>
-                <span className="text-caption font-medium">{t.label}</span>
               </button>
             );
           })}
