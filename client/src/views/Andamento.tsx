@@ -652,9 +652,31 @@ function HeroCard({
   pctText: string;
   orologio: Orologio | null;
 }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [lato, setLato] = useState(300);
+
+  useLayoutEffect(() => {
+    const carta = box.current;
+    const pozzo = carta?.closest("main");
+    if (!carta || !pozzo) return;
+    const misura = () => {
+      const h = pozzo.clientHeight;
+      carta.style.minHeight = `${Math.max(h - 4, 320)}px`;
+      const perRuota = Math.min(carta.clientWidth - 8, h - 168);
+      setLato(Math.max(260, Math.min(348, perRuota)));
+    };
+    misura();
+    const occhio = new ResizeObserver(misura);
+    occhio.observe(pozzo);
+    occhio.observe(carta);
+    return () => occhio.disconnect();
+  }, []);
+
   return (
-    <div className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col items-center gap-4">
-      <div className="w-full flex items-center justify-between gap-2">
+    <div
+      ref={box}
+      className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col items-center gap-3"
+    >      <div className="w-full flex items-center justify-between gap-2">
         <SegmentedControl
           options={PERIOD_OPTIONS}
           value={period}
@@ -695,20 +717,23 @@ function HeroCard({
         </button>
       </div>
 
-      <RadialGauge
-        segments={byCategory}
-        budget={budget}
-        centerLabel={`€${totalPeriod.toFixed(0)}`}
-        centerSub={
-          orologio
-            ? ritmo(totalPeriod, budget, orologio.oggi, orologio.passi) ??
-              (budget > 0 ? `${pctText} del budget` : pctText)
-            : budget > 0
-              ? `${pctText} del budget`
-              : pctText
-        }
-        orologio={orologio}
-      />
+      <div className="flex-1 flex items-center justify-center min-h-0 w-full">
+        <RadialGauge
+          size={lato}
+          segments={byCategory}
+          budget={budget}
+          centerLabel={`€${totalPeriod.toFixed(0)}`}
+          centerSub={
+            orologio
+              ? ritmo(totalPeriod, budget, orologio.oggi, orologio.passi) ??
+                (budget > 0 ? `${pctText} del budget` : pctText)
+              : budget > 0
+                ? `${pctText} del budget`
+                : pctText
+          }
+          orologio={orologio}
+        />
+      </div>
 
       <div className="w-full flex flex-col gap-2">
         <div className="w-full flex justify-between text-callout px-1">

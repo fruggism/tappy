@@ -43,6 +43,7 @@ t("l'orologio non sta sul giorno", andamento.includes('period === "day"') && and
 t("i previsti sono un tratteggio sull'orologio", gauge.includes("programmati") && gauge.includes("strokeDasharray"));
 t("gli anelli hanno il nome sulla curva", gauge.includes("textPath") && gauge.includes("categorie") && gauge.includes("budget"));
 t("le categorie si possono toccare per l'importo", gauge.includes("onPointerDown") && gauge.includes("onPointerEnter"));
+t("la ruota riempie la prima schermata", andamento.includes('closest("main")') && andamento.includes("minHeight"));
 
 console.log(`\n${ok} ok, ${ko} falliti`);
 process.exit(ko ? 1 : 0);
