@@ -361,14 +361,14 @@ export default function RadialGauge({
 
         {budget > 0 && mounted && (
           <g style={{ pointerEvents: "none" }}>
-            <circle cx={bx} cy={by} r="9.2" fill="#fff" stroke={innerColor} strokeWidth="1.8" />
+            <circle cx={bx} cy={by} r="6.2" fill="#fff" stroke={innerColor} strokeWidth="1.3" />
             <text
               x={bx}
               y={by}
               textAnchor="middle"
               dominantBaseline="central"
               fill={innerColor}
-              fontSize={pctTesto.length > 3 ? 6.2 : 7}
+              fontSize={pctTesto.length > 3 ? 4.6 : 5.2}
               fontWeight={700}
               className="tabular-nums"
             >
