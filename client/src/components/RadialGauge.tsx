@@ -14,6 +14,8 @@ interface Props {
   size?: number;
   centerLabel: string;
   centerSub: string;
+  /** Importo previsto nel periodo: non entra nel totale pieno, solo nell'arco tratteggiato. */
+  programmati?: number;
 }
 
 const R = 84;
@@ -21,15 +23,21 @@ const R_OVERFLOW = 96;
 const CIRC = 2 * Math.PI * R;
 const CIRC_OVERFLOW = 2 * Math.PI * R_OVERFLOW;
 
-export default function RadialGauge({ segments, budget, size = 240, centerLabel, centerSub }: Props) {
+export default function RadialGauge({
+  segments,
+  budget,
+  size = 240,
+  centerLabel,
+  centerSub,
+  programmati = 0,
+}: Props) {
   const [mounted, setMounted] = useState(false);
   const total = segments.reduce((s, seg) => s + seg.value, 0);
   const pct = budget > 0 ? Math.min(total / budget, 1) : 0;
   const overBudget = budget > 0 && total > budget;
-  // Quanto si è andati oltre, come frazione del budget stesso (0-1, poi eventualmente >1
-  // se lo sforamento è enorme: in quel caso il secondo anello fa un giro completo).
   const overflowFraction = overBudget ? (total - budget) / budget : 0;
   const pink = accent("pink", "#ff2ecb");
+  const green = accent("green", "#39ff88");
   const rafRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -39,10 +47,6 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
     };
   }, []);
 
-  // Sotto budget: ogni categoria occupa la sua quota del budget (value/budget), il resto
-  // dell'anello resta neutro = quanto budget avanza. Sopra budget: le categorie occupano
-  // l'intero anello in proporzione alla spesa reale (value/total), perché non c'è più
-  // "quota disponibile" da mostrare — lo sforamento si vede nell'anello rosso esterno.
   let cursor = 0;
   const arcs = segments
     .filter((s) => s.value > 0)
@@ -60,6 +64,9 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
       cursor += fraction;
       return { ...seg, start, fraction };
     });
+
+  const plannedFrac =
+    budget > 0 && programmati > 0 ? Math.min(programmati / budget, Math.max(0, 1 - cursor)) : 0;
 
   const glowAngle = mounted ? pct * 360 : 0;
   const glowX = Math.cos((glowAngle - 90) * (Math.PI / 180)) * R;
@@ -97,6 +104,42 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
             }}
           />
         ))}
+        {plannedFrac > 0 && (
+          <circle
+            cx="100"
+            cy="100"
+            r={R}
+            fill="none"
+            stroke={green}
+            strokeWidth="14"
+            strokeLinecap="butt"
+            strokeDasharray={`${CIRC * plannedFrac} ${CIRC}`}
+            strokeDashoffset={0}
+            opacity={0.55}
+            style={{
+              transform: `rotate(${cursor * 360}deg)`,
+              transformOrigin: "100px 100px",
+            }}
+          />
+        )}
+        {plannedFrac > 0 && (
+          <circle
+            cx="100"
+            cy="100"
+            r={R}
+            fill="none"
+            stroke={green}
+            strokeWidth="14"
+            strokeLinecap="butt"
+            strokeDasharray="5 7"
+            opacity={0.9}
+            style={{
+              transform: `rotate(${cursor * 360}deg)`,
+              transformOrigin: "100px 100px",
+              clipPath: `circle(${R + 8}px at 100px 100px)`,
+            }}
+          />
+        )}
         {overBudget && (
           <circle
             cx="100"
@@ -119,8 +162,8 @@ export default function RadialGauge({ segments, budget, size = 240, centerLabel,
         <div
           className="absolute rounded-full h-3 w-3 bg-white transition-all duration-1000 ease-out"
           style={{
-            left: `calc(50% + ${glowX / R * (size / 2 - 7)}px - 6px)`,
-            top: `calc(50% + ${glowY / R * (size / 2 - 7)}px - 6px)`,
+            left: `calc(50% + ${(glowX / R) * (size / 2 - 7)}px - 6px)`,
+            top: `calc(50% + ${(glowY / R) * (size / 2 - 7)}px - 6px)`,
             boxShadow: "0 0 12px 4px rgba(255,255,255,0.9)",
           }}
         />
