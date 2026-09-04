@@ -27,6 +27,7 @@ t("la mappa non è fixed inset-0", !mappa.includes("fixed inset-0") && mappa.inc
 t("il form movimento è una lastra, non un dialogo da sito", !modal.includes("fixed inset-0") && modal.includes("lastra") && !modal.includes("sm:items-center"));
 t("Movimenti non smonta la lista per aprire il dettaglio", !/if \(dettaglio\) \{\s*return/.test(movimenti));
 t("Movimenti non smonta la lista per aprire la mappa", !/if \(showMap\) \{\s*return/.test(movimenti));
+t("la mappa in caricamento non è invisibile", !movimenti.includes("fallback={null}"));
 t("Impegni ha Modifica e Disdici", impegni.includes("Modifica") && impegni.includes("Disdici"));
 t(
   "la lastra copre la pulsantiera, non galleggia sopra",

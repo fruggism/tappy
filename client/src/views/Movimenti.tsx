@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import TransactionModal from "../components/TransactionModal";
 import SegmentedControl from "../components/SegmentedControl";
 import SpendingClock from "../components/SpendingClock";
+import Foglio from "../components/Foglio";
 // Leaflet pesa quanto mezza app: si carica quando si apre la mappa, non
 // all'avvio di chi non la aprirà mai.
 const Mappa = lazy(() => import("./Mappa"));
@@ -294,7 +295,15 @@ export default function Movimenti() {
         />
       )}
       {dettaglio && (
-        <Suspense fallback={null}>
+        <Suspense
+          fallback={
+            <Foglio onChiudi={() => setDettaglio(null)}>
+              <div className="flex-1 flex items-center justify-center">
+                <div className="h-8 w-8 rounded-full border-2 border-acc-green/30 border-t-acc-green animate-spin" />
+              </div>
+            </Foglio>
+          }
+        >
           <Dettaglio
             movimento={dettaglio}
             onChiudi={() => setDettaglio(null)}
@@ -307,7 +316,15 @@ export default function Movimenti() {
         </Suspense>
       )}
       {showMap && (
-        <Suspense fallback={null}>
+        <Suspense
+          fallback={
+            <Foglio onChiudi={() => setShowMap(false)}>
+              <div className="flex-1 flex items-center justify-center">
+                <div className="h-8 w-8 rounded-full border-2 border-acc-green/30 border-t-acc-green animate-spin" />
+              </div>
+            </Foglio>
+          }
+        >
           <Mappa onChiudi={() => setShowMap(false)} />
         </Suspense>
       )}

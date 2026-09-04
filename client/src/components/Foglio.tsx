@@ -1,19 +1,32 @@
 // Schermata aggiuntiva: sta nella colonna max-w-md, non `fixed` sul viewport.
-// L'header resta sopra (z più alto). La pulsantiera resta sotto e viene
-// coperta dalle lastre (form): non deve galleggiare sotto il foglio.
+// L'header resta sopra le lastre (form). Una pagina (mappa, dettaglio) sale
+// sopra header e dock, altrimenti su iPhone sembra che non si sia aperta.
 // La vista sotto resta montata: chiudere un foglio non azzera lo scroll.
-import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 
-const Slot = createContext<HTMLDivElement | null>(null);
+const Slot = createContext<{
+  host: HTMLDivElement | null;
+  setPagina: (aperta: boolean) => void;
+}>({ host: null, setPagina: () => {} });
 
 export function FoglioRoot({ children }: { children: ReactNode }) {
   const [nodo, setNodo] = useState<HTMLDivElement | null>(null);
+  const [pagina, setPagina] = useState(false);
   return (
-    <Slot.Provider value={nodo}>
+    <Slot.Provider value={{ host: nodo, setPagina }}>
       <div className="relative h-full min-h-0 flex flex-col">
         {children}
-        <div ref={setNodo} className="absolute inset-0 z-30 pointer-events-none" />
+        <div
+          ref={setNodo}
+          className={`absolute inset-0 pointer-events-none ${pagina ? "z-50" : "z-30"}`}
+        />
       </div>
     </Slot.Provider>
   );
@@ -57,11 +70,16 @@ export default function Foglio({
 }: {
   children: ReactNode;
   onChiudi: () => void;
-  /** Foglio dal basso (form) invece che pagina piena. Copre la pulsantiera. */
+  /** Foglio dal basso (form). Copre la pulsantiera, non l'header. */
   lastra?: boolean;
 }) {
-  const host = useContext(Slot);
-  if (!host) return null;
+  const { host, setPagina } = useContext(Slot);
+
+  useLayoutEffect(() => {
+    if (lastra) return;
+    setPagina(true);
+    return () => setPagina(false);
+  }, [lastra, setPagina]);
 
   const corpo = lastra ? (
     <div className="absolute inset-0 pointer-events-auto flex flex-col justify-end">
@@ -85,5 +103,6 @@ export default function Foglio({
     </div>
   );
 
+  if (!host) return corpo;
   return createPortal(corpo, host);
 }

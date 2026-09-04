@@ -111,18 +111,18 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
     puntiCorrenti.current = punti;
   }, [punti]);
 
-  // Creazione della mappa: una volta sola.
+  // Creazione della mappa: una volta sola, e di nuovo se il foglio
+  // al primo giro non aveva ancora un contenitore misurabile.
   useEffect(() => {
-    if (!contenitore.current || mappa.current) return;
+    const el = contenitore.current;
+    if (!el || mappa.current) return;
 
-    const { mappa: m, smonta } = creaMappa(L, contenitore.current, (mm: L.Map) =>
+    const { mappa: m, smonta, riallinea } = creaMappa(L, el, (mm: L.Map) =>
       inquadratura(mm, puntiCorrenti.current)
     );
 
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      // L'attribuzione non è decorativa: le tessere pubbliche di OSM si usano
-      // a questa condizione.
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(m);
 
@@ -134,7 +134,12 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
     mappa.current = m;
     strato.current = h;
 
+    const dopo = requestAnimationFrame(() => riallinea());
+    const tardi = window.setTimeout(riallinea, 250);
+
     return () => {
+      cancelAnimationFrame(dopo);
+      clearTimeout(tardi);
       smonta();
       mappa.current = null;
       strato.current = null;
@@ -203,7 +208,7 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
         </div>
       </div>
 
-      <div className="relative flex-1 min-h-0">
+      <div className="relative flex-1 min-h-0 basis-0">
         {/* Le tessere di OSM sono chiare: sul tema scuro si invertono, invece
             di appoggiare una mappa luminosa su un'app nera. Il filtro sta
             sulle sole tessere (vedi index.css): sull'intero contenitore
