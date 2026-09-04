@@ -19,8 +19,32 @@
          il sistema e vengono aggiornati a runtime così la barra di stato/notch dell'iPhone
          segue sempre il colore di sfondo effettivo dell'app, mai bianco su sfondo scuro o
          viceversa. -->
-    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    <!-- Un solo theme-color, senza media query: lo riempie lo script qui
+         sotto col tema che l'utente ha davvero scelto. Con due meta legati a
+         prefers-color-scheme vinceva il tema di **sistema**, e su un iPhone
+         in scuro con l'app in chiaro la status bar restava nera sopra una
+         schermata bianca. -->
+    <meta name="theme-color" content="#f5f5f7" />
+    <script>
+      // Gira prima che la pagina venga dipinta: iOS decide qui il colore
+      // della status bar, e React arriva troppo tardi. Legge il tema salvato
+      // da AppContext; senza, ricade su quello di sistema.
+      (function () {
+        var scelto;
+        try {
+          scelto = localStorage.getItem("tappy_tema");
+        } catch (e) {
+          scelto = null;
+        }
+        var scuro =
+          scelto === "dark" ||
+          (scelto !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", scuro);
+        document
+          .querySelector('meta[name="theme-color"]')
+          .setAttribute("content", scuro ? "#000000" : "#f5f5f7");
+      })();
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <!-- NON rimettere "black-translucent": con quello iOS accorcia il viewport
          dell'altezza della status bar (793 invece di 852 su iPhone 15) ma

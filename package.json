@@ -5,7 +5,7 @@
   "description": "Dipendenze delle Netlify Functions di tappy (backend su Airtable)",
   "scripts": {
     "dev": "npx -y netlify-cli dev",
-    "test": "node tests/frupass.test.mjs && node tests/auth-routes.test.mjs && node tests/serverless.test.mjs && node tests/percorsi.test.mjs && node tests/multiutente.test.mjs && node tests/campi-16px.test.mjs && node tests/zoom.test.mjs && node tests/check-airtable.test.mjs",
+    "test": "node tests/frupass.test.mjs && node tests/auth-routes.test.mjs && node tests/serverless.test.mjs && node tests/percorsi.test.mjs && node tests/multiutente.test.mjs && node tests/campi-16px.test.mjs && node tests/zoom.test.mjs && node tests/tema-avvio.test.mjs && node tests/check-airtable.test.mjs",
     "esporta": "node scripts/esporta-frupass.mjs",
     "setup-env": "node scripts/setup-env.js",
     "doctor": "node scripts/doctor.js",

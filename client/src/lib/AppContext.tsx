@@ -233,10 +233,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", effectiveTheme === "dark");
 
-    // I <meta name="theme-color"> in index.html seguono prefers-color-scheme,
-    // che con un toggle manuale non basta più: senza questo, su iPhone la
-    // striscia del notch resta del colore del tema di sistema mentre l'app è
-    // dell'altro. Si sostituiscono con un solo meta senza media query.
+    // Il tema scelto si ricorda anche qui, non solo sul server: all'avvio
+    // serve **prima** di sapere chi è l'utente. La striscia della status bar
+    // su iPhone viene colorata in quel momento, e senza questa copia locale
+    // resterebbe del colore del tema di sistema — nera sopra un'app chiara.
+    // Chi la legge è lo script in cima a index.html.
+    try {
+      localStorage.setItem("tappy_tema", effectiveTheme);
+    } catch {
+      // Modalità privata o storage pieno: si perde solo il colore giusto al
+      // primo istante, non vale un errore.
+    }
+
     const colore = effectiveTheme === "dark" ? "#000000" : "#f5f5f7";
     document.querySelectorAll('meta[name="theme-color"][media]').forEach((m) => m.remove());
     let meta = document.querySelector('meta[name="theme-color"]:not([media])');
