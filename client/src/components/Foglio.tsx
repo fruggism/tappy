@@ -1,6 +1,6 @@
-// Schermata aggiuntiva: vive nel pozzo tra header e dock, dentro la colonna
-// max-w-md. Non è `fixed inset-0` sul viewport — quello copre la pulsantiera,
-// esce dal guscio su iPad/desktop, e fa «smontare» l'app in una pagina web.
+// Schermata aggiuntiva: sta nella colonna max-w-md, non `fixed` sul viewport.
+// L'header resta sopra (z più alto). La pulsantiera resta sotto e viene
+// coperta dalle lastre (form): non deve galleggiare sotto il foglio.
 // La vista sotto resta montata: chiudere un foglio non azzera lo scroll.
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -11,7 +11,7 @@ export function FoglioRoot({ children }: { children: ReactNode }) {
   const [nodo, setNodo] = useState<HTMLDivElement | null>(null);
   return (
     <Slot.Provider value={nodo}>
-      <div className="relative h-full min-h-0">
+      <div className="relative h-full min-h-0 flex flex-col">
         {children}
         <div ref={setNodo} className="absolute inset-0 z-30 pointer-events-none" />
       </div>
@@ -57,7 +57,7 @@ export default function Foglio({
 }: {
   children: ReactNode;
   onChiudi: () => void;
-  /** Foglio dal basso (form) invece che pagina piena nel pozzo. */
+  /** Foglio dal basso (form) invece che pagina piena. Copre la pulsantiera. */
   lastra?: boolean;
 }) {
   const host = useContext(Slot);
@@ -71,7 +71,10 @@ export default function Foglio({
         aria-label="Chiudi"
         onClick={onChiudi}
       />
-      <div className="relative rounded-t-3xl bg-base dark:bg-base-dark max-h-[88%] overflow-y-auto animate-sheet shadow-xl">
+      <div
+        className="relative rounded-t-3xl bg-base dark:bg-base-dark max-h-[92%] overflow-y-auto animate-sheet shadow-xl"
+        style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+      >
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15" />
         {children}
       </div>

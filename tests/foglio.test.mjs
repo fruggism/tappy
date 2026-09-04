@@ -18,6 +18,7 @@ const modal = src("../client/src/components/TransactionModal.tsx");
 const movimenti = src("../client/src/views/Movimenti.tsx");
 const impegni = src("../client/src/views/Impegni.tsx");
 const foglio = src("../client/src/components/Foglio.tsx");
+const app = src("../client/src/App.tsx");
 
 t("Foglio esiste e usa un portal, non il viewport", foglio.includes("createPortal") && !/className="[^"]*fixed inset-0/.test(foglio));
 t("il dettaglio non è fixed inset-0", !dettaglio.includes("fixed inset-0") && dettaglio.includes("<Foglio"));
@@ -26,6 +27,10 @@ t("il form movimento è una lastra, non un dialogo da sito", !modal.includes("fi
 t("Movimenti non smonta la lista per aprire il dettaglio", !/if \(dettaglio\) \{\s*return/.test(movimenti));
 t("Movimenti non smonta la lista per aprire la mappa", !/if \(showMap\) \{\s*return/.test(movimenti));
 t("Impegni ha Modifica e Disdici", impegni.includes("Modifica") && impegni.includes("Disdici"));
+t(
+  "la lastra copre la pulsantiera, non galleggia sopra",
+  app.indexOf("<FoglioRoot>") < app.indexOf("<Dock") && app.indexOf("</Dock>") < app.lastIndexOf("</FoglioRoot>")
+);
 
 console.log(`\n${ok} ok, ${ko} falliti`);
 process.exit(ko ? 1 : 0);

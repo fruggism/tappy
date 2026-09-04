@@ -66,7 +66,7 @@ export function Header({
 
   return (
     <header
-      className={`sticky top-0 z-20 px-5 pb-2 flex items-center justify-between border-b transition-all duration-300
+      className={`sticky top-0 z-40 shrink-0 px-5 pb-2 flex items-center justify-between border-b transition-all duration-300
                  bg-base/80 dark:bg-base-dark/80 backdrop-blur-xl ${
                    scrolled ? "border-black/5 dark:border-white/10" : "border-transparent"
                  }`}
@@ -118,7 +118,7 @@ export function Header({
 export function Dock({ children }: { children: ReactNode }) {
   return (
     <div
-      className="shrink-0 z-40"
+      className="shrink-0 z-10"
       style={{ paddingBottom: "max(0.75rem, calc(env(safe-area-inset-bottom) + 0.35rem))" }}
     >
       <div className="relative max-w-md mx-auto px-4">{children}</div>

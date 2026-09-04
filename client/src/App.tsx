@@ -84,46 +84,44 @@ export default function App() {
   const sezioneAttiva = TABS.find((t) => t.id === tab)?.label ?? "";
 
   return (
-    <div className="h-full flex flex-col max-w-md mx-auto relative bg-base dark:bg-base-dark">
-      <Header scrolled={scrolled} sezione={sezioneAttiva} />
+    <div className="h-full max-w-md mx-auto relative bg-base dark:bg-base-dark">
+      <FoglioRoot>
+        <Header scrolled={scrolled} sezione={sezioneAttiva} />
 
-      <div className="flex-1 relative min-h-0">
-        <FoglioRoot>
-          <main
-            ref={mainRef}
-            className="h-full overflow-y-auto px-5 pt-2 pb-6"
-          >
-            <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
-            {tab === "andamento" && <Andamento />}
-            {tab === "movimenti" && <Movimenti />}
-            {tab === "impegni" && <Impegni />}
-            {tab === "impostazioni" && <Impostazioni />}
-            <PieDiPagina />
-          </main>
-        </FoglioRoot>
-      </div>
+        <main
+          ref={mainRef}
+          className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-6"
+        >
+          <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
+          {tab === "andamento" && <Andamento />}
+          {tab === "movimenti" && <Movimenti />}
+          {tab === "impegni" && <Impegni />}
+          {tab === "impostazioni" && <Impostazioni />}
+          <PieDiPagina />
+        </main>
 
-      <Dock>
-        <nav className="rounded-2xl bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-xl flex">
-          {TABS.map((t) => {
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                aria-label={t.label}
-                className={`flex-1 flex items-center justify-center py-3.5 transition-colors ${
-                  active ? "text-acc-green" : "text-muted dark:text-muted-dark"
-                }`}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
-                  {t.icon}
-                </svg>
-              </button>
-            );
-          })}
-        </nav>
-      </Dock>
+        <Dock>
+          <nav className="rounded-2xl bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-xl flex">
+            {TABS.map((t) => {
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  aria-label={t.label}
+                  className={`flex-1 flex items-center justify-center py-3.5 transition-colors ${
+                    active ? "text-acc-green" : "text-muted dark:text-muted-dark"
+                  }`}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5">
+                    {t.icon}
+                  </svg>
+                </button>
+              );
+            })}
+          </nav>
+        </Dock>
+      </FoglioRoot>
     </div>
   );
 }
