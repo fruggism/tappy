@@ -653,29 +653,30 @@ function HeroCard({
   orologio: Orologio | null;
 }) {
   const box = useRef<HTMLDivElement>(null);
-  const [lato, setLato] = useState(300);
+  const ruota = useRef<HTMLDivElement>(null);
+  const [lato, setLato] = useState(320);
 
   useLayoutEffect(() => {
     const carta = box.current;
+    const slot = ruota.current;
     const pozzo = carta?.closest("main");
-    if (!carta || !pozzo) return;
+    if (!carta || !pozzo || !slot) return;
     const misura = () => {
-      const h = pozzo.clientHeight;
-      carta.style.minHeight = `${Math.max(h - 4, 320)}px`;
-      const perRuota = Math.min(carta.clientWidth - 8, h - 168);
-      setLato(Math.max(260, Math.min(348, perRuota)));
+      carta.style.minHeight = `${Math.max(pozzo.clientHeight - 4, 320)}px`;
+      const latoNuovo = Math.floor(Math.min(slot.clientWidth, slot.clientHeight));
+      if (latoNuovo > 80) setLato(latoNuovo);
     };
     misura();
     const occhio = new ResizeObserver(misura);
     occhio.observe(pozzo);
-    occhio.observe(carta);
+    occhio.observe(slot);
     return () => occhio.disconnect();
   }, []);
 
   return (
     <div
       ref={box}
-      className="w-full rounded-2xl bg-surface dark:bg-surface-dark p-4 flex flex-col items-center gap-3"
+      className="w-full rounded-2xl bg-surface dark:bg-surface-dark px-3 pt-3 pb-3 flex flex-col items-center gap-2"
     >      <div className="w-full flex items-center justify-between gap-2">
         <SegmentedControl
           options={PERIOD_OPTIONS}
@@ -717,7 +718,7 @@ function HeroCard({
         </button>
       </div>
 
-      <div className="flex-1 flex items-center justify-center min-h-0 w-full">
+      <div ref={ruota} className="flex-1 flex items-center justify-center min-h-0 w-full">
         <RadialGauge
           size={lato}
           segments={byCategory}

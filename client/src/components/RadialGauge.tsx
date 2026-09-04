@@ -30,8 +30,8 @@ interface Props {
 
 const CX = 100;
 const CY = 100;
-const R_OUTER = 84;
-const R_INNER = 62;
+const R_OUTER = 93;
+const R_INNER = 70;
 const CIRC_INNER = 2 * Math.PI * R_INNER;
 
 function riduciMoto() {
@@ -176,7 +176,7 @@ export default function RadialGauge({
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg
-        viewBox="-16 -16 232 232"
+        viewBox="0 0 200 200"
         width={size}
         height={size}
         className="overflow-visible"
@@ -246,8 +246,8 @@ export default function RadialGauge({
         <div
           className="absolute z-10 pointer-events-none rounded-full bg-ink dark:bg-white text-white dark:text-black text-caption font-medium px-2.5 py-1 tabular-nums shadow-lg"
           style={{
-            left: `${((tip.x + 16) / 232) * 100}%`,
-            top: `${((tip.y + 16) / 232) * 100}%`,
+            left: `${(tip.x / 200) * 100}%`,
+            top: `${(tip.y / 200) * 100}%`,
             transform: "translate(-50%, -130%)",
           }}
         >

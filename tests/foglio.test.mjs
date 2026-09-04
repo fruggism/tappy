@@ -45,7 +45,7 @@ t("il giorno corrente è un pallino con il numero", gauge.includes("rBadge") && 
 t("gli anelli non hanno etichette curve", !gauge.includes("categorie") && !gauge.includes("textPath"));
 t("le categorie si possono toccare per l'importo", gauge.includes("onPointerDown") && gauge.includes("onPointerEnter"));
 t("il tocco sulla categoria mostra anche la percentuale", gauge.includes("(tip.value / total) * 100"));
-t("la ruota riempie la prima schermata", andamento.includes('closest("main")') && andamento.includes("minHeight"));
+t("la ruota riempie la prima schermata", andamento.includes('closest("main")') && andamento.includes("slot.clientWidth"));
 
 console.log(`\n${ok} ok, ${ko} falliti`);
 process.exit(ko ? 1 : 0);
