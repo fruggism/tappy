@@ -28,7 +28,7 @@ export default function FoglioPiano({
   onChiudi: () => void;
   onSalvato: () => void;
 }) {
-  const { user, categories, cards } = useApp();
+  const { user, categories } = useApp();
   const [type, setType] = useState<TipoPiano>(esistente?.type ?? "subscription");
   const [name, setName] = useState(esistente?.name ?? "");
   const [amount, setAmount] = useState(esistente ? String(esistente.amount) : "");
@@ -39,7 +39,6 @@ export default function FoglioPiano({
   const [startDate, setStartDate] = useState(esistente?.start_date ?? oggiIso());
   const [endDate, setEndDate] = useState(esistente?.end_date ?? "");
   const [categoryId, setCategoryId] = useState(esistente?.category_id ?? categories[0]?.id ?? "");
-  const [cardId, setCardId] = useState(esistente?.card_id ?? cards[0]?.id ?? "");
   const [note, setNote] = useState(esistente?.note ?? "");
   const [errore, setErrore] = useState("");
   const [saving, setSaving] = useState(false);
@@ -69,7 +68,7 @@ export default function FoglioPiano({
         amount: importo,
         price_history: esistente?.price_history ?? [{ da: startDate, importo }],
         category_id: categoryId || null,
-        card_id: cardId || null,
+        card_id: esistente?.card_id ?? null,
         frequency,
         interval_months: nMesi,
         start_date: startDate,
@@ -180,28 +179,6 @@ export default function FoglioPiano({
                   onClick={() => setCategoryId(c.id)}
                   className={`shrink-0 rounded-full px-3.5 py-1.5 text-callout ${
                     categoryId === c.id
-                      ? "bg-surface2 dark:bg-surface2-dark font-medium"
-                      : "border border-black/10 dark:border-white/15 text-muted dark:text-muted-dark"
-                  }`}
-                >
-                  {c.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {cards.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <span className="text-callout">Carta</span>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {cards.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setCardId(c.id)}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-callout ${
-                    cardId === c.id
                       ? "bg-surface2 dark:bg-surface2-dark font-medium"
                       : "border border-black/10 dark:border-white/15 text-muted dark:text-muted-dark"
                   }`}

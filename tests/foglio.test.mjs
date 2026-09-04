@@ -33,6 +33,7 @@ t(
   app.indexOf("<FoglioRoot>") < app.indexOf("<Dock") && app.indexOf("</Dock>") < app.lastIndexOf("</FoglioRoot>")
 );
 t("niente «Ricordamelo il»", !pianoForm.includes("Ricordamelo") && !impegni.includes("Revisione il"));
+t("niente selezione carta sulle spese previste", !pianoForm.includes(">Carta<"));
 
 console.log(`\n${ok} ok, ${ko} falliti`);
 process.exit(ko ? 1 : 0);
