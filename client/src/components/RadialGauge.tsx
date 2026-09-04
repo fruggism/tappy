@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { accent } from "../lib/accent";
 
 export interface GaugeSegment {
@@ -8,16 +8,24 @@ export interface GaugeSegment {
   color: string;
 }
 
+export interface VocePrevista {
+  i: number;
+  nome: string;
+  importo: number;
+  date: string;
+}
+
 /** Settimana o mese: l'anello interno è anche un orologio. Giorno: null. */
 export interface Orologio {
   passi: number;
-  /** 0-based, null se il periodo non è quello in corso. */
   oggi: number | null;
-  /** 0-based, giorni con una spesa prevista. */
-  programmati: number[];
-  /** Numero del giorno da scrivere su ogni tacca (es. "4"). */
+  programmati: VocePrevista[];
   etichette: string[];
 }
+
+export type Scelta =
+  | { tipo: "categoria"; nome: string; importo: number; pct: number; colore: string }
+  | { tipo: "previsto"; voci: VocePrevista[] };
 
 interface Props {
   segments: GaugeSegment[];
@@ -26,13 +34,15 @@ interface Props {
   centerLabel: string;
   centerSub: string;
   orologio?: Orologio | null;
+  onScelta?: (s: Scelta | null) => void;
 }
 
 const CX = 100;
 const CY = 100;
-const R_OUTER = 96;
-const R_INNER = 83;
-const SW_OUTER = 6;
+const R_CAT_OUT = 97;
+const R_CAT_IN = 80;
+const R_CAT = (R_CAT_OUT + R_CAT_IN) / 2;
+const R_INNER = 68;
 const SW_INNER = 7;
 const CIRC_INNER = 2 * Math.PI * R_INNER;
 
@@ -40,29 +50,53 @@ function riduciMoto() {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 }
 
-/** 0 = mezzanotte in alto, senso orario. */
 function polo(r: number, frac: number): [number, number] {
   const a = -Math.PI / 2 + frac * 2 * Math.PI;
   return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
 }
 
-function arco(r: number, da: number, a: number): string {
+function arco(r: number, da: number, a: number, orario = true): string {
   let delta = a - da;
   if (delta <= 0) delta += 1;
   const [x0, y0] = polo(r, da);
   const [x1, y1] = polo(r, da + delta);
   const large = delta > 0.5 ? 1 : 0;
-  return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+  const sweep = orario ? 1 : 0;
+  const xa = orario ? x0 : x1;
+  const ya = orario ? y0 : y1;
+  const xb = orario ? x1 : x0;
+  const yb = orario ? y1 : y0;
+  return `M ${xa.toFixed(2)} ${ya.toFixed(2)} A ${r} ${r} 0 ${large} ${sweep} ${xb.toFixed(2)} ${yb.toFixed(2)}`;
 }
 
-function DialGiorni({ orologio, rosso }: { orologio: Orologio; rosso: string }) {
+function settore(rOut: number, rIn: number, da: number, a: number): string {
+  let delta = a - da;
+  if (delta <= 0) delta += 1;
+  const large = delta > 0.5 ? 1 : 0;
+  const [ox0, oy0] = polo(rOut, da);
+  const [ox1, oy1] = polo(rOut, da + delta);
+  const [ix1, iy1] = polo(rIn, da + delta);
+  const [ix0, iy0] = polo(rIn, da);
+  return `M ${ox0.toFixed(2)} ${oy0.toFixed(2)} A ${rOut} ${rOut} 0 ${large} 1 ${ox1.toFixed(2)} ${oy1.toFixed(2)} L ${ix1.toFixed(2)} ${iy1.toFixed(2)} A ${rIn} ${rIn} 0 ${large} 0 ${ix0.toFixed(2)} ${iy0.toFixed(2)} Z`;
+}
+
+function DialGiorni({
+  orologio,
+  rosso,
+  onPrevisto,
+}: {
+  orologio: Orologio;
+  rosso: string;
+  onPrevisto: (i: number) => void;
+}) {
   const passi = orologio.passi;
   const R_NUM = R_INNER - 14;
   const rBadge = Math.min(7.4, (Math.PI * R_NUM) / passi - 0.35);
   const fs = Math.min(passi > 14 ? 6.2 : 8.2, rBadge * 1.2);
-  const rPunto = R_INNER + SW_INNER / 2 + 3.2;
+  const rPunto = R_INNER + SW_INNER / 2 + 4;
+  const giorniP = [...new Set(orologio.programmati.map((p) => p.i))];
   return (
-    <g style={{ pointerEvents: "none" }}>
+    <g>
       {Array.from({ length: passi }, (_, i) => {
         const frac = i / passi;
         const [x1, y1] = polo(R_INNER - 4, frac);
@@ -79,20 +113,36 @@ function DialGiorni({ orologio, rosso }: { orologio: Orologio; rosso: string }) 
             className="text-black/25 dark:text-white/35"
             strokeWidth={lunga ? 1.5 : 0.85}
             strokeLinecap="round"
+            style={{ pointerEvents: "none" }}
           />
         );
       })}
-      {orologio.programmati.map((i) => {
+      {giorniP.map((i) => {
         if (i === orologio.oggi) return null;
         const [x, y] = polo(rPunto, i / passi);
-        return <circle key={`p-${i}`} cx={x} cy={y} r="2.1" fill={rosso} />;
+        return (
+          <g key={`p-${i}`}>
+            <circle
+              cx={x}
+              cy={y}
+              r="8"
+              fill="transparent"
+              className="cursor-pointer"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                onPrevisto(i);
+              }}
+            />
+            <circle cx={x} cy={y} r="2.2" fill={rosso} style={{ pointerEvents: "none" }} />
+          </g>
+        );
       })}
       {orologio.etichette.map((lab, i) => {
         const [x, y] = polo(R_NUM, i / passi);
         const oggi = orologio.oggi === i;
         if (oggi) {
           return (
-            <g key={`n-${i}`}>
+            <g key={`n-${i}`} style={{ pointerEvents: "none" }}>
               <circle cx={x} cy={y} r={rBadge} fill={rosso} />
               <text
                 x={x}
@@ -118,6 +168,7 @@ function DialGiorni({ orologio, rosso }: { orologio: Orologio; rosso: string }) 
             dominantBaseline="central"
             fontSize={fs}
             className="tabular-nums fill-black/35 dark:fill-white/45"
+            style={{ pointerEvents: "none" }}
           >
             {lab}
           </text>
@@ -134,11 +185,14 @@ export default function RadialGauge({
   centerLabel,
   centerSub,
   orologio = null,
+  onScelta,
 }: Props) {
+  const uid = useId().replace(/:/g, "");
   const [mounted, setMounted] = useState(riduciMoto);
   const [focus, setFocus] = useState<string | null>(null);
   const total = segments.reduce((s, seg) => s + seg.value, 0);
   const pct = budget > 0 ? Math.min(total / budget, 1) : 0;
+  const pctPiena = budget > 0 ? total / budget : 0;
   const overBudget = budget > 0 && total > budget;
   const pink = accent("pink", "#ff2ecb");
   const green = accent("green", "#39ff88");
@@ -157,7 +211,7 @@ export default function RadialGauge({
   }, []);
 
   const visibili = segments.filter((s) => s.value > 0);
-  const gap = visibili.length > 1 ? 0.016 : 0;
+  const gap = visibili.length > 1 ? 0.012 : 0;
   let cursor = 0;
   const outer = visibili.map((seg) => {
     const fraction = total > 0 ? (seg.value / total) * (1 - gap * visibili.length) : 0;
@@ -168,13 +222,32 @@ export default function RadialGauge({
 
   const innerColor = overBudget ? pink : green;
   const innerFrac = mounted ? pct : 0;
-  const scelto = outer.find((s) => s.id === focus) ?? null;
-  const tip = scelto
-    ? (() => {
-        const [x, y] = polo(R_OUTER + 6, scelto.start + scelto.fraction / 2);
-        return { x, y, label: scelto.label, value: scelto.value };
-      })()
-    : null;
+  const [bx, by] = polo(R_INNER, Math.min(innerFrac, 0.995));
+  const pctTesto = budget > 0 ? `${Math.round(pctPiena * 100)}%` : "";
+
+  function scegliCat(seg: (typeof outer)[number]) {
+    const s: Scelta = {
+      tipo: "categoria",
+      nome: seg.label,
+      importo: seg.value,
+      pct: total > 0 ? (seg.value / total) * 100 : 0,
+      colore: seg.color,
+    };
+    setFocus(seg.id);
+    onScelta?.(s);
+  }
+
+  function scegliPrevisto(i: number) {
+    const voci = orologio?.programmati.filter((p) => p.i === i) ?? [];
+    if (!voci.length) return;
+    setFocus(`p-${i}`);
+    onScelta?.({ tipo: "previsto", voci });
+  }
+
+  function azzera() {
+    setFocus(null);
+    onScelta?.(null);
+  }
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -183,17 +256,41 @@ export default function RadialGauge({
         width={size}
         height={size}
         className="overflow-visible"
-        onPointerDown={() => setFocus(null)}
+        onPointerDown={azzera}
       >
+        <defs>
+          <filter id={`${uid}-basso`} x="-20%" y="-20%" width="140%" height="140%">
+            <feOffset dx="0" dy="0.45" in="SourceAlpha" result="off" />
+            <feFlood floodColor="#000" floodOpacity="0.28" result="n" />
+            <feComposite in="n" in2="off" operator="in" result="sh" />
+            <feMerge>
+              <feMergeNode in="sh" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          {outer.map((seg) => {
+            const mid = (seg.start + seg.fraction / 2) % 1;
+            const capovolgi = mid > 0.25 && mid < 0.75;
+            return (
+              <path
+                key={`tp-${seg.id}`}
+                id={`${uid}-${seg.id}`}
+                d={arco(R_CAT, seg.start, seg.start + seg.fraction, !capovolgi)}
+                fill="none"
+              />
+            );
+          })}
+        </defs>
+
         <circle
           cx={CX}
           cy={CY}
-          r={R_OUTER}
+          r={R_CAT}
           fill="none"
           stroke="currentColor"
-          strokeWidth={SW_OUTER}
+          className="text-black/5 dark:text-white/10"
+          strokeWidth={R_CAT_OUT - R_CAT_IN}
         />
-
         <circle
           cx={CX}
           cy={CY}
@@ -207,20 +304,38 @@ export default function RadialGauge({
         {outer.map((seg) => (
           <path
             key={seg.id}
-            d={arco(R_OUTER, seg.start, seg.start + (mounted ? seg.fraction : 0))}
-            fill="none"
-            stroke={seg.color}
-            strokeWidth={SW_OUTER}
-            strokeLinecap="butt"
-            opacity={focus === seg.id ? 1 : 0.4}
+            d={settore(R_CAT_OUT, R_CAT_IN, seg.start, seg.start + (mounted ? seg.fraction : 0.001))}
+            fill={seg.color}
+            fillOpacity={focus === seg.id ? 0.92 : 0.38}
             className="cursor-pointer"
             onPointerDown={(e) => {
               e.stopPropagation();
-              setFocus(seg.id);
+              scegliCat(seg);
             }}
-            onPointerEnter={() => setFocus(seg.id)}
           />
         ))}
+
+        {outer.map((seg) => {
+          if (seg.fraction < 0.055) return null;
+          const pctSeg = total > 0 ? Math.round((seg.value / total) * 100) : 0;
+          const testo = seg.fraction >= 0.13 ? `${seg.label}  ${pctSeg}%` : `${pctSeg}%`;
+          return (
+            <text
+              key={`lb-${seg.id}`}
+              fontSize={seg.fraction >= 0.13 ? 6.4 : 6.8}
+              fontWeight={600}
+              letterSpacing="0.15"
+              fill="#fff"
+              fillOpacity="0.88"
+              filter={`url(#${uid}-basso)`}
+              style={{ pointerEvents: "none" }}
+            >
+              <textPath href={`#${uid}-${seg.id}`} startOffset="50%" textAnchor="middle">
+                {testo}
+              </textPath>
+            </text>
+          );
+        })}
 
         <circle
           cx={CX}
@@ -241,21 +356,28 @@ export default function RadialGauge({
           }}
         />
 
-        {orologio && orologio.passi > 0 ? <DialGiorni orologio={orologio} rosso={rosso} /> : null}
-      </svg>
+        {orologio && orologio.passi > 0 ? (
+          <DialGiorni orologio={orologio} rosso={rosso} onPrevisto={scegliPrevisto} />
+        ) : null}
 
-      {tip && (
-        <div
-          className="absolute z-10 pointer-events-none rounded-full bg-ink dark:bg-white text-white dark:text-black text-caption font-medium px-2.5 py-1 tabular-nums shadow-lg"
-          style={{
-            left: `${(tip.x / 200) * 100}%`,
-            top: `${(tip.y / 200) * 100}%`,
-            transform: "translate(-50%, -130%)",
-          }}
-        >
-          {tip.label} · €{Math.round(tip.value)} · {total > 0 ? Math.round((tip.value / total) * 100) : 0}%
-        </div>
-      )}
+        {budget > 0 && mounted && (
+          <g style={{ pointerEvents: "none" }}>
+            <circle cx={bx} cy={by} r="9.2" fill="#fff" stroke={innerColor} strokeWidth="1.8" />
+            <text
+              x={bx}
+              y={by}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fill={innerColor}
+              fontSize={pctTesto.length > 3 ? 6.2 : 7}
+              fontWeight={700}
+              className="tabular-nums"
+            >
+              {pctTesto}
+            </text>
+          </g>
+        )}
+      </svg>
 
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
         <span

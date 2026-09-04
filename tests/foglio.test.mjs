@@ -38,13 +38,15 @@ t(
 t("niente «Ricordamelo il»", !pianoForm.includes("Ricordamelo") && !impegni.includes("Revisione il"));
 t("niente selezione carta sulle spese previste", !pianoForm.includes(">Carta<"));
 t("si può registrare un pagamento una tantum", pianoForm.includes("Una volta"));
-t("la ruota ha due anelli", gauge.includes("R_OUTER") && gauge.includes("R_INNER"));
+t("la ruota ha due anelli", gauge.includes("R_CAT_OUT") && gauge.includes("R_INNER"));
 t("l'orologio non sta sul giorno", andamento.includes('period === "day"') && andamento.includes("orologio"));
 t("i previsti sono pallini sulle date", gauge.includes("programmati") && gauge.includes("rosso"));
 t("il giorno corrente è un pallino con il numero", gauge.includes("rBadge") && gauge.includes("etichette"));
-t("gli anelli non hanno etichette curve", !gauge.includes("categorie") && !gauge.includes("textPath"));
-t("le categorie si possono toccare per l'importo", gauge.includes("onPointerDown") && gauge.includes("onPointerEnter"));
-t("il tocco sulla categoria mostra anche la percentuale", gauge.includes("(tip.value / total) * 100"));
+t("gli anelli non hanno etichette curve di nome", !gauge.includes(">categorie<") && !gauge.includes(">budget<"));
+t("niente nuvoletta: il dettaglio sta nel pannello", !gauge.includes("translate(-50%") && andamento.includes("PannelloScelta"));
+t("sull'arco del budget c'è la percentuale", gauge.includes("pctTesto"));
+t("le categorie si possono toccare per l'importo", gauge.includes("scegliCat") && andamento.includes("PannelloScelta"));
+t("il tocco sulla categoria mostra anche la percentuale", gauge.includes("scegliCat") && gauge.includes("pct"));
 t("la ruota riempie la prima schermata", andamento.includes('closest("main")') && andamento.includes("slot.clientWidth"));
 
 console.log(`\n${ok} ok, ${ko} falliti`);
