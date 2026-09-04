@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { HeatLayer, type PuntoCaldo } from "../components/HeatLayer";
+import { creaMappa } from "../lib/mappa";
 import { useApp } from "../lib/AppContext";
 
 type Periodo = "giorno" | "mese" | "anno";
@@ -56,6 +57,18 @@ const ITALIA = L.latLngBounds([
   [47.2, 18.6],
 ]);
 
+type Punto = { lat: number; lon: number; peso: number };
+
+/** Cosa mostrare: le spese del periodo, o il paese se non ce ne sono. */
+function inquadratura(m: L.Map, punti: Punto[]) {
+  if (punti.length === 0) {
+    m.fitBounds(ITALIA, { padding: [12, 12], animate: false });
+    return;
+  }
+  const limiti = L.latLngBounds(punti.map((p) => [p.lat, p.lon] as [number, number]));
+  m.fitBounds(limiti, { padding: [48, 48], maxZoom: 15, animate: false });
+}
+
 export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
   const { transactions, effectiveTheme } = useApp();
   const [periodo, setPeriodo] = useState<Periodo>("mese");
@@ -90,15 +103,20 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
     ).length;
   }, [transactions, da, a]);
 
+  // I punti servono all'avvio della mappa, che però gira una volta sola: un
+  // ref li tiene aggiornati senza rimontarla a ogni cambio di periodo.
+  const puntiCorrenti = useRef(punti);
+  useEffect(() => {
+    puntiCorrenti.current = punti;
+  }, [punti]);
+
   // Creazione della mappa: una volta sola.
   useEffect(() => {
     if (!contenitore.current || mappa.current) return;
 
-    const m = L.map(contenitore.current, {
-      zoomControl: false,
-      attributionControl: true,
-    });
-    m.fitBounds(ITALIA, { padding: [12, 12], animate: false });
+    const { mappa: m, smonta } = creaMappa(L, contenitore.current, (mm: L.Map) =>
+      inquadratura(mm, puntiCorrenti.current)
+    );
 
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -116,7 +134,7 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
     strato.current = h;
 
     return () => {
-      m.remove();
+      smonta();
       mappa.current = null;
       strato.current = null;
     };
@@ -127,15 +145,7 @@ export default function Mappa({ onChiudi }: { onChiudi: () => void }) {
     const m = mappa.current;
     if (!m || !strato.current) return;
     strato.current.setPunti(punti);
-    // Cambiando periodo si può finire su uno senza spese: si torna a
-    // inquadrare il paese invece di restare fermi dov'era il periodo prima,
-    // che darebbe l'impressione di una mappa bloccata.
-    if (punti.length === 0) {
-      m.fitBounds(ITALIA, { padding: [12, 12], animate: false });
-      return;
-    }
-    const limiti = L.latLngBounds(punti.map((p) => [p.lat, p.lon] as [number, number]));
-    m.fitBounds(limiti, { padding: [48, 48], maxZoom: 15, animate: false });
+    inquadratura(m, punti);
   }, [punti]);
 
   return (
