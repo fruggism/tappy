@@ -892,6 +892,10 @@ export default function Andamento() {
       passi: range.daysTotal,
       oggi: range.current ? range.daysElapsed - 1 : null,
       programmati: giorni,
+      etichette: Array.from({ length: range.daysTotal }, (_, i) => {
+        const [y, m, d] = from.split("-").map(Number);
+        return String(new Date(y, m - 1, d + i).getDate());
+      }),
     };
   }, [period, range, user]);
 

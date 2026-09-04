@@ -15,6 +15,8 @@ export interface Orologio {
   oggi: number | null;
   /** 0-based, giorni con una spesa prevista. */
   programmati: number[];
+  /** Numero del giorno da scrivere su ogni tacca (es. "4"). */
+  etichette: string[];
 }
 
 interface Props {
@@ -51,6 +53,77 @@ function arco(r: number, da: number, a: number): string {
   return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
 }
 
+function DialGiorni({ orologio, rosso }: { orologio: Orologio; rosso: string }) {
+  const passi = orologio.passi;
+  const R_NUM = R_INNER - 15;
+  const rBadge = Math.min(7.4, (Math.PI * R_NUM) / passi - 0.35);
+  const fs = Math.min(passi > 14 ? 6.2 : 8.2, rBadge * 1.2);
+  return (
+    <g style={{ pointerEvents: "none" }}>
+      {Array.from({ length: passi }, (_, i) => {
+        const frac = i / passi;
+        const [x1, y1] = polo(R_INNER - 5, frac);
+        const [x2, y2] = polo(R_INNER + 5.5, frac);
+        const lunga = passi > 14 && i % 5 === 0;
+        return (
+          <line
+            key={`t-${i}`}
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+            stroke="currentColor"
+            className="text-black/25 dark:text-white/35"
+            strokeWidth={lunga ? 1.5 : 0.85}
+            strokeLinecap="round"
+          />
+        );
+      })}
+      {orologio.programmati.map((i) => {
+        if (i === orologio.oggi) return null;
+        const [x, y] = polo(R_INNER + 8.5, i / passi);
+        return <circle key={`p-${i}`} cx={x} cy={y} r="2.1" fill={rosso} />;
+      })}
+      {orologio.etichette.map((lab, i) => {
+        const [x, y] = polo(R_NUM, i / passi);
+        const oggi = orologio.oggi === i;
+        if (oggi) {
+          return (
+            <g key={`n-${i}`}>
+              <circle cx={x} cy={y} r={rBadge} fill={rosso} />
+              <text
+                x={x}
+                y={y}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill="#fff"
+                fontSize={fs}
+                fontWeight={600}
+                className="tabular-nums"
+              >
+                {lab}
+              </text>
+            </g>
+          );
+        }
+        return (
+          <text
+            key={`n-${i}`}
+            x={x}
+            y={y}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={fs}
+            className="tabular-nums fill-black/35 dark:fill-white/45"
+          >
+            {lab}
+          </text>
+        );
+      })}
+    </g>
+  );
+}
+
 export default function RadialGauge({
   segments,
   budget,
@@ -67,7 +140,7 @@ export default function RadialGauge({
   const overBudget = budget > 0 && total > budget;
   const pink = accent("pink", "#ff2ecb");
   const green = accent("green", "#39ff88");
-  const cyan = accent("cyan", "#00e5ff");
+  const rosso = "#ff3b30";
   const rafRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -112,7 +185,7 @@ export default function RadialGauge({
       >
         <defs>
           <path id={`${uid}-cat`} d={arco(R_OUTER + 14, 0.82, 1.18)} fill="none" />
-          <path id={`${uid}-bud`} d={arco(R_INNER - 13, 0.82, 1.18)} fill="none" />
+          {!orologio ? <path id={`${uid}-bud`} d={arco(R_INNER - 13, 0.82, 1.18)} fill="none" /> : null}
         </defs>
 
         <circle
@@ -125,39 +198,15 @@ export default function RadialGauge({
           strokeWidth="11"
         />
 
-        {orologio && orologio.passi > 0
-          ? Array.from({ length: orologio.passi }, (_, i) => {
-              const slot = 1 / orologio.passi;
-              const vuoto = slot * 0.2;
-              const da = i * slot + vuoto / 2;
-              const a = (i + 1) * slot - vuoto / 2;
-              const oggi = orologio.oggi === i;
-              const previsto = orologio.programmati.includes(i);
-              return (
-                <path
-                  key={`g-${i}`}
-                  d={arco(R_INNER, da, a)}
-                  fill="none"
-                  stroke={oggi ? cyan : previsto ? green : "currentColor"}
-                  strokeWidth="11"
-                  strokeLinecap="butt"
-                  strokeDasharray={previsto && !oggi ? "2.4 2.2" : undefined}
-                  className={oggi || previsto ? undefined : "text-black/[0.12] dark:text-white/20"}
-                  opacity={previsto && !oggi ? 0.9 : 1}
-                />
-              );
-            })
-          : (
-            <circle
-              cx={CX}
-              cy={CY}
-              r={R_INNER}
-              fill="none"
-              stroke="currentColor"
-              className="text-black/5 dark:text-white/10"
-              strokeWidth="11"
-            />
-          )}
+        <circle
+          cx={CX}
+          cy={CY}
+          r={R_INNER}
+          fill="none"
+          stroke="currentColor"
+          className="text-black/[0.07] dark:text-white/10"
+          strokeWidth={orologio ? 7 : 11}
+        />
 
         {outer.map((seg) => (
           <path
@@ -183,7 +232,7 @@ export default function RadialGauge({
           r={R_INNER}
           fill="none"
           stroke={innerColor}
-          strokeWidth={orologio ? 5.5 : 11}
+          strokeWidth={orologio ? 7 : 11}
           strokeLinecap="round"
           strokeDasharray={CIRC_INNER}
           strokeDashoffset={CIRC_INNER * (1 - innerFrac)}
@@ -196,6 +245,8 @@ export default function RadialGauge({
           }}
         />
 
+        {orologio && orologio.passi > 0 ? <DialGiorni orologio={orologio} rosso={rosso} /> : null}
+
         <text
           className="fill-black/40 dark:fill-white/40"
           fontSize="7.5"
@@ -206,16 +257,18 @@ export default function RadialGauge({
             categorie
           </textPath>
         </text>
-        <text
-          className="fill-black/40 dark:fill-white/40"
-          fontSize="7.5"
-          letterSpacing="1.1"
-          style={{ pointerEvents: "none" }}
-        >
-          <textPath href={`#${uid}-bud`} startOffset="50%" textAnchor="middle">
-            budget
-          </textPath>
-        </text>
+        {!orologio && (
+          <text
+            className="fill-black/40 dark:fill-white/40"
+            fontSize="7.5"
+            letterSpacing="1.1"
+            style={{ pointerEvents: "none" }}
+          >
+            <textPath href={`#${uid}-bud`} startOffset="50%" textAnchor="middle">
+              budget
+            </textPath>
+          </text>
+        )}
       </svg>
 
       {tip && (

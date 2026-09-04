@@ -40,7 +40,8 @@ t("niente selezione carta sulle spese previste", !pianoForm.includes(">Carta<"))
 t("si può registrare un pagamento una tantum", pianoForm.includes("Una volta"));
 t("la ruota ha due anelli", gauge.includes("R_OUTER") && gauge.includes("R_INNER"));
 t("l'orologio non sta sul giorno", andamento.includes('period === "day"') && andamento.includes("orologio"));
-t("i previsti sono un tratteggio sull'orologio", gauge.includes("programmati") && gauge.includes("strokeDasharray"));
+t("i previsti sono pallini sulle date", gauge.includes("programmati") && gauge.includes("rosso"));
+t("il giorno corrente è un pallino con il numero", gauge.includes("rBadge") && gauge.includes("etichette"));
 t("gli anelli hanno il nome sulla curva", gauge.includes("textPath") && gauge.includes("categorie") && gauge.includes("budget"));
 t("le categorie si possono toccare per l'importo", gauge.includes("onPointerDown") && gauge.includes("onPointerEnter"));
 t("la ruota riempie la prima schermata", andamento.includes('closest("main")') && andamento.includes("minHeight"));
