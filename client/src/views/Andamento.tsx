@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import RadialGauge, { ritmo, type Orologio, type Scelta } from "../components/RadialGauge";
+import RadialGauge, { ritmo, type Orologio } from "../components/RadialGauge";
 import SegmentedControl from "../components/SegmentedControl";
 import { accent } from "../lib/accent";
-import { formattaGiorno, indiceNelPeriodo, occorrenzePiani } from "../lib/piani";
+import { indiceNelPeriodo, occorrenzePiani } from "../lib/piani";
 import { leggiPiani } from "../lib/pianiLocali";
 import type { Transaction } from "../lib/types";
 
@@ -621,37 +621,6 @@ function scaleToPeriod(monthlyAmount: number, period: Period, dim: number) {
   return monthlyAmount;
 }
 
-function PannelloScelta({ scelta }: { scelta: Scelta }) {
-  if (scelta.tipo === "categoria") {
-    return (
-      <div className="w-full rounded-2xl bg-surface2 dark:bg-surface2-dark px-4 py-3 flex items-center gap-3 min-h-[3.25rem]">
-        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: scelta.colore }} />
-        <div className="min-w-0 flex-1">
-          <p className="text-callout font-medium truncate">{scelta.nome}</p>
-          <p className="text-footnote text-muted dark:text-muted-dark">categoria</p>
-        </div>
-        <p className="text-callout tabular-nums font-medium shrink-0">
-          €{Math.round(scelta.importo)} · {Math.round(scelta.pct)}%
-        </p>
-      </div>
-    );
-  }
-  return (
-    <div className="w-full rounded-2xl bg-surface2 dark:bg-surface2-dark px-4 py-3 flex flex-col gap-2 min-h-[3.25rem] justify-center">
-      {scelta.voci.map((v, i) => (
-        <div key={`${v.date}-${v.nome}-${i}`} className="flex items-center gap-3">
-          <span className="h-2.5 w-2.5 rounded-full shrink-0 bg-[#ff3b30]" />
-          <div className="min-w-0 flex-1">
-            <p className="text-callout font-medium truncate">{v.nome}</p>
-            <p className="text-footnote text-muted dark:text-muted-dark">prevista · {formattaGiorno(v.date)}</p>
-          </div>
-          <p className="text-callout tabular-nums font-medium shrink-0">€{v.importo.toFixed(2)}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // --- le tre card della pagina -----------------------------------------------
 
 function HeroCard({
@@ -686,7 +655,6 @@ function HeroCard({
   const box = useRef<HTMLDivElement>(null);
   const ruota = useRef<HTMLDivElement>(null);
   const [lato, setLato] = useState(320);
-  const [scelta, setScelta] = useState<Scelta | null>(null);
 
   useLayoutEffect(() => {
     const carta = box.current;
@@ -765,21 +733,16 @@ function HeroCard({
                 : pctText
           }
           orologio={orologio}
-          onScelta={setScelta}
         />
       </div>
 
-      {scelta ? (
-        <PannelloScelta scelta={scelta} />
-      ) : (
-        <div className="w-full flex flex-col gap-2">
-          <div className="w-full flex justify-between text-callout px-1">
-            <span className="text-muted dark:text-muted-dark">{budgetLabel}</span>
-            <span className="font-medium tabular-nums">€{budget.toFixed(0)}</span>
-          </div>
-          <PerDayRow perDay={perDay} />
+      <div className="w-full flex flex-col gap-2">
+        <div className="w-full flex justify-between text-callout px-1">
+          <span className="text-muted dark:text-muted-dark">{budgetLabel}</span>
+          <span className="font-medium tabular-nums">€{budget.toFixed(0)}</span>
         </div>
-      )}
+        <PerDayRow perDay={perDay} />
+      </div>
     </div>
   );
 }

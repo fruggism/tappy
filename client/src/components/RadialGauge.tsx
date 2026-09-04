@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { accent } from "../lib/accent";
+import { formattaGiorno } from "../lib/piani";
 
 export interface GaugeSegment {
   id: string;
@@ -34,7 +35,6 @@ interface Props {
   centerLabel: string;
   centerSub: string;
   orologio?: Orologio | null;
-  onScelta?: (s: Scelta | null) => void;
 }
 
 const CX = 100;
@@ -174,11 +174,10 @@ export default function RadialGauge({
   centerLabel,
   centerSub,
   orologio = null,
-  onScelta,
 }: Props) {
   const uid = useId().replace(/:/g, "");
   const [mounted, setMounted] = useState(riduciMoto);
-  const [focus, setFocus] = useState<string | null>(null);
+  const [centro, setCentro] = useState<Scelta | null>(null);
   const total = segments.reduce((s, seg) => s + seg.value, 0);
   const pct = budget > 0 ? Math.min(total / budget, 1) : 0;
   const pctPiena = budget > 0 ? total / budget : 0;
@@ -215,27 +214,31 @@ export default function RadialGauge({
   const pctTesto = budget > 0 ? `${Math.round(pctPiena * 100)}%` : "";
 
   function scegliCat(seg: (typeof outer)[number]) {
-    const s: Scelta = {
+    if (centro?.tipo === "categoria" && centro.nome === seg.label) {
+      azzera();
+      return;
+    }
+    setCentro({
       tipo: "categoria",
       nome: seg.label,
       importo: seg.value,
       pct: total > 0 ? (seg.value / total) * 100 : 0,
       colore: seg.color,
-    };
-    setFocus(seg.id);
-    onScelta?.(s);
+    });
   }
 
   function scegliPrevisto(i: number) {
     const voci = orologio?.programmati.filter((p) => p.i === i) ?? [];
     if (!voci.length) return;
-    setFocus(`p-${i}`);
-    onScelta?.({ tipo: "previsto", voci });
+    if (centro?.tipo === "previsto" && centro.voci[0]?.i === i) {
+      azzera();
+      return;
+    }
+    setCentro({ tipo: "previsto", voci });
   }
 
   function azzera() {
-    setFocus(null);
-    onScelta?.(null);
+    setCentro(null);
   }
 
   return (
@@ -300,7 +303,7 @@ export default function RadialGauge({
               stroke={seg.color}
               strokeWidth={SW_OUTER}
               strokeLinecap="butt"
-              opacity={focus === seg.id ? 1 : 0.45}
+              opacity={centro?.tipo === "categoria" && centro.nome === seg.label ? 1 : 0.45}
               style={{ pointerEvents: "none" }}
             />
           </g>
@@ -378,25 +381,67 @@ export default function RadialGauge({
         )}
       </svg>
 
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <span
-          className={`text-largeTitle font-semibold tracking-tight tabular-nums ${
-            overBudget ? "text-acc-pink" : ""
-          }`}
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-10">
+        <div
+          key={
+            centro?.tipo === "categoria"
+              ? `c-${centro.nome}`
+              : centro?.tipo === "previsto"
+                ? `p-${centro.voci[0]?.i}`
+                : "totale"
+          }
+          className="flex flex-col items-center animate-gauge-centro"
         >
-          {centerLabel}
-        </span>
-        <span className="text-footnote text-muted dark:text-muted-dark mt-1">{centerSub}</span>
-        {overBudget && (
-          <span className="text-caption font-medium text-acc-pink mt-1 gauge-overflow-pulse">
-            oltre €{Math.round(total - budget)}
-          </span>
-        )}
-        {!overBudget && budget > 0 && (
-          <span className="text-caption font-medium text-muted dark:text-muted-dark mt-1">
-            ancora €{Math.round(budget - total)}
-          </span>
-        )}
+          {centro?.tipo === "categoria" ? (
+            <>
+              <span
+                className="text-largeTitle font-semibold tracking-tight tabular-nums"
+                style={{ color: centro.colore }}
+              >
+                €{Math.round(centro.importo)}
+              </span>
+              <span className="text-footnote mt-1 font-medium" style={{ color: centro.colore }}>
+                {centro.nome}
+              </span>
+              <span className="text-caption font-medium text-muted dark:text-muted-dark mt-1">
+                {Math.round(centro.pct)}%
+              </span>
+            </>
+          ) : centro?.tipo === "previsto" ? (
+            <>
+              <span className="text-largeTitle font-semibold tracking-tight tabular-nums">
+                €{centro.voci.reduce((s, v) => s + v.importo, 0).toFixed(0)}
+              </span>
+              <span className="text-footnote text-muted dark:text-muted-dark mt-1 font-medium text-center">
+                {centro.voci.map((v) => v.nome).join(", ")}
+              </span>
+              <span className="text-caption font-medium text-muted dark:text-muted-dark mt-1">
+                prevista · {formattaGiorno(centro.voci[0].date)}
+              </span>
+            </>
+          ) : (
+            <>
+              <span
+                className={`text-largeTitle font-semibold tracking-tight tabular-nums ${
+                  overBudget ? "text-acc-pink" : ""
+                }`}
+              >
+                {centerLabel}
+              </span>
+              <span className="text-footnote text-muted dark:text-muted-dark mt-1">{centerSub}</span>
+              {overBudget && (
+                <span className="text-caption font-medium text-acc-pink mt-1 gauge-overflow-pulse">
+                  oltre €{Math.round(total - budget)}
+                </span>
+              )}
+              {!overBudget && budget > 0 && (
+                <span className="text-caption font-medium text-muted dark:text-muted-dark mt-1">
+                  ancora €{Math.round(budget - total)}
+                </span>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
