@@ -50,9 +50,10 @@ l'automazione:
 Finché stanno prima dell'invio, un loro inciampo fa perdere la spesa. Messe
 dopo, si perde solo il dettaglio che stavano portando.
 
-1. **Elenco** — `Leisure`, `Spesa`, `Macchina`, `Altro`. Sono le stesse
-   categorie che tappy ha già, quindi combaciano da sole.
-2. **Scegli da Elenco** → produce *Elemento selezionato*.
+**Non mettere «Scegli da Elenco» né la posizione prima di questa chiamata.**
+A telefono in tasca iOS non aspetta: se la domanda viene prima, l'invio
+non parte.
+
 1. **Ottieni contenuti dall'URL** — è l'azione che registra la spesa:
 
    - **URL**: quello copiato da Impostazioni
