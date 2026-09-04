@@ -14,29 +14,19 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
     id: "andamento",
     label: "Andamento",
     icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.8}
-        d="M4 19V9m6 10V5m6 14v-7m6 7V3"
-      />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 19V9m6 10V5m6 14v-7m6 7V3" />
     ),
   },
   {
     id: "movimenti",
     label: "Movimenti",
     icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.8}
-        d="M3 7h18M3 12h18M3 17h10"
-      />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 7h18M3 12h18M3 17h10" />
     ),
   },
   {
     id: "impegni",
-    label: "Impegni",
+    label: "Spese previste",
     icon: (
       <>
         <rect x="3.5" y="5" width="17" height="16" rx="2" strokeWidth={1.8} />
