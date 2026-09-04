@@ -316,13 +316,24 @@ export default function RadialGauge({
         ))}
 
         {outer.map((seg) => {
-          if (seg.fraction < 0.055) return null;
+          const arcoPx = seg.fraction * 2 * Math.PI * R_CAT;
           const pctSeg = total > 0 ? Math.round((seg.value / total) * 100) : 0;
-          const testo = seg.fraction >= 0.13 ? `${seg.label}  ${pctSeg}%` : `${pctSeg}%`;
+          const conNome = `${seg.label}  ${pctSeg}%`;
+          const soloPct = `${pctSeg}%`;
+          const largo = (s: string, fs: number) => s.length * fs * 0.62;
+          let testo: string | null = null;
+          let fs = 6.4;
+          if (arcoPx >= largo(conNome, 6.4) + 10) {
+            testo = conNome;
+          } else if (arcoPx >= largo(soloPct, 6.8) + 8) {
+            testo = soloPct;
+            fs = 6.8;
+          }
+          if (!testo) return null;
           return (
             <text
               key={`lb-${seg.id}`}
-              fontSize={seg.fraction >= 0.13 ? 6.4 : 6.8}
+              fontSize={fs}
               fontWeight={600}
               letterSpacing="0.15"
               fill="#fff"
