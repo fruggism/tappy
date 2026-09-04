@@ -40,6 +40,7 @@ export default {
           cyan: "var(--acc-cyan)",
           violet: "var(--acc-violet)",
           amber: "var(--acc-amber)",
+          over: "var(--acc-over)",
         },
       },
       fontFamily: {

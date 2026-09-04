@@ -3,7 +3,7 @@
 // invece di restare fissati ai fluo, che su sfondo chiaro non passano il
 // contrasto WCAG.
 export function accent(
-  name: "green" | "pink" | "cyan" | "violet" | "amber",
+  name: "green" | "pink" | "cyan" | "violet" | "amber" | "over",
   fallback: string
 ) {
   if (typeof window === "undefined") return fallback;

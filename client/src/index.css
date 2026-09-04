@@ -84,6 +84,7 @@ html.dark {
   --acc-cyan: #007b94;
   --acc-violet: #5e5eeb;
   --acc-amber: #996600;
+  --acc-over: #8f1738;
 }
 html.dark {
   --acc-green: #39ff88;
@@ -91,6 +92,7 @@ html.dark {
   --acc-cyan: #00e5ff;
   --acc-violet: #a3a3ff;
   --acc-amber: #ffcf4d;
+  --acc-over: #e11d48;
 }
 
 body {

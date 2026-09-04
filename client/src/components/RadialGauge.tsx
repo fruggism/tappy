@@ -184,7 +184,7 @@ export default function RadialGauge({
   const pct = budget > 0 ? Math.min(total / budget, 1) : 0;
   const pctPiena = budget > 0 ? total / budget : 0;
   const overBudget = budget > 0 && total > budget;
-  const pink = accent("pink", "#ff2ecb");
+  const over = accent("over", "#8f1738");
   const green = accent("green", "#39ff88");
   const rosso = "#ff3b30";
   const rafRef = useRef<number | undefined>(undefined);
@@ -210,7 +210,7 @@ export default function RadialGauge({
     return { ...seg, start, fraction };
   });
 
-  const innerColor = overBudget ? pink : green;
+  const innerColor = overBudget ? over : green;
   const innerFrac = mounted ? pct : 0;
   const [bx, by] = polo(R_INNER, Math.min(innerFrac, 0.995));
   const pctTesto = budget > 0 ? `${Math.round(pctPiena * 100)}%` : "";
@@ -222,7 +222,7 @@ export default function RadialGauge({
       : 1
     : 0;
   const catOver = catMode && catBdg > 0 && centro.importo > catBdg;
-  const catColore = catMode ? (catOver ? pink : centro.colore) : "transparent";
+  const catColore = catMode ? (catOver ? over : centro.colore) : "transparent";
   const transAnello = riduciMoto() ? undefined : "stroke-dashoffset 0.9s cubic-bezier(0.22,1,0.36,1), opacity 0.32s ease, stroke 0.32s ease";
 
   function scegliCat(seg: (typeof outer)[number]) {
@@ -360,14 +360,14 @@ export default function RadialGauge({
 
         {budget > 0 && mounted && (
           <g style={{ pointerEvents: "none" }}>
-            <circle cx={bx} cy={by} r="6.2" fill="#fff" stroke={innerColor} strokeWidth="1.3" />
+            <circle cx={bx} cy={by} r="8.6" fill="#fff" stroke={innerColor} strokeWidth="1.7" />
             <text
               x={bx}
               y={by}
               textAnchor="middle"
               dominantBaseline="central"
-              fill={innerColor}
-              fontSize={pctTesto.length > 3 ? 4.6 : 5.2}
+              fill="#1a1a1a"
+              fontSize={pctTesto.length > 3 ? 6 : 6.6}
               fontWeight={700}
               className="tabular-nums"
             >
@@ -420,7 +420,7 @@ export default function RadialGauge({
             <>
               <span
                 className={`text-largeTitle font-semibold tracking-tight tabular-nums ${
-                  overBudget ? "text-acc-pink" : ""
+                  overBudget ? "text-acc-over" : ""
                 }`}
               >
                 {centerLabel}
