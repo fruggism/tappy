@@ -267,58 +267,6 @@ function TimeTravelMenu({
   );
 }
 
-// Piccolo anello di progresso, riusato per le categorie e la proiezione.
-// `visible` è pilotato dal genitore (useInView) così l'animazione parte
-// quando la card entra nel viewport, non quando il componente monta.
-function MiniRing({
-  pct,
-  color,
-  visible,
-  size = 60,
-  strokeWidth = 6,
-  children,
-}: {
-  pct: number;
-  color: string;
-  visible: boolean;
-  size?: number;
-  strokeWidth?: number;
-  children?: React.ReactNode;
-}) {
-  const r = (size - strokeWidth) / 2;
-  const circ = 2 * Math.PI * r;
-  const clamped = Math.min(100, Math.max(0, pct));
-
-  return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="-rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="currentColor"
-          className="text-black/[0.06] dark:text-white/10"
-          strokeWidth={strokeWidth}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={circ}
-          strokeDashoffset={visible ? circ * (1 - clamped / 100) : circ}
-          style={{ transition: "stroke-dashoffset 0.9s cubic-bezier(0.22,1,0.36,1)" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">{children}</div>
-    </div>
-  );
-}
-
 function TrendArrow({ up, className }: { up: boolean; className?: string }) {
   return (
     <svg
@@ -534,48 +482,19 @@ function SparklineContent({
   );
 }
 
-function CategoryRing({
-  category: c,
-  total,
-  visible,
-}: {
-  category: { id: string; label: string; color: string; value: number; budget: number | null };
-  total: number;
-  visible: boolean;
-}) {
-  const hasBudget = c.budget != null && c.budget > 0;
-  const over = hasBudget && c.value > c.budget!;
-  const pct = hasBudget
-    ? (c.value / c.budget!) * 100
-    : total > 0
-    ? (c.value / total) * 100
-    : 0;
-  const color = over ? accent("pink", "#ff2ecb") : c.color;
-
-  return (
-    <div className="flex flex-col items-center gap-1.5 w-[5.25rem] shrink-0">
-      <MiniRing pct={pct} color={color} visible={visible} size={72}>
-        <span className="flex flex-col items-center leading-none px-1">
-          <span className="text-footnote font-semibold tabular-nums" style={{ color }}>
-            €{c.value.toFixed(0)}
-          </span>
-          {hasBudget ? (
-            <span className="text-[9px] tabular-nums text-muted dark:text-muted-dark mt-0.5">
-              su €{c.budget!.toFixed(0)}
-            </span>
-          ) : null}
-        </span>
-      </MiniRing>
-      <span className="text-caption font-medium truncate max-w-full text-center">{c.label}</span>
-    </div>
-  );
-}
-
 function getRangeTotal(expenses: Transaction[], from: string, to: string) {
   return expenses.filter((t) => t.date >= from && t.date <= to).reduce((s, t) => s + t.my_share, 0);
 }
 
 // Converte un budget mensile nell'equivalente del periodo selezionato (stessa logica del budget generale).
+function rigaProgrammati(period: Period, euro: number) {
+  const dove =
+    period === "week" ? "nella settimana" : period === "day" ? "nella giornata" : "nel mese";
+  const fine = period === "week" ? "settimana" : period === "day" ? "giornata" : "mese";
+  if (euro <= 0) return `Non sono previsti pagamenti programmati ${dove}`;
+  return `Di cui €${Math.round(euro)} programmati entro fine ${fine}`;
+}
+
 function scaleToPeriod(monthlyAmount: number, period: Period, dim: number) {
   if (period === "day") return monthlyAmount / dim;
   if (period === "week") return (monthlyAmount / dim) * 7;
@@ -596,6 +515,7 @@ function HeroCard({
   totalPeriod,
   perDay,
   orologio,
+  programmatiEuro,
 }: {
   period: Period;
   onPeriodChange: (p: Period) => void;
@@ -608,6 +528,7 @@ function HeroCard({
   totalPeriod: number;
   perDay: number;
   orologio: Orologio | null;
+  programmatiEuro: number;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const ruota = useRef<HTMLDivElement>(null);
@@ -687,13 +608,9 @@ function HeroCard({
         />
       </div>
 
-      {byCategory.length > 0 ? (
-        <div className="w-full flex flex-wrap justify-center gap-x-3 gap-y-3 pt-1">
-          {byCategory.map((c) => (
-            <CategoryRing key={c.id} category={c} total={totalPeriod} visible />
-          ))}
-        </div>
-      ) : null}
+      <p className="text-caption text-muted dark:text-muted-dark text-center px-2 pb-1">
+        {rigaProgrammati(period, programmatiEuro)}
+      </p>
     </div>
   );
 }
@@ -854,6 +771,14 @@ export default function Andamento() {
     };
   }, [period, range, user]);
 
+  const programmatiEuro = useMemo(() => {
+    if (!user) return 0;
+    const da = range.current ? toISODate(now) : range.from;
+    const a = finePiena(range.from, range.daysTotal);
+    if (da > a) return 0;
+    return occorrenzePiani(leggiPiani(user.code), da, a).reduce((s, o) => s + o.importo, 0);
+  }, [period, range, user, now]);
+
   return (
     <div className="flex flex-col items-center gap-6 animate-rise">
       <HeroCard
@@ -868,6 +793,7 @@ export default function Andamento() {
         totalPeriod={totalPeriod}
         perDay={perDay}
         orologio={orologio}
+        programmatiEuro={programmatiEuro}
       />
 
       <TimeCard

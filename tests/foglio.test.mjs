@@ -49,7 +49,7 @@ t("sulle fette niente etichette, il tap apre il centro", !gauge.includes("key={`
 t("le categorie si possono toccare per l'importo", gauge.includes("scegliCat") && gauge.includes("animate-gauge-centro"));
 t("sulla categoria, nome e % sulla stessa riga, sotto Bdg e €/gg", gauge.includes("{centro.nome} {Math.round(centro.pct)}%") && gauge.includes("KpiSotto"));
 t("al centro ci sono Bdg e €/gg, non il commento in linea", gauge.includes("Bdg €") && gauge.includes("€/gg") && !gauge.includes("in linea"));
-t("gli anellini delle categorie stanno sotto la ruota", /RadialGauge[\s\S]*CategoryRing/.test(andamento) && !andamento.includes("CategoryRingsContent"));
+t("sotto la ruota c'è la riga dei programmati, non gli anellini", andamento.includes("rigaProgrammati") && !andamento.includes("CategoryRing"));
 t("la ruota riempie la prima schermata", andamento.includes('closest("main")') && andamento.includes("slot.clientWidth"));
 
 console.log(`\n${ok} ok, ${ko} falliti`);
