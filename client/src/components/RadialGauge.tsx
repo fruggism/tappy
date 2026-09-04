@@ -280,7 +280,7 @@ export default function RadialGauge({
             transform: "translate(-50%, -130%)",
           }}
         >
-          {tip.label} · €{Math.round(tip.value)}
+          {tip.label} · €{Math.round(tip.value)} · {total > 0 ? Math.round((tip.value / total) * 100) : 0}%
         </div>
       )}
 
