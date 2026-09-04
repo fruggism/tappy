@@ -7,6 +7,7 @@ export interface GaugeSegment {
   label: string;
   value: number;
   color: string;
+  budget?: number | null;
 }
 
 export interface VocePrevista {
@@ -25,13 +26,14 @@ export interface Orologio {
 }
 
 export type Scelta =
-  | { tipo: "categoria"; nome: string; importo: number; pct: number; colore: string }
+  | { tipo: "categoria"; nome: string; importo: number; pct: number; colore: string; budget: number | null }
   | { tipo: "previsto"; voci: VocePrevista[] };
 
 interface Props {
   segments: GaugeSegment[];
   budget: number;
   perDay: number;
+  giorni: number;
   size?: number;
   centerLabel: string;
   orologio?: Orologio | null;
@@ -170,6 +172,7 @@ export default function RadialGauge({
   segments,
   budget,
   perDay,
+  giorni,
   size = 252,
   centerLabel,
   orologio = null,
@@ -222,6 +225,7 @@ export default function RadialGauge({
       importo: seg.value,
       pct: total > 0 ? (seg.value / total) * 100 : 0,
       colore: seg.color,
+      budget: seg.budget ?? null,
     });
   }
 
@@ -353,11 +357,12 @@ export default function RadialGauge({
                 €{Math.round(centro.importo)}
               </span>
               <span className="text-footnote mt-1 font-medium" style={{ color: centro.colore }}>
-                {centro.nome}
+                {centro.nome} {Math.round(centro.pct)}%
               </span>
-              <span className="text-caption font-medium text-muted dark:text-muted-dark mt-1">
-                {Math.round(centro.pct)}%
-              </span>
+              <KpiSotto
+                budget={centro.budget ?? 0}
+                perDay={giorni > 0 ? centro.importo / giorni : 0}
+              />
             </>
           ) : centro?.tipo === "previsto" ? (
             <>
@@ -380,20 +385,28 @@ export default function RadialGauge({
               >
                 {centerLabel}
               </span>
-              {budget > 0 && (
-                <span className="text-caption text-muted dark:text-muted-dark mt-1.5 tabular-nums">
-                  Bdg €{Math.round(budget)}
-                </span>
-              )}
-              <span className="text-caption tabular-nums mt-0.5">
-                <span className="text-muted dark:text-muted-dark">€/gg </span>
-                <span className="font-medium text-acc-green">€{Math.round(perDay)}</span>
-              </span>
+              <KpiSotto budget={budget} perDay={perDay} />
             </>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+function KpiSotto({ budget, perDay }: { budget: number; perDay: number }) {
+  return (
+    <>
+      {budget > 0 && (
+        <span className="text-caption text-muted dark:text-muted-dark mt-1.5 tabular-nums">
+          Bdg €{Math.round(budget)}
+        </span>
+      )}
+      <span className="text-caption tabular-nums mt-0.5">
+        <span className="text-muted dark:text-muted-dark">€/gg </span>
+        <span className="font-medium text-acc-green">€{Math.round(perDay)}</span>
+      </span>
+    </>
   );
 }
 

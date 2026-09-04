@@ -681,6 +681,7 @@ function HeroCard({
           segments={byCategory}
           budget={budget}
           perDay={perDay}
+          giorni={range.daysElapsed}
           centerLabel={`€${totalPeriod.toFixed(0)}`}
           orologio={orologio}
         />
