@@ -183,8 +183,6 @@ function Scheda({
                 <p>Totale piano €{r.euroTotale.toFixed(0)}</p>
                 {r.prossimo ? <p>Prossimo {formattaGiorno(r.prossimo)}</p> : <p>Nessuna rata rimasta</p>}
               </div>
-            ) : piano.review_date ? (
-              <p className="text-callout text-muted dark:text-muted-dark mt-3">Revisione il {formattaGiorno(piano.review_date)}</p>
             ) : null}
           </div>
           {piano.type === "installment" ? <AnelloRata fatte={r.fatte} totali={r.totali} /> : null}

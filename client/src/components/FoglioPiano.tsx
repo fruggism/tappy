@@ -38,7 +38,6 @@ export default function FoglioPiano({
   );
   const [startDate, setStartDate] = useState(esistente?.start_date ?? oggiIso());
   const [endDate, setEndDate] = useState(esistente?.end_date ?? "");
-  const [reviewDate, setReviewDate] = useState(esistente?.review_date ?? "");
   const [categoryId, setCategoryId] = useState(esistente?.category_id ?? categories[0]?.id ?? "");
   const [cardId, setCardId] = useState(esistente?.card_id ?? cards[0]?.id ?? "");
   const [note, setNote] = useState(esistente?.note ?? "");
@@ -75,7 +74,7 @@ export default function FoglioPiano({
         interval_months: nMesi,
         start_date: startDate,
         end_date: type === "installment" ? endDate : endDate || null,
-        review_date: type === "subscription" ? reviewDate || null : null,
+        review_date: null,
         active: esistente?.active ?? true,
         note: note.trim() || null,
       };
@@ -169,18 +168,6 @@ export default function FoglioPiano({
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={campo} />
           </label>
         </div>
-
-        {type === "subscription" && (
-          <label className="flex flex-col gap-1 text-callout">
-            Ricordamelo il (facoltativo)
-            <input
-              type="date"
-              value={reviewDate}
-              onChange={(e) => setReviewDate(e.target.value)}
-              className={campo}
-            />
-          </label>
-        )}
 
         {categories.length > 0 && (
           <div className="flex flex-col gap-1">

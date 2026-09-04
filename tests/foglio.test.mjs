@@ -18,6 +18,7 @@ const modal = src("../client/src/components/TransactionModal.tsx");
 const movimenti = src("../client/src/views/Movimenti.tsx");
 const impegni = src("../client/src/views/Impegni.tsx");
 const foglio = src("../client/src/components/Foglio.tsx");
+const pianoForm = src("../client/src/components/FoglioPiano.tsx");
 const app = src("../client/src/App.tsx");
 
 t("Foglio esiste e usa un portal, non il viewport", foglio.includes("createPortal") && !/className="[^"]*fixed inset-0/.test(foglio));
@@ -31,6 +32,7 @@ t(
   "la lastra copre la pulsantiera, non galleggia sopra",
   app.indexOf("<FoglioRoot>") < app.indexOf("<Dock") && app.indexOf("</Dock>") < app.lastIndexOf("</FoglioRoot>")
 );
+t("niente «Ricordamelo il»", !pianoForm.includes("Ricordamelo") && !impegni.includes("Revisione il"));
 
 console.log(`\n${ok} ok, ${ko} falliti`);
 process.exit(ko ? 1 : 0);
