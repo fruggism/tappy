@@ -42,7 +42,7 @@ t("la ruota ha due anelli", gauge.includes("R_OUTER") && gauge.includes("R_INNER
 t("l'orologio non sta sul giorno", andamento.includes('period === "day"') && andamento.includes("orologio"));
 t("i previsti sono pallini sulle date", gauge.includes("programmati") && gauge.includes("rosso"));
 t("il giorno corrente è un pallino con il numero", gauge.includes("rBadge") && gauge.includes("etichette"));
-t("gli anelli hanno il nome sulla curva", gauge.includes("textPath") && gauge.includes("categorie") && gauge.includes("budget"));
+t("gli anelli non hanno etichette curve", !gauge.includes("categorie") && !gauge.includes("textPath"));
 t("le categorie si possono toccare per l'importo", gauge.includes("onPointerDown") && gauge.includes("onPointerEnter"));
 t("il tocco sulla categoria mostra anche la percentuale", gauge.includes("(tip.value / total) * 100"));
 t("la ruota riempie la prima schermata", andamento.includes('closest("main")') && andamento.includes("minHeight"));

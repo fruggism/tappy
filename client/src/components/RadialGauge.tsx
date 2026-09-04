@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { accent } from "../lib/accent";
 
 export interface GaugeSegment {
@@ -132,7 +132,6 @@ export default function RadialGauge({
   centerSub,
   orologio = null,
 }: Props) {
-  const uid = useId().replace(/:/g, "");
   const [mounted, setMounted] = useState(riduciMoto);
   const [focus, setFocus] = useState<string | null>(null);
   const total = segments.reduce((s, seg) => s + seg.value, 0);
@@ -183,11 +182,6 @@ export default function RadialGauge({
         className="overflow-visible"
         onPointerDown={() => setFocus(null)}
       >
-        <defs>
-          <path id={`${uid}-cat`} d={arco(R_OUTER + 14, 0.82, 1.18)} fill="none" />
-          {!orologio ? <path id={`${uid}-bud`} d={arco(R_INNER - 13, 0.82, 1.18)} fill="none" /> : null}
-        </defs>
-
         <circle
           cx={CX}
           cy={CY}
@@ -246,29 +240,6 @@ export default function RadialGauge({
         />
 
         {orologio && orologio.passi > 0 ? <DialGiorni orologio={orologio} rosso={rosso} /> : null}
-
-        <text
-          className="fill-black/40 dark:fill-white/40"
-          fontSize="7.5"
-          letterSpacing="1.1"
-          style={{ pointerEvents: "none" }}
-        >
-          <textPath href={`#${uid}-cat`} startOffset="50%" textAnchor="middle">
-            categorie
-          </textPath>
-        </text>
-        {!orologio && (
-          <text
-            className="fill-black/40 dark:fill-white/40"
-            fontSize="7.5"
-            letterSpacing="1.1"
-            style={{ pointerEvents: "none" }}
-          >
-            <textPath href={`#${uid}-bud`} startOffset="50%" textAnchor="middle">
-              budget
-            </textPath>
-          </text>
-        )}
       </svg>
 
       {tip && (
