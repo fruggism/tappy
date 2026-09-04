@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { accent } from "../lib/accent";
 import { formattaGiorno } from "../lib/piani";
 
@@ -174,7 +174,6 @@ export default function RadialGauge({
   centerLabel,
   orologio = null,
 }: Props) {
-  const uid = useId().replace(/:/g, "");
   const [mounted, setMounted] = useState(riduciMoto);
   const [centro, setCentro] = useState<Scelta | null>(null);
   const total = segments.reduce((s, seg) => s + seg.value, 0);
@@ -249,21 +248,6 @@ export default function RadialGauge({
         className="overflow-visible"
         onPointerDown={azzera}
       >
-        <defs>
-          {outer.map((seg) => {
-            const mid = (seg.start + seg.fraction / 2) % 1;
-            const capovolgi = mid > 0.25 && mid < 0.75;
-            return (
-              <path
-                key={`tp-${seg.id}`}
-                id={`${uid}-${seg.id}`}
-                d={arco(R_OUTER, seg.start, seg.start + seg.fraction, !capovolgi)}
-                fill="none"
-              />
-            );
-          })}
-        </defs>
-
         <circle
           cx={CX}
           cy={CY}
@@ -308,25 +292,25 @@ export default function RadialGauge({
         ))}
 
         {outer.map((seg) => {
-          const fs = 5.4;
-          const arcoPx = seg.fraction * 2 * Math.PI * R_OUTER;
-          if (arcoPx < seg.label.length * fs * 0.62 + 8) return null;
+          const mid = (seg.start + seg.fraction / 2) % 1;
+          const fs = 5.8;
+          const r = R_OUTER - 12;
+          const arcoPx = seg.fraction * 2 * Math.PI * r;
+          if (arcoPx < seg.label.length * fs * 0.55 + 8) return null;
+          const [x, y] = polo(r, mid);
           return (
             <text
               key={`lb-${seg.id}`}
+              x={x}
+              y={y}
+              textAnchor="middle"
+              dominantBaseline="central"
               fontSize={fs}
               fontWeight={600}
-              letterSpacing="0.25"
               fill={seg.color}
-              strokeLinejoin="round"
-              paintOrder="stroke"
-              strokeWidth="2.2"
-              className="stroke-surface dark:stroke-surface-dark"
               style={{ pointerEvents: "none" }}
             >
-              <textPath href={`#${uid}-${seg.id}`} startOffset="50%" textAnchor="middle">
-                {seg.label}
-              </textPath>
+              {seg.label}
             </text>
           );
         })}
