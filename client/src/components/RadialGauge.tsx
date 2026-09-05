@@ -322,7 +322,7 @@ export default function RadialGauge({
           fill="none"
           stroke={catColore}
           strokeWidth={SW_OUTER}
-          strokeLinecap="round"
+          strokeLinecap="butt"
           strokeDasharray={CIRC_OUTER}
           strokeDashoffset={CIRC_OUTER * (1 - (mounted && catMode ? catFrac : 0))}
           transform={`rotate(-90 ${CX} ${CY})`}
@@ -342,7 +342,7 @@ export default function RadialGauge({
           fill="none"
           stroke={innerColor}
           strokeWidth={SW_INNER}
-          strokeLinecap="round"
+          strokeLinecap="butt"
           strokeDasharray={CIRC_INNER}
           strokeDashoffset={CIRC_INNER * (1 - innerFrac)}
           transform={`rotate(-90 ${CX} ${CY})`}
@@ -367,7 +367,7 @@ export default function RadialGauge({
               textAnchor="middle"
               dominantBaseline="central"
               fill="#1a1a1a"
-              fontSize={pctTesto.length > 3 ? 6 : 6.6}
+              fontSize={pctTesto.length > 3 ? 4.2 : 4.8}
               fontWeight={700}
               className="tabular-nums"
             >
